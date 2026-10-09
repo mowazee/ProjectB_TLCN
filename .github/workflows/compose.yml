@@ -32,7 +32,7 @@ jobs:
       - run: docker compose run --rm --no-deps api python scripts/seed_demo.py --allow-demo-in-production
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install pytest pytest-playwright pymupdf pillow && python -m playwright install --with-deps chromium
+      - run: pip install pytest pytest-playwright pymupdf pillow -c backend/constraints.txt && python -m playwright install --with-deps chromium
       - run: pytest tests/e2e -q --browser chromium
       - name: Redis restart không mất session/hàng đợi (AOF)
         run: |

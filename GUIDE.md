@@ -16,8 +16,8 @@
 # Backend
 cd D:\ProjectB_TLCN\backend
 py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m pip install -r requirements-ocr.txt   # PaddleOCR (worker OCR); scikit-learn (P2-05) đã có trong requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-ocr.txt -c constraints.txt   # PaddleOCR (worker OCR); scikit-learn (P2-05) đã có trong requirements.txt
 Copy-Item .env.example .env   # rồi sửa DATABASE_URL, REDIS_URL, mật khẩu
 
 # Frontend

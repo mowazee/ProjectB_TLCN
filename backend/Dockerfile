@@ -11,10 +11,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
-COPY requirements.txt requirements-ocr.txt ./
+COPY requirements.txt requirements-ocr.txt constraints.txt ./
 ARG WITH_OCR=1
-RUN pip install -r requirements.txt \
-    && if [ "$WITH_OCR" = "1" ]; then pip install -r requirements-ocr.txt; fi
+RUN pip install -r requirements.txt -c constraints.txt \
+    && if [ "$WITH_OCR" = "1" ]; then pip install -r requirements-ocr.txt -c constraints.txt; fi
 
 COPY alembic.ini ./
 COPY alembic ./alembic

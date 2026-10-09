@@ -803,12 +803,13 @@ export interface paths {
             cookie?: never;
         };
         /** Health */
-        get: operations["health_health_get"];
+        get: operations["health_health_head"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
-        head?: never;
+        /** Health */
+        head: operations["health_health_head"];
         patch?: never;
         trace?: never;
     };
@@ -820,12 +821,13 @@ export interface paths {
             cookie?: never;
         };
         /** Ready */
-        get: operations["ready_api_health_ready_get"];
+        get: operations["ready_api_health_ready_head"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
-        head?: never;
+        /** Ready */
+        head: operations["ready_api_health_ready_head"];
         patch?: never;
         trace?: never;
     };
@@ -3655,7 +3657,7 @@ export interface operations {
             };
         };
     };
-    health_health_get: {
+    health_health_head: {
         parameters: {
             query?: never;
             header?: never;
@@ -3677,7 +3679,49 @@ export interface operations {
             };
         };
     };
-    ready_api_health_ready_get: {
+    health_health_head: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
+    ready_api_health_ready_head: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    ready_api_health_ready_head: {
         parameters: {
             query?: never;
             header?: never;

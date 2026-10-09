@@ -85,11 +85,12 @@ def create_app() -> FastAPI:
         for router in m.all_routers():
             app.include_router(router)
 
-    @app.get("/health", tags=["ops"])
+    # GET + HEAD: công cụ giám sát/uptime, load balancer và wait-on (CI) mặc định gửi HEAD
+    @app.api_route("/health", methods=["GET", "HEAD"], tags=["ops"])
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    @app.get("/api/health/ready", tags=["ops"])
+    @app.api_route("/api/health/ready", methods=["GET", "HEAD"], tags=["ops"])
     def ready() -> JSONResponse:
         checks = readiness()
         ok = all(v == "ok" for v in checks.values())
