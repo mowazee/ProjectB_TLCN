@@ -2,9 +2,17 @@ name: backend
 
 on:
   push:
+    branches: [main]
     paths: ["backend/**", ".github/workflows/backend.yml"]
+  # PR luôn chạy đủ (không lọc paths): check bắt buộc của branch protection không bị treo ở "pending"
   pull_request:
-    paths: ["backend/**", ".github/workflows/backend.yml"]
+  workflow_dispatch:
+
+concurrency:
+  # push thêm commit vào cùng PR/nhánh -> hủy lần chạy cũ (tiết kiệm phút Actions của repo private)
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 
 defaults:
   run:

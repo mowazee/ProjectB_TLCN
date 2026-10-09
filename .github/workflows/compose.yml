@@ -9,6 +9,11 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  # push thêm commit vào cùng PR/nhánh -> hủy lần chạy cũ (tiết kiệm phút Actions của repo private)
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compose:
     runs-on: ubuntu-latest

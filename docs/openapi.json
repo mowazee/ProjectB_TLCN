@@ -2797,7 +2797,7 @@
           "ops"
         ],
         "summary": "Health",
-        "operationId": "health_health_head",
+        "operationId": "health_health_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2808,30 +2808,7 @@
                     "type": "string"
                   },
                   "type": "object",
-                  "title": "Response Health Health Head"
-                }
-              }
-            }
-          }
-        }
-      },
-      "head": {
-        "tags": [
-          "ops"
-        ],
-        "summary": "Health",
-        "operationId": "health_health_head",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object",
-                  "title": "Response Health Health Head"
+                  "title": "Response Health Health Get"
                 }
               }
             }
@@ -2845,24 +2822,7 @@
           "ops"
         ],
         "summary": "Ready",
-        "operationId": "ready_api_health_ready_head",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      },
-      "head": {
-        "tags": [
-          "ops"
-        ],
-        "summary": "Ready",
-        "operationId": "ready_api_health_ready_head",
+        "operationId": "ready_api_health_ready_get",
         "responses": {
           "200": {
             "description": "Successful Response",

@@ -6,13 +6,24 @@ on:
   workflow_dispatch:
   pull_request:
 
+concurrency:
+  # push thêm commit vào cùng PR/nhánh -> hủy lần chạy cũ (tiết kiệm phút Actions của repo private)
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e:
+    name: e2e (${{ matrix.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        features: ["", "workflow,highlight,versions,rollback,notifications", "all"]
+        # Ứng dụng chỉ nhận tên cờ cụ thể (cờ lạ -> từ chối khởi động), nên ghi đủ danh sách thay vì "all"
+        include:
+          - { name: mvp, features: "" }
+          - { name: p2-dot-1, features: "workflow,highlight,versions,rollback,notifications" }
+          - name: p2-tat-ca
+            features: "workflow,highlight,handwriting,extraction,classification,versions,borrowing,notifications,imports,rollback"
     services:
       postgres:
         image: postgres:18

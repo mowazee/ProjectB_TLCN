@@ -2,9 +2,17 @@ name: frontend
 
 on:
   push:
+    branches: [main]
     paths: ["frontend/**", "docs/openapi.json", "backend/app/**", ".github/workflows/frontend.yml"]
+  # PR luôn chạy đủ (không lọc paths): check bắt buộc của branch protection không bị treo ở "pending"
   pull_request:
-    paths: ["frontend/**", "docs/openapi.json", "backend/app/**", ".github/workflows/frontend.yml"]
+  workflow_dispatch:
+
+concurrency:
+  # push thêm commit vào cùng PR/nhánh -> hủy lần chạy cũ (tiết kiệm phút Actions của repo private)
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 
 jobs:
   openapi-drift:
