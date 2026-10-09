@@ -2,9 +2,11 @@
 .env
 *.env.local
 backend/.env
-backend/storage/
-storage/
-.demo/
+# Thư mục file upload (STORAGE_ROOT). Dấu "/" đầu = chỉ thư mục ở đúng vị trí đó; KHÔNG viết "storage/"
+# trơn vì sẽ khớp nhầm cả code backend/app/shared/storage/.
+/backend/storage/
+/storage/
+/.demo/
 
 # Dữ liệu/báo cáo đánh giá (tài liệu thật của tập test)
 backend/eval/data/
