@@ -6,13 +6,24 @@ on:
   workflow_dispatch:
   pull_request:
 
+concurrency:
+  # push thêm commit vào cùng PR/nhánh -> hủy lần chạy cũ (tiết kiệm phút Actions của repo private)
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e:
+    name: e2e (${{ matrix.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        features: ["", "workflow,highlight,versions,rollback,notifications", "all"]
+        # Ứng dụng chỉ nhận tên cờ cụ thể (cờ lạ -> từ chối khởi động), nên ghi đủ danh sách thay vì "all"
+        include:
+          - { name: mvp, features: "" }
+          - { name: p2-dot-1, features: "workflow,highlight,versions,rollback,notifications" }
+          - name: p2-tat-ca
+            features: "workflow,highlight,handwriting,extraction,classification,versions,borrowing,notifications,imports,rollback"
     services:
       postgres:
         image: postgres:18
@@ -34,10 +45,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12", cache: pip, cache-dependency-path: "backend/requirements*.txt" }
+        with: { python-version: "3.12", cache: pip, cache-dependency-path: "backend/*.txt" }
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: npm, cache-dependency-path: frontend/package-lock.json }
-      - run: pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+      - run: pip install -r backend/requirements.txt -r backend/requirements-dev.txt -c backend/constraints.txt
       - run: python -m playwright install --with-deps chromium
       - name: Backend (migrate, seed, api, worker, beat)
         working-directory: backend

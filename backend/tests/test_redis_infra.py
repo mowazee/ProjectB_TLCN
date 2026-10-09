@@ -66,3 +66,13 @@ def test_cookie_secure_follows_env_unless_overridden():
     assert Settings(_env_file=None, APP_ENV="production").cookie_secure is True
     assert Settings(_env_file=None, APP_ENV="development").cookie_secure is False
     assert Settings(_env_file=None, APP_ENV="production", SESSION_COOKIE_SECURE=False).cookie_secure is False
+
+
+def test_health_endpoints_accept_get_and_head(make_app):
+    # Giám sát uptime / load balancer / wait-on trong CI gửi HEAD: 405 làm CI compose chờ mãi
+    from fastapi.testclient import TestClient
+
+    client = TestClient(make_app())
+    for path in ("/health", "/api/health/ready"):
+        assert client.get(path).status_code == 200
+        assert client.head(path).status_code == 200

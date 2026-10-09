@@ -66,7 +66,10 @@ def login(db: Session, login_id: str, password: str, ctx: RequestContext, old_se
     )
     db.commit()
     principal = users_q.get_principal(db, creds.user_id)
-    assert principal is not None  # noqa: S101 - vừa kiểm is_active ở trên
+    # Tài khoản vừa bị khóa/xóa giữa chừng: không để lại session. Không dùng assert (bị bỏ khi chạy python -O).
+    if principal is None:
+        store.revoke(session.session_id)
+        raise AuthenticationError("Tên đăng nhập hoặc mật khẩu không đúng", code="INVALID_CREDENTIALS")
     return LoginResult(principal, session)
 
 

@@ -95,6 +95,12 @@ def create_app() -> FastAPI:
         ok = all(v == "ok" for v in checks.values())
         return JSONResponse({"status": "ok" if ok else "degraded", "checks": checks}, status_code=200 if ok else 503)
 
+    # HEAD cho công cụ giám sát/uptime, load balancer và wait-on (CI) - chúng mặc định gửi HEAD.
+    # Route riêng, ẩn khỏi OpenAPI: một route nhiều method thì FastAPI đặt operationId theo phần tử
+    # đầu của một set (thứ tự ngẫu nhiên mỗi tiến trình) -> openapi.json không ổn định.
+    app.add_api_route("/health", health, methods=["HEAD"], include_in_schema=False)
+    app.add_api_route("/api/health/ready", ready, methods=["HEAD"], include_in_schema=False)
+
     @app.get("/metrics", include_in_schema=False)
     def metrics() -> Response:
         return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
