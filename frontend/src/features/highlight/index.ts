@@ -1,0 +1,1 @@
+export { highlightManifest } from "./manifest";

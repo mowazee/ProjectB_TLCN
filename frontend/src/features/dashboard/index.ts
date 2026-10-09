@@ -1,0 +1,1 @@
+export { dashboardManifest } from "./manifest";

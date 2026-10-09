@@ -1,0 +1,29 @@
+.wrap {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(160deg, #e0e7ff 0%, var(--c-bg) 60%);
+}
+.form {
+  width: min(380px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px;
+}
+.form h1 {
+  margin: 0;
+}
+.form p {
+  margin: 0;
+}
+.user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user span {
+  font-weight: 600;
+}

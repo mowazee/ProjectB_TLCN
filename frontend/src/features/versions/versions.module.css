@@ -1,0 +1,32 @@
+.diff {
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+  font-size: 13px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  max-height: 50vh;
+  overflow: auto;
+  background: #fff;
+}
+.line {
+  padding: 1px 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.changed {
+  background: #fffbeb;
+}
+.added {
+  background: #ecfdf5;
+  color: #065f46;
+}
+.removed {
+  background: #fef2f2;
+  color: #991b1b;
+}
+.ins {
+  background: #a7f3d0;
+  text-decoration: none;
+}
+.del {
+  background: #fecaca;
+}

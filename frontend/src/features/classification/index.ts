@@ -1,0 +1,1 @@
+export { classificationManifest } from "./manifest";

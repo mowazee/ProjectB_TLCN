@@ -1,0 +1,10 @@
+# Build context gốc chỉ dùng cho image web (frontend/Dockerfile). Chỉ cho vào đúng thứ cần:
+# không gửi .demo\ (dữ liệu Postgres demo), .env, node_modules, .venv vào Docker.
+*
+!frontend
+!docs/openapi.json
+!infra/nginx
+frontend/node_modules
+frontend/dist
+frontend/coverage
+frontend/.env*

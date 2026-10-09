@@ -1,0 +1,26 @@
+# DEV: docker compose -f compose.yaml -f compose.dev.yaml up -d postgres redis api worker beat
+# - mở cổng Postgres/Redis/API cho máy dev (chỉ 127.0.0.1). Postgres dùng 55433 vì 5432 thường đã có
+#   PostgreSQL cài trên Windows.
+# - API tự reload theo mã nguồn mount vào; worker cũng chạy code mount (restart worker sau khi sửa).
+# - Frontend chạy ngoài Docker: cd frontend && npm run dev (Vite proxy /api -> http://127.0.0.1:8000).
+# - Chạy test backend trên Redis thật: $env:TEST_REDIS_URL="redis://127.0.0.1:6379/15"; pytest
+services:
+  postgres:
+    ports: ["127.0.0.1:55433:5432"]
+  redis:
+    ports: ["127.0.0.1:6379:6379"]
+  api:
+    environment:
+      APP_ENV: development
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/app"]
+    volumes:
+      - ./backend/app:/app/app
+      - storage:/data/storage
+    ports: ["127.0.0.1:8000:8000"]
+  worker:
+    environment:
+      APP_ENV: development
+    volumes:
+      - ./backend/app:/app/app
+      - storage:/data/storage
+      - models:/home/app/.paddlex

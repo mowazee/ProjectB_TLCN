@@ -1,0 +1,130 @@
+# Triển khai bằng Docker Compose (NFR-05, Đặc tả đề tài v0.5 mục 2):
+#   docker compose up -d                 lõi + P2 nhẹ (web, api, worker OCR in, beat, postgres, redis)
+#   docker compose --profile hw up -d    + worker chữ viết tay (P2-03, hàng đợi ocr_hw)
+#   docker compose --profile rag up -d   P3 (học kỳ sau - chưa có dịch vụ)
+# Biến môi trường lấy từ .env ở thư mục gốc (mẫu: .env.docker.example; scripts\docker_start.ps1 tự tạo).
+# KHÔNG commit .env.
+#
+# Redis giữ hai vai trò: session đăng nhập (ADR-AUTH-003) và broker Celery. Postgres/Redis không mở
+# cổng ra ngoài (chỉ mạng nội bộ compose); compose.dev.yaml mở cổng cho máy dev.
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-dms}:${POSTGRES_PASSWORD:?đặt POSTGRES_PASSWORD trong .env}@postgres:5432/${POSTGRES_DB:-dms}
+  REDIS_URL: redis://redis:6379/0
+  CELERY_BROKER_URL: ""
+  SESSION_BACKEND: redis
+  STORAGE_ROOT: /data/storage
+  APP_ENV: ${APP_ENV:-production}
+
+x-backend: &backend
+  build: { context: ./backend }
+  image: docso-backend:0.5
+  env_file: .env
+  environment: *backend-env
+  volumes:
+    - storage:/data/storage
+    - models:/home/app/.paddlex
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+  restart: unless-stopped
+  logging: &logging
+    driver: json-file
+    options: { max-size: "20m", max-file: "5" }
+
+# worker/beat dùng chung: chờ migrate xong VÀ Redis sẵn sàng (khai báo depends_on riêng sẽ thay
+# toàn bộ depends_on của x-backend nên phải liệt kê đủ).
+x-after-migrate: &after-migrate
+  migrate: { condition: service_completed_successfully }
+  redis: { condition: service_healthy }
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?đặt POSTGRES_PASSWORD trong .env}
+      POSTGRES_DB: ${POSTGRES_DB:-dms}
+    volumes: [pgdata:/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dms} -d ${POSTGRES_DB:-dms}"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+
+  redis:
+    image: redis:8-alpine
+    # AOF: session + message trong hàng đợi còn sau khi restart. noeviction: hết RAM thì báo lỗi
+    # chứ không âm thầm xóa message/session (broker Celery yêu cầu).
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory-policy", "noeviction"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+
+  migrate:
+    <<: *backend
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    healthcheck: { disable: true }
+
+  api:
+    <<: *backend
+    depends_on: *after-migrate
+
+  worker:
+    <<: *backend
+    # -P solo: nạp model Paddle một lần trong chính tiến trình xử lý (prefork = fork sau khi nạp
+    # Paddle/OpenMP, dễ treo). Tăng thông lượng bằng cách scale: docker compose up -d --scale worker=2
+    command: ["celery", "-A", "app.workers.celery_app:celery_app", "worker", "-Q", "default,ocr", "-P", "solo", "-l", "info"]
+    environment:
+      <<: *backend-env
+      WORKER_OCR_PROFILES: print
+    depends_on: *after-migrate
+    # Job đang chạy dở khi dừng: acks_late -> message được giao lại, runner claim theo DB nên không trùng
+    stop_grace_period: 60s
+    # Pool solo không trả lời ping khi đang OCR -> không dùng "celery inspect ping" làm healthcheck.
+    # Worker chết (vd. không nạp được model) thì thoát -> restart: unless-stopped khởi động lại.
+    healthcheck: { disable: true }
+
+  worker-hw:
+    <<: *backend
+    profiles: [hw]
+    command: ["celery", "-A", "app.workers.celery_app:celery_app", "worker", "-Q", "ocr_hw", "-P", "solo", "-l", "info"]
+    environment:
+      <<: *backend-env
+      WORKER_OCR_PROFILES: handwriting
+    depends_on: *after-migrate
+    stop_grace_period: 60s
+    healthcheck: { disable: true }
+
+  beat:
+    <<: *backend
+    command: ["celery", "-A", "app.workers.celery_app:celery_app", "beat", "-l", "info", "-s", "/tmp/celerybeat-schedule"]
+    volumes: []
+    depends_on: *after-migrate
+    healthcheck: { disable: true }
+
+  web:
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    image: docso-web:0.5
+    ports: ["${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8080}:80"]
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *logging
+
+  # P3 (học kỳ sau): vector store + worker EMBED. Chỉ giữ chỗ cho profile, chưa triển khai.
+  # rag-worker:
+  #   <<: *backend
+  #   profiles: [rag]
+
+volumes:
+  pgdata:
+  redisdata:
+  storage:
+  models:

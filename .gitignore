@@ -1,0 +1,36 @@
+# Bí mật và dữ liệu thật (NFR-02): không commit
+.env
+*.env.local
+backend/.env
+backend/storage/
+storage/
+.demo/
+
+# Dữ liệu/báo cáo đánh giá (tài liệu thật của tập test)
+backend/eval/data/
+backend/eval/reports/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.import_linter_cache/
+.coverage
+htmlcov/
+celerybeat-schedule*
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/coverage/
+test-results/
+playwright-report/
+
+# IDE / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

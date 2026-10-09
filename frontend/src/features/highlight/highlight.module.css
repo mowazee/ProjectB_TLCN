@@ -1,0 +1,26 @@
+.box {
+  position: absolute;
+  background: var(--c-highlight);
+  border: 1px solid rgba(202, 138, 4, 0.8);
+  border-radius: 2px;
+}
+.active {
+  background: rgba(249, 115, 22, 0.35);
+  border: 2px solid #ea580c;
+}
+.controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 16px);
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  pointer-events: auto;
+}

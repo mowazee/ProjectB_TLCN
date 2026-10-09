@@ -1,0 +1,12 @@
+# Chuẩn hóa xuống dòng: trong repo luôn LF (CI/Docker là Linux); script Windows giữ CRLF khi checkout.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Nhị phân: không sửa, không diff văn bản
+*.docx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.zip binary

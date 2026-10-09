@@ -1,0 +1,64 @@
+name: e2e
+
+# Playwright xuyên React -> API -> worker -> DB (NFR-07). Ma trận cờ P2 (NFR-09).
+# Dùng PDF có lớp chữ nên worker không cần nạp model OCR (OCR_PRELOAD_ON_START=false).
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: ["", "workflow,highlight,versions,rollback,notifications", "all"]
+    services:
+      postgres:
+        image: postgres:18
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: dms }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
+      redis:
+        image: redis:8
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dms
+      REDIS_URL: redis://localhost:6379/0
+      FEATURES_ENABLED: ${{ matrix.features }}
+      STORAGE_ROOT: ${{ github.workspace }}/storage
+      OCR_PRELOAD_ON_START: "false"
+      DEMO_ADMIN_PASSWORD: Admin@12345
+      ALLOWED_ORIGINS: http://127.0.0.1:8080
+      BASE_URL: http://127.0.0.1:8080
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip, cache-dependency-path: "backend/requirements*.txt" }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+      - run: python -m playwright install --with-deps chromium
+      - name: Backend (migrate, seed, api, worker, beat)
+        working-directory: backend
+        run: |
+          alembic upgrade head
+          python scripts/seed_demo.py
+          nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 > ../api.log 2>&1 &
+          nohup celery -A app.workers.celery_app:celery_app worker -Q default,ocr -P solo -l info > ../worker.log 2>&1 &
+          nohup celery -A app.workers.celery_app:celery_app beat -l info > ../beat.log 2>&1 &
+      - name: Frontend (build + preview, proxy /api)
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          nohup npx vite preview --host 127.0.0.1 --port 8080 > ../web.log 2>&1 &
+          npx --yes wait-on -t 60000 http://127.0.0.1:8080 http://127.0.0.1:8000/health
+      - run: pytest tests/e2e -q --browser chromium
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs-${{ strategy.job-index }}
+          path: |
+            *.log
+            test-results/

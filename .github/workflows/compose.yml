@@ -1,0 +1,51 @@
+name: compose
+
+# Kiểm tra bản triển khai thật: build image, docker compose up (Postgres + Redis + API + worker + beat
+# + Nginx), rồi chạy E2E Playwright qua Nginx :8080 (NFR-05, NFR-07).
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ["compose*.yaml", "backend/Dockerfile", "frontend/Dockerfile", "infra/**", ".github/workflows/compose.yml"]
+  push:
+    branches: [main]
+
+jobs:
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      BASE_URL: http://127.0.0.1:8080
+    steps:
+      - uses: actions/checkout@v4
+      - name: .env cho CI
+        run: |
+          # E2E đăng nhập bằng Admin@12345 (tests/e2e/conftest.py)
+          sed -e "s/^DEMO_ADMIN_PASSWORD=.*/DEMO_ADMIN_PASSWORD=Admin@12345/" \
+              -e "s/__RANDOM__/ci$(openssl rand -hex 12)/" .env.docker.example > .env
+          # E2E dùng PDF có lớp chữ: không cần nạp model OCR khi khởi động worker
+          echo "OCR_PRELOAD_ON_START=false" >> .env
+      - run: docker compose config --quiet
+      - run: docker compose build
+      - run: docker compose up -d
+      - name: Chờ API sẵn sàng qua Nginx
+        run: npx --yes wait-on -t 300000 http://127.0.0.1:8080/api/health/ready
+      - run: docker compose run --rm --no-deps api python scripts/seed_demo.py --allow-demo-in-production
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pytest pytest-playwright pymupdf pillow && python -m playwright install --with-deps chromium
+      - run: pytest tests/e2e -q --browser chromium
+      - name: Redis restart không mất session/hàng đợi (AOF)
+        run: |
+          docker compose restart redis
+          npx --yes wait-on -t 60000 http://127.0.0.1:8080/api/health/ready
+      - if: failure()
+        run: docker compose ps && docker compose logs --no-color > compose.log
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-logs
+          path: |
+            compose.log
+            test-results/
+      - if: always()
+        run: docker compose down --volumes

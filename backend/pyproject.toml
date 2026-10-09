@@ -1,0 +1,113 @@
+[project]
+name = "docso-backend"
+version = "0.5.0"
+description = "Backend FastAPI - Hệ thống số hóa hồ sơ tài liệu (SDD v0.5)"
+requires-python = ">=3.12,<3.14"
+
+# ------------------------------------------------------------------ ruff (lint + format)
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "E501"]
+"eval/**" = ["S101", "S311"]  # random chỉ để chia/sinh dữ liệu đánh giá
+"scripts/**" = ["S105", "E402"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers -m 'not ocr'"
+markers = ["ocr: test cần PaddleOCR thật (chậm)"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "eval"]
+
+# ------------------------------------------------------------------ import-linter: R1-R10 (Đặc tả đề tài 4.4)
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "R1-R4: 4 lớp trong mỗi module (presentation -> application -> infrastructure/domain)"
+type = "layers"
+containers = [
+    "app.modules.auth", "app.modules.users", "app.modules.categories", "app.modules.documents",
+    "app.modules.jobs", "app.modules.ocr", "app.modules.search", "app.modules.dashboard", "app.modules.audit",
+    "app.modules.notifications", "app.modules.workflow", "app.modules.extraction", "app.modules.classification",
+    "app.modules.borrowing", "app.modules.imports", "app.modules.rollback",
+]
+layers = ["presentation", "application", "infrastructure", "domain"]
+exhaustive = false
+
+[[tool.importlinter.contracts]]
+name = "R3: domain là Python thuần (không FastAPI/SQLAlchemy/Celery)"
+type = "forbidden"
+source_modules = [
+    "app.modules.users.domain", "app.modules.documents.domain", "app.modules.jobs.domain",
+    "app.modules.ocr.domain", "app.modules.search.domain", "app.modules.workflow.domain",
+    "app.modules.extraction.domain", "app.modules.classification.domain", "app.modules.borrowing.domain",
+    "app.modules.imports.domain",
+]
+forbidden_modules = ["fastapi", "sqlalchemy", "celery"]
+
+[[tool.importlinter.contracts]]
+name = "R2: application không import FastAPI"
+type = "forbidden"
+source_modules = [
+    "app.modules.auth.application", "app.modules.users.application", "app.modules.categories.application",
+    "app.modules.documents.application", "app.modules.jobs.application", "app.modules.ocr.application",
+    "app.modules.search.application", "app.modules.dashboard.application", "app.modules.audit.application",
+    "app.modules.notifications.application", "app.modules.workflow.application",
+    "app.modules.extraction.application", "app.modules.classification.application",
+    "app.modules.borrowing.application", "app.modules.imports.application", "app.modules.rollback.application",
+]
+forbidden_modules = ["fastapi"]
+
+[[tool.importlinter.contracts]]
+name = "R5: module chỉ dùng infrastructure của chính nó"
+type = "independence"
+modules = [
+    "app.modules.users.infrastructure", "app.modules.categories.infrastructure",
+    "app.modules.documents.infrastructure", "app.modules.jobs.infrastructure",
+    "app.modules.ocr.infrastructure", "app.modules.search.infrastructure", "app.modules.audit.infrastructure",
+    "app.modules.notifications.infrastructure", "app.modules.workflow.infrastructure",
+    "app.modules.extraction.infrastructure", "app.modules.borrowing.infrastructure",
+]
+ignore_imports = [
+    # P2-07 gắn cột documents.storage_location_id: cần bảng documents đã nạp (chỉ dùng metadata)
+    "app.modules.borrowing.infrastructure.models -> app.modules.documents.infrastructure.models",
+]
+
+[[tool.importlinter.contracts]]
+name = "R9: lõi MVP không import module P2/P3"
+type = "forbidden"
+source_modules = [
+    "app.modules.auth", "app.modules.users", "app.modules.categories", "app.modules.documents",
+    "app.modules.jobs", "app.modules.ocr.application", "app.modules.ocr.domain", "app.modules.ocr.infrastructure",
+    "app.modules.ocr.presentation.router", "app.modules.ocr.module", "app.modules.search.application.search",
+    "app.modules.search.application.index", "app.modules.search.domain.normalize",
+    "app.modules.search.infrastructure", "app.modules.search.presentation.router",
+    "app.modules.search.module", "app.modules.dashboard", "app.modules.audit", "app.shared",
+]
+forbidden_modules = [
+    "app.modules.workflow", "app.modules.notifications", "app.modules.borrowing", "app.modules.extraction",
+    "app.modules.classification", "app.modules.imports", "app.modules.rollback",
+    "app.modules.search.highlight_module", "app.modules.ocr.handwriting_module", "app.modules.ocr.versions_module",
+]
+
