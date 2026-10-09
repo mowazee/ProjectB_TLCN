@@ -97,5 +97,9 @@
   Docker; (3) healthcheck web luôn unhealthy (localhost → IPv6); (4) Redis treo làm request chờ 10s → timeout 2s.
   Lưu ý: cookie session `Secure` ở production — trình duyệt chấp nhận qua http://127.0.0.1, công cụ như httpx thì không.
   Demo mục 3 vẫn dùng session bộ nhớ + broker PostgreSQL (không cần Docker).
-- **CI** đã viết nhưng chưa chạy trên GitHub (thư mục chưa là git repo).
+- **CI (10/10/2026):** repo private github.com/mowazee/ProjectB_TLCN; 4 workflow chạy xanh (14 check: lint, 6 tổ hợp
+  test trên PostgreSQL + Redis, migrations, frontend build, openapi-drift, 3 tổ hợp e2e, compose). Lần chạy đầu phát
+  hiện và đã sửa: `.gitignore` bỏ sót `backend/app/shared/storage/`; phiên bản thư viện CI ≠ máy dev (→
+  `backend/constraints.txt`); health không nhận HEAD; openapi.json không ổn định; e2e dùng cờ "all"; bandit assert.
+  Chưa bật được branch protection (GitHub Free + repo private). **CD chưa làm** (chưa có server).
 - Chưa có kế hoạch sao lưu/khôi phục tự động (NFR-03) — GUIDE mục 6 mới mô tả thủ công.

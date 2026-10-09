@@ -161,7 +161,48 @@ docker compose exec redis redis-cli info keyspace   # session/hàng đợi trong
 
 CI `compose.yml` chạy đúng quy trình này trên GitHub (build → up → E2E qua Nginx → restart Redis).
 
-## 7. Sự cố thường gặp
+## 7. Git, GitHub và CI
+
+Repo private: https://github.com/mowazee/ProjectB_TLCN (nhánh chính `main`).
+
+### 7.1 Quy trình làm việc (nhánh + Pull Request)
+
+```powershell
+git switch main; git pull                        # luôn bắt đầu từ main mới nhất
+git switch -c feat/p2-05-nguong-phan-loai        # 1 nhánh / 1 việc: feat/..., fix/..., docs/..., ci/...
+# ... sửa code, chạy test local (mục 5) ...
+git add -A; git commit -m "feat(classification): ..."
+git push -u origin HEAD
+gh pr create --fill                              # hoặc mở PR trên web
+gh pr checks --watch                             # xem CI chạy
+# CI xanh + 1 bạn review "Approve" -> Squash and merge trên web (hoặc: gh pr merge --squash --delete-branch)
+git switch main; git pull
+```
+
+Quy ước nhóm: **không push thẳng vào `main`**, **không merge khi CI đỏ**, mỗi PR có ít nhất 1 người review.
+Tài khoản GitHub Free + repo private không bật được branch protection để GitHub tự chặn → cần tự giữ kỷ luật,
+hoặc nâng cấp GitHub Pro (miễn phí cho sinh viên qua GitHub Student Developer Pack) rồi bật
+Settings → Branches → Add rule `main`: Require a pull request, Require status checks (lint, test, migrations,
+build, openapi-drift, e2e (mvp), compose).
+
+### 7.2 CI chạy những gì
+
+| Workflow | Khi nào | Kiểm tra |
+|---|---|---|
+| `backend.yml` | mọi PR; push `main` khi đổi backend | ruff, mypy, import-linter, bandit, pip-audit (báo cáo); pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật; Alembic upgrade → check → downgrade → upgrade |
+| `frontend.yml` | mọi PR; push `main` khi đổi frontend/API | ESLint, tsc, Prettier, Vitest, build; `openapi-drift` (types React phải khớp API) |
+| `e2e.yml` | mọi PR | Playwright trên hệ thống thật × 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) |
+| `compose.yml` | PR đổi Docker/infra; push `main` | build image → `docker compose up` → E2E qua Nginx → restart Redis |
+
+Khi CI đỏ: mở PR → tab Checks → job đỏ → bước đỏ để xem log; hoặc `gh run view <id> --log-failed`.
+
+### 7.3 Khóa phiên bản thư viện
+
+`backend/constraints.txt` ghi đúng phiên bản đã kiểm thử; CI, Dockerfile và mục 2 đều cài với `-c constraints.txt`
+(không có nó, CI từng tự kéo pydantic/FastAPI mới hơn máy dev → kết quả khác nhau). Nâng cấp thư viện = một PR riêng:
+sửa phiên bản trong file, chạy test, để CI xác nhận.
+
+## 8. Sự cố thường gặp
 
 | Hiện tượng | Nguyên nhân / cách xử lý |
 |---|---|
