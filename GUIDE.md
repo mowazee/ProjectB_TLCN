@@ -180,10 +180,24 @@ git switch main; git pull
 ```
 
 Quy ước nhóm: **không push thẳng vào `main`**, **không merge khi CI đỏ**, mỗi PR có ít nhất 1 người review.
-Tài khoản GitHub Free + repo private không bật được branch protection để GitHub tự chặn → cần tự giữ kỷ luật,
-hoặc nâng cấp GitHub Pro (miễn phí cho sinh viên qua GitHub Student Developer Pack) rồi bật
-Settings → Branches → Add rule `main`: Require a pull request, Require status checks (lint, test, migrations,
-build, openapi-drift, e2e (mvp), compose).
+
+Repo public nên GitHub cho dùng ruleset. Ruleset `protect-main` (Settings → Rules → Rulesets, từ 13/10/2026) tự chặn:
+
+| Luật | Ý nghĩa |
+|---|---|
+| Require a pull request | Không push thẳng vào `main`; cần **1 approve**, phải resolve hết comment; push thêm commit thì approve cũ bị hủy |
+| Allowed merge methods: Squash | Chỉ "Squash and merge": cả PR thành 1 commit trên `main` |
+| Require linear history | Lịch sử `main` thẳng, không có merge commit |
+| Block force pushes, Restrict deletions | Không force-push, không xóa `main` |
+| Bypass: Admin (chỉ qua PR) | Admin được merge PR khi chưa đủ điều kiện (vd. làm một mình, không ai approve); vẫn không push thẳng được |
+
+Ruleset **chưa có** "Require status checks to pass": CI đỏ vẫn bấm merge được, nên quy ước "không merge khi CI đỏ"
+vẫn phải tự giữ. Muốn GitHub tự chặn: sửa ruleset → bật *Require status checks to pass* → thêm các check
+`lint`, `test`, `migrations`, `build`, `openapi-drift`, `e2e (mvp)` (không thêm `compose`: workflow này chỉ chạy
+khi PR đổi Docker/infra, check bắt buộc mà không chạy sẽ treo PR ở "pending").
+
+Squash merge làm commit trên nhánh khác commit trên `main` (cùng nội dung), nên sau khi merge xóa nhánh bằng
+`git branch -D <nhánh>` (hoặc `gh pr merge --squash --delete-branch` làm luôn).
 
 ### 7.2 CI chạy những gì
 

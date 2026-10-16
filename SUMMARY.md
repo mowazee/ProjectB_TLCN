@@ -104,5 +104,6 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh
   test trên PostgreSQL + Redis, migrations, frontend build, openapi-drift, 3 tổ hợp e2e, compose). Lần chạy đầu phát
   hiện và đã sửa: `.gitignore` bỏ sót `backend/app/shared/storage/`; phiên bản thư viện CI ≠ máy dev (→
   `backend/constraints.txt`); health không nhận HEAD; openapi.json không ổn định; e2e dùng cờ "all"; bandit assert.
-  Chưa bật được branch protection (GitHub Free + repo private). **CD chưa làm** (chưa có server).
+  Từ 13/10 repo public, ruleset `protect-main` chặn push thẳng/force-push vào `main`, bắt PR + 1 approve, chỉ
+  squash merge (GUIDE mục 7.1); chưa bắt buộc CI xanh trước khi merge. **CD chưa làm** (chưa có server).
 - Chưa có kế hoạch sao lưu/khôi phục tự động (NFR-03) — GUIDE mục 6 mới mô tả thủ công.
