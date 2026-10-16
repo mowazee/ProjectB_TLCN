@@ -37,7 +37,127 @@
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.16);
   --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
   --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Nền nút chính (chữ trắng): tách khỏi --c-primary vì ở nền tối màu nhấn cần sáng hơn,
+     còn nền nút phải đủ tối để chữ trắng dễ đọc. */
+  --c-primary-solid: #2563eb;
+  --c-primary-solid-hover: #1d4ed8;
+  --c-header-bg: rgba(255, 255, 255, 0.85);
+  --c-row-hover: #f7f9fd;
+  --c-neutral-bg: #eef2f7;
+  --c-neutral-text: #475569;
+  --c-placeholder: #94a3b8;
+  --c-scrim: rgba(15, 23, 42, 0.45);
+  /* Trang scan là "tờ giấy": nền trắng ở cả hai chế độ (nội dung, không phải giao diện) */
+  --c-paper: #ffffff;
+
+  /* Ô số liệu dashboard: cặp nền/biểu tượng */
+  --tone-blue-bg: #e8efff;
+  --tone-blue-fg: #2563eb;
+  --tone-violet-bg: #efecfd;
+  --tone-violet-fg: #6250d6;
+  --tone-teal-bg: #e3f6ef;
+  --tone-teal-fg: #0f8a5f;
+  --tone-amber-bg: #fdf3dc;
+  --tone-amber-fg: #b45309;
+  --tone-red-bg: #fdeaea;
+  --tone-red-fg: #c62828;
+  --tone-slate-bg: #eef2f7;
+  --tone-slate-fg: #64748b;
+
+  /* So sánh phiên bản (P2-06) */
+  --c-diff-add-bg: #ecfdf5;
+  --c-diff-add-fg: #065f46;
+  --c-diff-add-mark: #a7f3d0;
+  --c-diff-del-bg: #fef2f2;
+  --c-diff-del-fg: #991b1b;
+  --c-diff-del-mark: #fecaca;
+  --c-diff-chg-bg: #fffbeb;
+
+  /* Biểu đồ: slot 1 bảng màu dữ liệu + lưới/trục nhạt (Chart.js đọc qua cssVar) */
+  --chart-series-1: #2a78d6;
+  --chart-series-1-hover: #1c5cab;
+  --chart-grid: #eef2f7;
+  --chart-ink: #334155;
+  --chart-ink-muted: #64748b;
+  --chart-tooltip-bg: #0f172a;
+  --chart-tooltip-fg: #ffffff;
   color-scheme: light;
+}
+
+/* ---------------------------------------------------------------- Nền tối
+ * Mỗi giá trị chọn riêng cho nền tối (không đảo màu tự động): chữ đủ tương phản trên --c-surface,
+ * màu trạng thái sáng hơn, nền "soft" là màu trong suốt để hòa với bề mặt tối.
+ */
+:root[data-theme="dark"] {
+  --c-bg: #0a0f1c;
+  --c-surface: #111827;
+  --c-surface-2: #172033;
+  --c-border: #243049;
+  --c-border-strong: #34425f;
+  --c-text: #e7ecf4;
+  --c-text-2: #c5cedc;
+  --c-muted: #8d9ab0;
+  --c-primary: #6ea2f8;
+  --c-primary-hover: #93bbfb;
+  --c-primary-soft: rgba(96, 150, 247, 0.16);
+  --c-primary-ring: rgba(96, 150, 247, 0.35);
+  --c-primary-solid: #2563eb;
+  --c-primary-solid-hover: #3b74ee;
+  --c-danger: #f08484;
+  --c-danger-soft: rgba(240, 132, 132, 0.13);
+  --c-danger-border: rgba(240, 132, 132, 0.38);
+  --c-warn: #e9b65a;
+  --c-warn-soft: rgba(233, 182, 90, 0.13);
+  --c-ok: #55c992;
+  --c-ok-soft: rgba(85, 201, 146, 0.13);
+  --c-highlight: rgba(250, 204, 21, 0.4);
+
+  --c-side-bg: #0c1322;
+  --c-side-bg-2: #0e1628;
+  --c-side-text: #a3b1c6;
+  --c-side-muted: #5f6f8a;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
+
+  --c-header-bg: rgba(17, 24, 39, 0.82);
+  --c-row-hover: #162034;
+  --c-neutral-bg: #1f2a3f;
+  --c-neutral-text: #b4c0d2;
+  --c-placeholder: #66748c;
+  --c-scrim: rgba(2, 6, 15, 0.65);
+
+  --tone-blue-bg: rgba(96, 150, 247, 0.15);
+  --tone-blue-fg: #7fadf9;
+  --tone-violet-bg: rgba(144, 133, 233, 0.16);
+  --tone-violet-fg: #a99ff0;
+  --tone-teal-bg: rgba(85, 201, 146, 0.14);
+  --tone-teal-fg: #5fd09b;
+  --tone-amber-bg: rgba(233, 182, 90, 0.15);
+  --tone-amber-fg: #edbf6b;
+  --tone-red-bg: rgba(240, 132, 132, 0.15);
+  --tone-red-fg: #f39a9a;
+  --tone-slate-bg: #1f2a3f;
+  --tone-slate-fg: #93a1b8;
+
+  --c-diff-add-bg: rgba(85, 201, 146, 0.12);
+  --c-diff-add-fg: #7ddcab;
+  --c-diff-add-mark: rgba(85, 201, 146, 0.35);
+  --c-diff-del-bg: rgba(240, 132, 132, 0.12);
+  --c-diff-del-fg: #f5a3a3;
+  --c-diff-del-mark: rgba(240, 132, 132, 0.35);
+  --c-diff-chg-bg: rgba(233, 182, 90, 0.1);
+
+  --chart-series-1: #3987e5;
+  --chart-series-1-hover: #6da7ec;
+  --chart-grid: #222d43;
+  --chart-ink: #c5cedc;
+  --chart-ink-muted: #8d9ab0;
+  --chart-tooltip-bg: #e7ecf4;
+  --chart-tooltip-fg: #0f172a;
+  color-scheme: dark;
 }
 
 * {
@@ -145,14 +265,14 @@ textarea {
   cursor: not-allowed;
 }
 .btn-primary {
-  background: var(--c-primary);
-  border-color: var(--c-primary);
+  background: var(--c-primary-solid);
+  border-color: var(--c-primary-solid);
   color: #fff;
   box-shadow: 0 1px 2px rgba(37, 99, 235, 0.3);
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--c-primary-hover);
-  border-color: var(--c-primary-hover);
+  background: var(--c-primary-solid-hover);
+  border-color: var(--c-primary-solid-hover);
   color: #fff;
 }
 .btn-danger {
@@ -200,7 +320,7 @@ textarea {
 }
 .input::placeholder,
 .textarea::placeholder {
-  color: #94a3b8;
+  color: var(--c-placeholder);
 }
 .input:hover,
 .select:hover,
@@ -266,7 +386,7 @@ textarea {
   transition: background 0.12s var(--ease);
 }
 .table tbody tr:hover {
-  background: #f7f9fd;
+  background: var(--c-row-hover);
 }
 
 /* ---------------------------------------------------------------- Tiện ích */

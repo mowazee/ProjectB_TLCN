@@ -3,6 +3,7 @@ import { Suspense, useState, type FormEvent } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router";
 
 import { UserMenu } from "@/features/auth";
+import { ThemeToggle } from "@/shared/components/ThemeToggle";
 import { Loading } from "@/shared/components/ui";
 import { SlotList, useSlots } from "@/shared/slots";
 import type { NavItem } from "@/shared/types/feature";
@@ -82,6 +83,7 @@ export function AppLayout({ nav }: { nav: NavItem[] }) {
           </button>
           <QuickSearch />
           <div className="grow" />
+          <ThemeToggle />
           <SlotList items={headerItems} props={{}} />
           <UserMenu />
         </header>

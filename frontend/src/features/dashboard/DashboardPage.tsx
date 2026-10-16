@@ -21,20 +21,17 @@ import type { Dashboard } from "@/shared/api/types";
 import { EmptyState, ErrorBox, Loading, PageHeader } from "@/shared/components/ui";
 import { JOB_STATUS_LABELS, formatConfidence } from "@/shared/lib/format";
 import { useSlots } from "@/shared/slots";
+import { cssVar, useTheme } from "@/shared/theme";
 
 import s from "./dashboard.module.css";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 
-/** Một chuỗi số liệu -> một màu (slot 1 của bảng màu biểu đồ); lưới/trục nhạt để dữ liệu nổi lên. */
-const SERIES_1 = "#2a78d6";
-const GRID = "#eef2f7";
-const INK_MUTED = "#64748b";
-
-/** Trạng thái job: màu trạng thái chuẩn, luôn kèm icon + nhãn (không dùng màu đơn thuần). */
+/** Trạng thái job: màu trạng thái chuẩn (giống nhau ở hai chế độ), luôn kèm icon + nhãn. "Đang chờ" cố ý
+ *  là xám trung tính; "Đang xử lý" dùng màu chuỗi dữ liệu theo chế độ sáng/tối. */
 const JOB_STATES: { key: string; icon: LucideIcon; color: string }[] = [
   { key: "completed", icon: CircleCheck, color: "#0ca30c" },
-  { key: "processing", icon: LoaderCircle, color: "#2a78d6" },
+  { key: "processing", icon: LoaderCircle, color: "var(--chart-series-1)" },
   { key: "queued", icon: Clock3, color: "#94a3b8" },
   { key: "failed", icon: CircleX, color: "#d03b3b" },
 ];
@@ -81,6 +78,7 @@ function Stat({
 /** UC-07 (FR-08): số liệu theo phạm vi quyền; dữ liệu rỗng hiển thị 0; confidence KHÔNG gọi là accuracy. */
 export function DashboardPage() {
   const { dashboardCards } = useSlots();
+  const { theme } = useTheme(); // đổi chế độ -> vẽ lại biểu đồ với màu của chế độ mới
   const stats = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => api<Dashboard>("/api/dashboard"),
@@ -92,6 +90,16 @@ export function DashboardPage() {
   const jobCount = (key: string) => d.by_job_status.find((x) => x.label === key)?.count ?? 0;
   const jobTotal = JOB_STATES.reduce((n, j) => n + jobCount(j.key), 0);
   const extras = dashboardCards.filter((c) => c.key in d.extras);
+  // Một chuỗi số liệu -> một màu (slot 1); lưới/trục nhạt để dữ liệu nổi lên. Chart.js không đọc var(--x).
+  const chart = {
+    series: cssVar("--chart-series-1"),
+    seriesHover: cssVar("--chart-series-1-hover"),
+    grid: cssVar("--chart-grid"),
+    ink: cssVar("--chart-ink"),
+    inkMuted: cssVar("--chart-ink-muted"),
+    tooltipBg: cssVar("--chart-tooltip-bg"),
+    tooltipFg: cssVar("--chart-tooltip-fg"),
+  };
 
   return (
     <div className="stack">
@@ -159,14 +167,15 @@ export function DashboardPage() {
           {d.by_category.length ? (
             <div className={s.chartBox} style={{ height: Math.max(160, d.by_category.length * 44) }}>
               <Bar
+                key={theme}
                 data={{
                   labels: d.by_category.map((x) => x.label),
                   datasets: [
                     {
                       label: "Tài liệu",
                       data: d.by_category.map((x) => x.count),
-                      backgroundColor: SERIES_1,
-                      hoverBackgroundColor: "#1c5cab",
+                      backgroundColor: chart.series,
+                      hoverBackgroundColor: chart.seriesHover,
                       borderRadius: 4,
                       borderSkipped: "start",
                       maxBarThickness: 22,
@@ -179,7 +188,9 @@ export function DashboardPage() {
                   plugins: {
                     legend: { display: false },
                     tooltip: {
-                      backgroundColor: "#0f172a",
+                      backgroundColor: chart.tooltipBg,
+                      titleColor: chart.tooltipFg,
+                      bodyColor: chart.tooltipFg,
                       padding: 10,
                       cornerRadius: 8,
                       displayColors: false,
@@ -189,11 +200,11 @@ export function DashboardPage() {
                   scales: {
                     x: {
                       beginAtZero: true,
-                      ticks: { precision: 0, color: INK_MUTED },
-                      grid: { color: GRID },
+                      ticks: { precision: 0, color: chart.inkMuted },
+                      grid: { color: chart.grid },
                       border: { display: false },
                     },
-                    y: { ticks: { color: "#334155" }, grid: { display: false }, border: { display: false } },
+                    y: { ticks: { color: chart.ink }, grid: { display: false }, border: { display: false } },
                   },
                 }}
               />

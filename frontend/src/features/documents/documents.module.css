@@ -37,7 +37,7 @@
   padding: 8px;
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--c-surface);
   color: inherit;
 }
 .thumb:hover {
@@ -48,7 +48,7 @@
   width: 100%;
   height: 160px;
   object-fit: contain;
-  background: #f8fafc;
+  background: var(--c-paper);
 }
 .upload {
   max-width: 640px;
@@ -58,7 +58,7 @@
   border-radius: var(--radius);
   padding: 24px;
   text-align: center;
-  background: #fff;
+  background: var(--c-surface);
 }
 .actions {
   display: flex;

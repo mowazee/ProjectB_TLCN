@@ -43,6 +43,7 @@ Bấm đúp file `.cmd` trong Explorer cũng được.
 - Giao diện: http://127.0.0.1:8080 · API docs: http://127.0.0.1:8000/docs
 - Cổng: 8080 (React, `vite preview` + proxy `/api`), 8000 (FastAPI), 55434 (PostgreSQL demo, chỉ 127.0.0.1).
 - Nhật ký: `.demo\logs\` (api, worker, beat, web, postgres).
+- Giao diện sáng/tối: nút ở thanh tiêu đề (và góc trang đăng nhập), bấm để chuyển Theo hệ thống → Sáng → Tối.
 
 | Vai trò | Đăng nhập | Mật khẩu |
 |---|---|---|
@@ -73,11 +74,30 @@ Worker chữ viết tay (P2-03) chạy riêng: `$env:WORKER_OCR_PROFILES="handwr
 Khi đổi API: `python scripts/export_openapi.py` rồi `npm run gen:api` và commit cả `docs/openapi.json` lẫn `schema.d.ts`
 (CI `frontend.yml` báo lỗi nếu lệch).
 
-### Thêm một tính năng P2/P3 (Đặc tả đề tài 4.9)
+### 4.1 Thêm một tính năng P2/P3 (Đặc tả đề tài 4.9)
 1. Backend: tạo `app/modules/<tên>/` 4 lớp + `module.py` với `feature="<tên>"`; thêm **1 dòng** vào `app/registry.py`,
    tên cờ vào `config.ALL_FEATURES` và `.env.example`; migration riêng `alembic/versions/01xx_p2_<tên>.py`.
 2. Frontend: tạo `src/features/<tên>/manifest.tsx` (lazy), thêm **1 dòng** vào `src/app/registry.ts`.
 3. Không sửa file của module lõi; cắm vào slot/route/event/job kind sẵn có.
+
+### 4.2 Quy ước giao diện (sáng/tối, icon)
+
+- **Màu chỉ dùng biến CSS** trong `src/shared/styles/global.css` (`--c-surface`, `--c-text`, `--c-muted`,
+  `--c-border`, `--c-primary`, `--tone-*`, `--chart-*`...). Mỗi biến có giá trị sáng (`:root`) và tối
+  (`:root[data-theme="dark"]`). Viết cứng `#fff`, `#334155`... thì nền tối sẽ sai màu. Ngoại lệ có chủ đích:
+  trang scan dùng `--c-paper` (luôn trắng, vì là nội dung); sidebar và nửa trái trang đăng nhập vốn tối ở cả hai chế độ.
+- Thêm màu mới: khai báo biến ở **cả hai** khối trong `global.css`, chọn giá trị tối riêng (không đảo màu tự động).
+- **Biểu đồ Chart.js** không đọc được `var(--x)`: lấy màu bằng `cssVar("--chart-…")` (`src/shared/theme.ts`) và
+  gắn `key={theme}` (từ `useTheme()`) để vẽ lại khi đổi chế độ — xem `DashboardPage.tsx`. Một chuỗi số liệu dùng
+  `--chart-series-1`; màu trạng thái luôn kèm icon + chữ.
+- **Icon:** `lucide-react`, luôn `aria-hidden`. Nút chỉ có icon phải có `aria-label` (và `title`). Không đổi tên hiển
+  thị của nút mà test đang tìm (`get_by_role(..., name=...)` của Playwright khớp **chuỗi con**: nhãn phụ như nút ẩn/hiện
+  mật khẩu không được chứa chữ "Mật khẩu").
+- Lớp dùng chung: `.btn` (+ `btn-primary`, `btn-danger`, `btn-ghost`, `btn-sm`, `btn-icon`), `.input/.select/.textarea`,
+  `.card`, `.table`; component `PageHeader` (có `icon`), `EmptyState` (có `icon`), `Badge`, `Modal`, `Tabs` trong
+  `src/shared/components/ui.tsx`. Không đặt `display: flex` trực tiếp lên `<td>` (lệch hàng bảng) — bọc bằng `<div className="row">`.
+- Giao diện sáng/tối được đặt trước khi React chạy bởi `public/theme-init.js` (file tĩnh, vì CSP của Nginx chặn
+  script inline). Đổi khóa lưu (`theme`) thì sửa cả file này lẫn `src/shared/theme.ts`.
 
 ## 5. Kiểm thử và chất lượng
 
@@ -203,7 +223,7 @@ Google Drive, máy khác) theo lịch. Demo Windows (mục 3, `.demo\`) là dữ
 
 ## 7. Git, GitHub và CI
 
-Repo private: https://github.com/mowazee/ProjectB_TLCN (nhánh chính `main`).
+Repo: https://github.com/mowazee/ProjectB_TLCN (public từ 13/10/2026; nhánh chính `main`).
 
 ### 7.1 Quy trình làm việc (nhánh + Pull Request)
 
@@ -246,7 +266,7 @@ Squash merge làm commit trên nhánh khác commit trên `main` (cùng nội dun
 | `backend.yml` | mọi PR; push `main` khi đổi backend | ruff, mypy, import-linter, bandit, pip-audit (báo cáo); pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật; Alembic upgrade → check → downgrade → upgrade |
 | `frontend.yml` | mọi PR; push `main` khi đổi frontend/API | ESLint, tsc, Prettier, Vitest, build; `openapi-drift` (types React phải khớp API) |
 | `e2e.yml` | mọi PR | Playwright trên hệ thống thật × 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) |
-| `compose.yml` | PR đổi Docker/infra; push `main` | build image → `docker compose up` → E2E qua Nginx → restart Redis |
+| `compose.yml` | PR đổi Docker/infra; push `main` | build image → `docker compose up` → E2E qua Nginx → restart Redis → sao lưu, xóa dữ liệu, khôi phục (NFR-03) |
 
 Khi CI đỏ: mở PR → tab Checks → job đỏ → bước đỏ để xem log; hoặc `gh run view <id> --log-failed`.
 
@@ -270,4 +290,6 @@ sửa phiên bản trong file, chạy test, để CI xác nhận.
 | `docker-start` báo "Docker chưa chạy" | Mở Docker Desktop, đợi "Engine running". Lỗi WSL → `wsl --update` (admin) rồi khởi động lại. |
 | Container worker restart liên tục | `docker compose logs worker`: thiếu RAM (tăng RAM cho Docker) hoặc không tải được model (mạng). Job vẫn nằm trong Redis, chạy lại khi worker lên. |
 | API trả 503 `SERVICE_UNAVAILABLE` | Redis không truy cập được: `docker compose ps redis`, `docker compose restart redis`. |
+| Sửa frontend nhưng demo vẫn hiện giao diện cũ | Demo phục vụ bản build: `.\demo-start.cmd -Rebuild` (hoặc `cd frontend; npm run build`) rồi Ctrl+F5. Bản Docker: `.\docker-start.cmd -Build`. |
+| Một phần giao diện vẫn sáng khi bật nền tối | Màu bị viết cứng trong CSS/TSX: đổi sang biến (mục 4.2). Tìm nhanh: `grep -rnE "#[0-9a-fA-F]{3,6}" frontend/src --include=*.css`. |
 | npm báo xung đột TypeScript | Giữ `typescript ~5.9` (typescript-eslint và openapi-typescript chưa hỗ trợ TS 6/7). |

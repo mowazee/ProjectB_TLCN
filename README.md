@@ -3,7 +3,9 @@
 Tiểu luận chuyên ngành — UTE, Nhóm 3. Mọi yêu cầu, tên dữ liệu và hợp đồng API bám theo
 **SDD v0.6** (`document/0 -Dac_ta_SDD_v0.6.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
 
-ProjectB được dựng mới hoàn toàn theo baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng).
+ProjectB được dựng mới hoàn toàn từ baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng);
+đặc tả nâng lên v0.6 (16/10/2026) sau khi hiện thực xong để khớp với code. **Trạng thái:** MVP + P2 chạy end to end,
+CI xanh; việc còn lại cần dữ liệu thật để đo chất lượng OCR — xem [SUMMARY.md](SUMMARY.md) mục 4.
 ProjectA (`D:\ProjectA_TLCN`) giữ lại làm tham chiếu bản MVP cũ (Jinja2).
 
 ## Kiến trúc
@@ -23,6 +25,9 @@ Trình duyệt ── React SPA (Vite, TS) ──/api──► Nginx ──► F
 - **6 điểm mở rộng**: module registry (`app/registry.py`), job kind registry (task chung `jobs.run`), domain event
   (phát sau commit), port (OcrEngine, StoragePort, Notifier), API truy vấn công khai, UI registry (`frontend/src/app/registry.ts`).
 - **Cờ tính năng** `FEATURES_ENABLED`: router P2 chỉ gắn khi bật (tắt → 404); `/api/auth/me` trả `features` để React ẩn/hiện màn hình.
+- **Giao diện:** design token + component dùng chung, icon `lucide-react`, nền **sáng/tối** (nút trên thanh tiêu đề:
+  theo hệ thống → sáng → tối, lưu lựa chọn). Quy ước khi sửa giao diện: GUIDE mục 4.2.
+- **Sao lưu (NFR-03):** service `backup` sao lưu hằng ngày database + file, mỗi bản tự thử khôi phục (GUIDE mục 6.4).
 
 | Module lõi (MVP) | P2 (cờ) |
 |---|---|
@@ -33,12 +38,14 @@ Trình duyệt ── React SPA (Vite, TS) ──/api──► Nginx ──► F
 ```
 backend/            FastAPI + Celery (app/, alembic/, tests/, eval/, scripts/)
 frontend/           React + TypeScript + Vite (src/app, src/features/*, src/shared)
-infra/nginx/        default.conf (SPA + reverse proxy /api)
+infra/nginx/        default.conf (SPA + reverse proxy /api, CSP)
+infra/backup/       backup.sh (sao lưu/khôi phục, chạy trong service backup/restore)
 docs/openapi.json   hợp đồng API (sinh types React: npm run gen:api)
+document/           đặc tả v0.6: SDD, Đặc tả đề tài, Use Case/Sequence/ERD, script CSDL (+ khảo sát)
 tests/e2e/          Playwright (Python) chạy trên hệ thống thật
-.github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2)
-compose.yaml        Docker Compose (profile hw, rag); compose.dev.yaml
-scripts/            demo_start.ps1 / demo_stop.ps1 (demo một chạm trên Windows)
+.github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2), compose.yml (Docker + sao lưu)
+compose.yaml        Docker Compose (profile hw, rag, tools); compose.dev.yaml
+scripts/            demo_start/stop.ps1 (demo một chạm), docker_start/stop.ps1
 ```
 
 ## Chạy nhanh
@@ -54,12 +61,13 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin trong
 
 | Bộ | Lệnh | Kết quả hiện tại |
 |---|---|---|
-| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 93 passed |
-| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 93 passed |
-| Backend trên PostgreSQL | `$env:TEST_DATABASE_URL="postgresql+psycopg://..."` | 90/90 passed (cả tắt/bật cờ) |
-| Frontend | `cd frontend; npm test` | 17 passed |
+| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 105 passed |
+| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 105 passed |
+| Backend trên PostgreSQL 18 + Redis | CI `backend.yml` (6 tổ hợp cờ) | xanh mỗi PR |
+| Frontend | `cd frontend; npm test` | 18 passed |
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |
-| E2E | `pytest tests/e2e --browser chromium` (hệ thống đang chạy) | xem SUMMARY.md |
+| E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | 9 passed, 1 skipped (mọi cờ bật) |
+| Docker + sao lưu/khôi phục | CI `compose.yml` | xanh |
 
-Tài liệu khác: [GUIDE.md](GUIDE.md) (cài đặt, vận hành, sự cố) · [SUMMARY.md](SUMMARY.md) (trạng thái, truy vết, chênh lệch so với đặc tả)
+Tài liệu khác: [GUIDE.md](GUIDE.md) (cài đặt, vận hành, Git/CI, sự cố) · [SUMMARY.md](SUMMARY.md) (trạng thái, truy vết, chênh lệch so với đặc tả)
 · [backend/eval/README.md](backend/eval/README.md) (đánh giá NFR-08).

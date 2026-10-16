@@ -5,7 +5,7 @@
   border-radius: var(--radius);
   max-height: 50vh;
   overflow: auto;
-  background: #fff;
+  background: var(--c-surface);
 }
 .line {
   padding: 1px 8px;
@@ -13,20 +13,20 @@
   word-break: break-word;
 }
 .changed {
-  background: #fffbeb;
+  background: var(--c-diff-chg-bg);
 }
 .added {
-  background: #ecfdf5;
-  color: #065f46;
+  background: var(--c-diff-add-bg);
+  color: var(--c-diff-add-fg);
 }
 .removed {
-  background: #fef2f2;
-  color: #991b1b;
+  background: var(--c-diff-del-bg);
+  color: var(--c-diff-del-fg);
 }
 .ins {
-  background: #a7f3d0;
+  background: var(--c-diff-add-mark);
   text-decoration: none;
 }
 .del {
-  background: #fecaca;
+  background: var(--c-diff-del-mark);
 }

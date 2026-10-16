@@ -52,7 +52,7 @@
   border-radius: 50%;
   background: var(--c-surface-2);
   border: 1px solid var(--c-border);
-  color: #94a3b8;
+  color: var(--c-placeholder);
 }
 .badge {
   display: inline-flex;
@@ -64,8 +64,8 @@
   font-weight: 600;
   line-height: 18px;
   white-space: nowrap;
-  background: #eef2f7;
-  color: #475569;
+  background: var(--c-neutral-bg);
+  color: var(--c-neutral-text);
 }
 .badge::before {
   content: "";
@@ -150,7 +150,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--c-scrim);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -233,13 +233,13 @@
 }
 .progress {
   height: 8px;
-  background: #e8edf4;
+  background: var(--c-neutral-bg);
   border-radius: 999px;
   overflow: hidden;
 }
 .progressBar {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #3b82f6, var(--c-primary));
+  background: linear-gradient(90deg, #3b82f6, var(--c-primary-solid));
   transition: width 0.3s var(--ease);
 }
