@@ -118,6 +118,41 @@ services:
     restart: unless-stopped
     logging: *logging
 
+  # Sao lưu tự động (NFR-03, GUIDE 6.4): mỗi ngày database + storage -> ${BACKUP_DIR}, tự thử khôi phục vào
+  # database tạm để kiểm tra, giữ BACKUP_KEEP bản. Storage mount chỉ đọc: service này không bao giờ sửa dữ liệu.
+  backup:
+    image: postgres:18-alpine
+    entrypoint: ["sh", "/backup/backup.sh"]
+    command: ["daemon"]
+    environment: &backup-env
+      POSTGRES_USER: ${POSTGRES_USER:-dms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?đặt POSTGRES_PASSWORD trong .env}
+      POSTGRES_DB: ${POSTGRES_DB:-dms}
+      BACKUP_AT: ${BACKUP_AT:-19:30}   # giờ UTC; 19:30 UTC = 02:30 giờ Việt Nam
+      BACKUP_KEEP: ${BACKUP_KEEP:-7}
+    volumes:
+      - ./infra/backup:/backup:ro
+      - storage:/data/storage:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *logging
+
+  # Khôi phục (chỉ chạy tay, không tự khởi động): docker compose stop api worker beat;
+  # docker compose run --rm restore <tên bản> --yes; docker compose up -d. Storage mount ghi được.
+  restore:
+    image: postgres:18-alpine
+    profiles: [tools]
+    entrypoint: ["sh", "/backup/backup.sh", "restore"]
+    environment: *backup-env
+    volumes:
+      - ./infra/backup:/backup:ro
+      - storage:/data/storage
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      postgres: { condition: service_healthy }
+
   # P3 (học kỳ sau): vector store + worker EMBED. Chỉ giữ chỗ cho profile, chưa triển khai.
   # rag-worker:
   #   <<: *backend

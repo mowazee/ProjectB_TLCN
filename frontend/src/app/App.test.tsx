@@ -21,11 +21,24 @@ describe("Router + session (SDD mục 13, 15)", () => {
       "GET /api/categories": { body: [] },
     });
     const user = userEvent.setup();
+    // Đếm số lần trang đích được gắn vào DOM: hai lần điều hướng chồng nhau từng làm trang mount 2 lần,
+    // test bắt được bản đầu rồi bản đó bị thay -> chập chờn trên CI.
+    let mounts = 0;
+    const observer = new MutationObserver((records) => {
+      for (const r of records)
+        for (const n of r.addedNodes)
+          if (n instanceof HTMLElement && n.querySelector("h1,h2")?.textContent === "Tìm kiếm nội dung") mounts++;
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
     renderWithProviders(<AppRoutes />, { route: "/search" });
     await user.type(await screen.findByLabelText("Tên đăng nhập hoặc email"), "officer");
     await user.type(screen.getByLabelText("Mật khẩu"), "secret");
     await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
-    expect(await screen.findByRole("heading", { name: "Tìm kiếm nội dung" })).toBeInTheDocument();
+    const heading = await screen.findByRole("heading", { name: "Tìm kiếm nội dung" });
+    await new Promise((r) => setTimeout(r, 50));
+    observer.disconnect();
+    expect(heading).toBeInTheDocument();
+    expect(mounts).toBe(1);
   });
 
   it("đăng nhập sai: hiển thị lỗi từ envelope", async () => {

@@ -43,6 +43,26 @@ jobs:
         run: |
           docker compose restart redis
           npx --yes wait-on -t 60000 http://127.0.0.1:8080/api/health/ready
+      - name: Sao lưu -> mất dữ liệu -> khôi phục (NFR-03, GUIDE 6.4)
+        run: |
+          set -eux
+          psql() { docker compose exec -T postgres psql -U dms -d dms -Atc "$1"; }
+          # Dữ liệu do E2E tạo ở trên: sao lưu phải tự kiểm tra đạt OK
+          docker compose exec -T backup sh /backup/backup.sh run ci
+          name=$(ls backups | grep -- '-ci$' | tail -1)
+          test "$(cat "backups/$name/STATUS")" = OK
+          docs=$(psql "SELECT count(*) FROM documents"); test "$docs" -gt 0
+          key=$(psql "SELECT storage_key FROM documents ORDER BY created_at LIMIT 1")
+          # Sự cố: mất toàn bộ tài liệu và file
+          docker compose stop api worker beat
+          psql "DELETE FROM documents"
+          docker compose --profile tools run --rm --entrypoint sh restore -c 'rm -rf /data/storage/*'
+          # Khôi phục và kiểm tra dữ liệu + file trở lại, ứng dụng chạy tiếp
+          docker compose --profile tools run --rm restore "$name" --yes
+          test "$(psql "SELECT count(*) FROM documents")" = "$docs"
+          docker compose exec -T backup test -f "/data/storage/$key"
+          docker compose up -d
+          npx --yes wait-on -t 120000 http://127.0.0.1:8080/api/health/ready
       - if: failure()
         run: docker compose ps && docker compose logs --no-color > compose.log
       - if: failure()

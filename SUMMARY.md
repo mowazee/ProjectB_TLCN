@@ -106,4 +106,8 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh
   `backend/constraints.txt`); health không nhận HEAD; openapi.json không ổn định; e2e dùng cờ "all"; bandit assert.
   Từ 13/10 repo public, ruleset `protect-main` chặn push thẳng/force-push vào `main`, bắt PR + 1 approve, chỉ
   squash merge (GUIDE mục 7.1); chưa bắt buộc CI xanh trước khi merge. **CD chưa làm** (chưa có server).
-- Chưa có kế hoạch sao lưu/khôi phục tự động (NFR-03) — GUIDE mục 6 mới mô tả thủ công.
+- **Sao lưu/khôi phục (NFR-03, 16/10/2026):** service `backup` sao lưu hằng ngày database + storage, mỗi bản tự thử
+  khôi phục vào database tạm (OK/WARN/FAILED), giữ `BACKUP_KEEP` bản; `restore` có chốt an toàn (`--yes`, từ chối
+  khi app còn kết nối, tự tạo bản `pre-restore`). Thử thật trên Docker: sao lưu, phát hiện thiếu file, từ chối khi
+  còn kết nối, khôi phục sau sự cố, lịch hằng ngày; CI `compose` chạy vòng sao lưu → xóa dữ liệu → khôi phục
+  (GUIDE 6.4). Còn lại: chép `BACKUP_DIR` ra ngoài máy theo lịch (tùy nơi triển khai).
