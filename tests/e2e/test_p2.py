@@ -81,7 +81,7 @@ def test_rollback_from_audit(page: Page, tmp_path, uniq):
     login(page, ADMIN)
     need(page, "rollback")
     page.goto(f"{BASE_URL}/admin/categories")
-    page.get_by_role("button", name="+ Tạo danh mục").click()
+    page.get_by_role("button", name="Tạo danh mục").click()
     page.get_by_label("Tên").fill(f"Tạm {uniq}")
     page.get_by_label("Mã").fill(f"TAM-{uniq}".upper())
     page.get_by_role("button", name="Lưu").click()

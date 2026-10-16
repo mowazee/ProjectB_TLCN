@@ -1,3 +1,4 @@
+import { Users } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import type { User } from "@/shared/api/types";
@@ -158,6 +159,7 @@ export function UsersPage() {
   return (
     <div>
       <PageHeader
+        icon={Users}
         title="Người dùng"
         actions={
           <button className="btn btn-primary" onClick={() => setEditing("new")}>

@@ -1,3 +1,4 @@
+import { FolderTree, ScrollText, Users } from "lucide-react";
 import type { FeatureManifest } from "@/shared/types/feature";
 
 import { AuditPage } from "./AuditPage";
@@ -34,8 +35,8 @@ export const adminManifest: FeatureManifest = {
     },
   ],
   nav: [
-    { to: "/admin/users", label: "Người dùng", roles: ["ADMIN"], group: "admin", order: 90 },
-    { to: "/admin/categories", label: "Danh mục", roles: ["ADMIN"], group: "admin", order: 91 },
-    { to: "/admin/audit", label: "Nhật ký", roles: ["ADMIN"], group: "admin", order: 93 },
+    { to: "/admin/users", label: "Người dùng", roles: ["ADMIN"], group: "admin", order: 90, icon: Users },
+    { to: "/admin/categories", label: "Danh mục", roles: ["ADMIN"], group: "admin", order: 91, icon: FolderTree },
+    { to: "/admin/audit", label: "Nhật ký", roles: ["ADMIN"], group: "admin", order: 93, icon: ScrollText },
   ],
 };

@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight, CircleAlert, Inbox, X, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { ApiError, errorMessage } from "@/shared/api/client";
@@ -22,30 +23,49 @@ export function ErrorBox({ error }: { error: unknown }) {
   const requestId = error instanceof ApiError ? error.requestId : null;
   return (
     <div className={s.error} role="alert">
-      {errorMessage(error)}
-      {requestId && <small>Mã tra cứu: {requestId}</small>}
+      <CircleAlert size={18} className={s.errorIcon} aria-hidden />
+      <div>
+        {errorMessage(error)}
+        {requestId && <small>Mã tra cứu: {requestId}</small>}
+      </div>
     </div>
   );
 }
 
-export function EmptyState({ children }: { children: ReactNode }) {
-  return <div className={s.empty}>{children}</div>;
+export function EmptyState({ children, icon: Icon = Inbox }: { children: ReactNode; icon?: LucideIcon }) {
+  return (
+    <div className={s.empty}>
+      <span className={s.emptyIcon}>
+        <Icon size={24} aria-hidden />
+      </span>
+      <div>{children}</div>
+    </div>
+  );
 }
 
 export function PageHeader({
   title,
   subtitle,
   actions,
+  icon: Icon,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
   actions?: ReactNode;
+  icon?: LucideIcon;
 }) {
   return (
     <div className={s.header}>
-      <div>
-        <h1>{title}</h1>
-        {subtitle && <p className="muted">{subtitle}</p>}
+      <div className={s.titleRow}>
+        {Icon && (
+          <span className={s.titleIcon}>
+            <Icon size={22} aria-hidden />
+          </span>
+        )}
+        <div>
+          <h1>{title}</h1>
+          {subtitle && <p className="muted">{subtitle}</p>}
+        </div>
       </div>
       {actions && <div className="row">{actions}</div>}
     </div>
@@ -107,10 +127,10 @@ export function Pagination({
         {total} kết quả · trang {page}/{pages}
       </span>
       <button className="btn btn-sm" disabled={page <= 1} onClick={() => onChange(page - 1)}>
-        ‹ Trước
+        <ChevronLeft size={15} aria-hidden /> Trước
       </button>
       <button className="btn btn-sm" disabled={page >= pages} onClick={() => onChange(page + 1)}>
-        Sau ›
+        Sau <ChevronRight size={15} aria-hidden />
       </button>
     </div>
   );
@@ -153,8 +173,13 @@ export function Modal({
   return (
     <div className={s.backdrop} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={s.modal} role="dialog" aria-modal="true" aria-label={title}>
-        <h2>{title}</h2>
-        {children}
+        <div className={s.modalHead}>
+          <h2>{title}</h2>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Đóng hộp thoại">
+            <X size={18} aria-hidden />
+          </button>
+        </div>
+        <div className={s.modalBody}>{children}</div>
         <div className={s.modalActions}>
           {actions}
           <button className="btn" onClick={onClose}>

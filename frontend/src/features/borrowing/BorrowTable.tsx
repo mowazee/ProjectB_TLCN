@@ -52,34 +52,36 @@ export function BorrowTable({ items, showDocument = true }: { items: Borrow[]; s
                   <Badge tone={tone}>{label}</Badge> {b.is_overdue && <Badge tone="danger">Quá hạn</Badge>}
                   {b.approver_name && <div className="muted">bởi {b.approver_name}</div>}
                 </td>
-                <td className="row">
-                  {decider && b.status === "pending" && (
-                    <>
+                <td>
+                  <div className="row">
+                    {decider && b.status === "pending" && (
+                      <>
+                        <button
+                          className="btn btn-sm btn-primary"
+                          disabled={act.isPending}
+                          onClick={() => act.mutate({ id: b.id, action: "approve" })}
+                        >
+                          Duyệt
+                        </button>
+                        <button
+                          className="btn btn-sm btn-danger"
+                          disabled={act.isPending}
+                          onClick={() => act.mutate({ id: b.id, action: "reject" })}
+                        >
+                          Từ chối
+                        </button>
+                      </>
+                    )}
+                    {decider && b.status === "approved" && (
                       <button
-                        className="btn btn-sm btn-primary"
+                        className="btn btn-sm"
                         disabled={act.isPending}
-                        onClick={() => act.mutate({ id: b.id, action: "approve" })}
+                        onClick={() => act.mutate({ id: b.id, action: "return" })}
                       >
-                        Duyệt
+                        Ghi nhận trả
                       </button>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        disabled={act.isPending}
-                        onClick={() => act.mutate({ id: b.id, action: "reject" })}
-                      >
-                        Từ chối
-                      </button>
-                    </>
-                  )}
-                  {decider && b.status === "approved" && (
-                    <button
-                      className="btn btn-sm"
-                      disabled={act.isPending}
-                      onClick={() => act.mutate({ id: b.id, action: "return" })}
-                    >
-                      Ghi nhận trả
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </td>
               </tr>
             );

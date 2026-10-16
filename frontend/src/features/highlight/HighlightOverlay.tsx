@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
@@ -60,10 +61,10 @@ export function HighlightOverlay({ documentId, pageNumber, scale, query }: PageO
               onClick={() => setActive((active - 1 + total) % total)}
               aria-label="Kết quả trước"
             >
-              ‹
+              <ChevronLeft size={15} aria-hidden />
             </button>
             <button className="btn btn-sm" onClick={() => setActive((active + 1) % total)} aria-label="Kết quả sau">
-              ›
+              <ChevronRight size={15} aria-hidden />
             </button>
           </>
         ) : (

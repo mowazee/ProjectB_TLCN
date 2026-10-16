@@ -1,3 +1,4 @@
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
@@ -38,14 +39,18 @@ export function PageViewerPage() {
     <div className="stack">
       <PageHeader
         title={`Trang ${p.page_number}/${p.total_pages}`}
-        subtitle={<Link to={`/documents/${id}`}>‹ Về tài liệu</Link>}
+        subtitle={
+          <Link to={`/documents/${id}`}>
+            <ArrowLeft size={14} aria-hidden /> Về tài liệu
+          </Link>
+        }
         actions={
           <>
             <PageLink to={pageNumber > 1 ? `/documents/${id}/pages/${pageNumber - 1}${qs}` : null}>
-              ‹ Trang trước
+              <ChevronLeft size={15} aria-hidden /> Trang trước
             </PageLink>
             <PageLink to={pageNumber < p.total_pages ? `/documents/${id}/pages/${pageNumber + 1}${qs}` : null}>
-              Trang sau ›
+              Trang sau <ChevronRight size={15} aria-hidden />
             </PageLink>
             {p.can_edit && (
               <Link className="btn btn-primary" to={`/documents/${id}/pages/${pageNumber}/edit`}>

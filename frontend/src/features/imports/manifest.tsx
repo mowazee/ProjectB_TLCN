@@ -1,3 +1,4 @@
+import { FolderUp } from "lucide-react";
 import { lazyNamed } from "@/shared/lib/lazy";
 import type { FeatureManifest } from "@/shared/types/feature";
 
@@ -12,5 +13,5 @@ export const importsManifest: FeatureManifest = {
     { path: "imports", element: <ImportPage /> },
     { path: "imports/:jobId", element: <ImportReportPage /> },
   ],
-  nav: [{ to: "/imports", label: "Nhập hàng loạt", roles: ["OFFICER"], order: 15 }],
+  nav: [{ to: "/imports", label: "Nhập hàng loạt", roles: ["OFFICER"], order: 15, icon: FolderUp }],
 };

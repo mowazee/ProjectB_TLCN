@@ -1,3 +1,4 @@
+import { ClipboardList, FolderUp } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -61,6 +62,7 @@ export function ImportPage() {
   return (
     <div style={{ maxWidth: 720 }}>
       <PageHeader
+        icon={FolderUp}
         title="Nhập hàng loạt"
         subtitle="Mỗi file được kiểm tra như khi tải lên từng file; file lỗi không làm hỏng cả lô."
       />
@@ -139,6 +141,7 @@ export function ImportReportPage() {
   return (
     <div className="stack">
       <PageHeader
+        icon={ClipboardList}
         title="Báo cáo nhập hàng loạt"
         subtitle={`Bắt đầu ${formatDateTime(r.queued_at)}${r.finished_at ? ` · xong ${formatDateTime(r.finished_at)}` : ""}`}
         actions={

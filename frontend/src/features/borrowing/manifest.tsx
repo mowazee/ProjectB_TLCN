@@ -1,3 +1,4 @@
+import { Archive, BookOpenCheck, CalendarClock } from "lucide-react";
 import { AdminOnly } from "@/features/admin";
 import { lazyNamed } from "@/shared/lib/lazy";
 import type { FeatureManifest } from "@/shared/types/feature";
@@ -21,12 +22,19 @@ export const borrowingManifest: FeatureManifest = {
     },
   ],
   nav: [
-    { to: "/borrow-requests", label: "Mượn hồ sơ", order: 40 },
-    { to: "/admin/storage-locations", label: "Kho lưu trữ", roles: ["ADMIN"], group: "admin", order: 92 },
+    { to: "/borrow-requests", label: "Mượn hồ sơ", order: 40, icon: BookOpenCheck },
+    {
+      to: "/admin/storage-locations",
+      label: "Kho lưu trữ",
+      roles: ["ADMIN"],
+      group: "admin",
+      order: 92,
+      icon: Archive,
+    },
   ],
   documentTabs: [{ id: "borrow", label: "Mượn hồ sơ", element: lazyNamed(load, "BorrowTab") }],
   dashboardCards: [
-    { key: "borrow_pending", label: "Yêu cầu mượn chờ duyệt", to: "/borrow-requests" },
-    { key: "borrow_overdue", label: "Hồ sơ mượn quá hạn", to: "/borrow-requests" },
+    { key: "borrow_pending", label: "Yêu cầu mượn chờ duyệt", to: "/borrow-requests", icon: BookOpenCheck },
+    { key: "borrow_overdue", label: "Hồ sơ mượn quá hạn", to: "/borrow-requests", icon: CalendarClock },
   ],
 };

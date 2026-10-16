@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router";
 
 import { ROLE_LABELS } from "@/shared/lib/format";
@@ -19,14 +20,32 @@ export function UserMenu() {
     },
   });
   if (!session) return null;
+  const name = session.user.full_name;
+  // Chữ cái đầu của hai từ cuối (tên người Việt: "Nguyễn Văn An" -> "VA")
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(-2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
   return (
     <div className={s.user}>
-      <div>
-        <span>{session.user.full_name}</span>
-        <div className="muted">{session.roles.map((r) => ROLE_LABELS[r] ?? r).join(", ")}</div>
+      <span className={s.avatar} aria-hidden>
+        {initials}
+      </span>
+      <div className={s.who}>
+        <span>{name}</span>
+        <small>{session.roles.map((r) => ROLE_LABELS[r] ?? r).join(", ")}</small>
       </div>
-      <button className="btn btn-sm" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-        Đăng xuất
+      <button
+        className="btn btn-ghost btn-icon"
+        onClick={() => mutation.mutate()}
+        disabled={mutation.isPending}
+        aria-label="Đăng xuất"
+        title="Đăng xuất"
+      >
+        <LogOut size={18} aria-hidden />
       </button>
     </div>
   );

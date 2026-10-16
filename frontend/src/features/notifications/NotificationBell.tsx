@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bell, BellOff, CheckCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
@@ -47,21 +48,29 @@ export function NotificationBell() {
   const unread = data.data?.unread ?? 0;
   return (
     <div className={s.wrap} ref={ref}>
-      <button className={`btn ${s.bell}`} onClick={() => setOpen(!open)} aria-label={`Thông báo (${unread} chưa đọc)`}>
-        🔔{unread > 0 && <span className={s.count}>{unread > 99 ? "99+" : unread}</span>}
+      <button
+        className={`btn btn-ghost btn-icon ${s.bell}`}
+        onClick={() => setOpen(!open)}
+        aria-label={`Thông báo (${unread} chưa đọc)`}
+      >
+        <Bell size={19} aria-hidden />
+        {unread > 0 && <span className={s.count}>{unread > 99 ? "99+" : unread}</span>}
       </button>
       {open && (
         <div className={s.panel}>
-          <div className="row" style={{ justifyContent: "space-between" }}>
+          <div className={s.panelHead}>
             <strong>Thông báo</strong>
             {unread > 0 && (
-              <button className="btn btn-sm" onClick={() => readAll.mutate()}>
-                Đánh dấu đã đọc hết
+              <button className="btn btn-ghost btn-sm" onClick={() => readAll.mutate()}>
+                <CheckCheck size={15} aria-hidden /> Đánh dấu đã đọc hết
               </button>
             )}
           </div>
           {!data.data?.items.length ? (
-            <p className="muted">Không có thông báo.</p>
+            <div className={s.none}>
+              <BellOff size={22} aria-hidden />
+              Không có thông báo.
+            </div>
           ) : (
             <ul className={s.list}>
               {data.data.items.map((n) => (
@@ -75,8 +84,8 @@ export function NotificationBell() {
                   >
                     {n.title}
                   </Link>
-                  {n.message && <div>{n.message}</div>}
-                  <div className="muted">{formatDateTime(n.created_at)}</div>
+                  {n.message && <div className={s.msg}>{n.message}</div>}
+                  <time className={s.time}>{formatDateTime(n.created_at)}</time>
                 </li>
               ))}
             </ul>

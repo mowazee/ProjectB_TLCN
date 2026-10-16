@@ -1,3 +1,4 @@
+import { Archive, BookOpenCheck } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import type { StorageLocation } from "@/shared/api/types";
@@ -34,7 +35,11 @@ export function BorrowRequestsPage() {
   const list = useBorrows({ page, status, overdue, mine });
   return (
     <div>
-      <PageHeader title="Mượn hồ sơ" subtitle="Tạo yêu cầu mượn từ trang chi tiết tài liệu (tab “Mượn hồ sơ”)." />
+      <PageHeader
+        icon={BookOpenCheck}
+        title="Mượn hồ sơ"
+        subtitle="Tạo yêu cầu mượn từ trang chi tiết tài liệu (tab “Mượn hồ sơ”)."
+      />
       <div className="row" style={{ marginBottom: 12 }}>
         <select
           className="select"
@@ -220,6 +225,7 @@ export function StorageLocationsPage() {
   return (
     <div>
       <PageHeader
+        icon={Archive}
         title="Kho lưu trữ hồ sơ"
         actions={
           <button className="btn btn-primary" onClick={() => setEditing("new")}>

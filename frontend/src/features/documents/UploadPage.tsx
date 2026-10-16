@@ -1,3 +1,4 @@
+import { Upload } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 
@@ -39,7 +40,11 @@ export function UploadPage() {
 
   return (
     <div className={s.upload}>
-      <PageHeader title="Tải tài liệu lên" subtitle="PDF, PNG hoặc JPG. Sau khi tải lên, hệ thống tự xếp hàng OCR." />
+      <PageHeader
+        icon={Upload}
+        title="Tải tài liệu lên"
+        subtitle="PDF, PNG hoặc JPG. Sau khi tải lên, hệ thống tự xếp hàng OCR."
+      />
       {result && (
         <div className="card stack" style={{ marginBottom: 16 }}>
           <strong>Đã tải lên thành công.</strong>
@@ -92,7 +97,7 @@ export function UploadPage() {
         <SlotList items={uploadFields} props={{}} />
         <div className="row">
           <button className="btn btn-primary" type="submit" disabled={upload.isPending || tooBig}>
-            {upload.isPending ? "Đang tải lên..." : "Tải lên"}
+            <Upload size={16} aria-hidden /> {upload.isPending ? "Đang tải lên..." : "Tải lên"}
           </button>
           <Link className="btn" to="/documents">
             Hủy

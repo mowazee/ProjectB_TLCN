@@ -1,22 +1,42 @@
+/*
+ * Design token dùng chung (tên biến giữ nguyên để mọi CSS module cũ tự nhận giá trị mới).
+ * Màu trạng thái (ok/warn/danger) chỉ dùng cho trạng thái, luôn đi kèm chữ/icon, không dùng để tô dữ liệu.
+ */
 :root {
-  --c-bg: #f5f7fb;
+  --c-bg: #f3f5fa;
   --c-surface: #ffffff;
-  --c-border: #dde3ec;
-  --c-text: #1e293b;
+  --c-surface-2: #f8fafc;
+  --c-border: #e2e8f0;
+  --c-border-strong: #cbd5e1;
+  --c-text: #0f172a;
+  --c-text-2: #334155;
   --c-muted: #64748b;
-  --c-primary: #1d4ed8;
-  --c-primary-hover: #1e40af;
-  --c-primary-soft: #e0e7ff;
-  --c-danger: #b91c1c;
-  --c-danger-soft: #fee2e2;
-  --c-warn: #b45309;
-  --c-warn-soft: #fef3c7;
+  --c-primary: #2563eb;
+  --c-primary-hover: #1d4ed8;
+  --c-primary-soft: #e8efff;
+  --c-primary-ring: rgba(37, 99, 235, 0.18);
+  --c-danger: #c62828;
+  --c-danger-soft: #fdeeee;
+  --c-danger-border: #f5c2c2;
+  --c-warn: #a16207;
+  --c-warn-soft: #fdf6e3;
   --c-ok: #047857;
-  --c-ok-soft: #d1fae5;
+  --c-ok-soft: #e7f6ef;
   --c-highlight: rgba(250, 204, 21, 0.45);
-  --radius: 8px;
-  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 6px rgba(15, 23, 42, 0.05);
-  --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --c-side-bg: #0b1220;
+  --c-side-bg-2: #111a2e;
+  --c-side-text: #a3b1c6;
+  --c-side-muted: #5b6b85;
+
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.16);
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
   color-scheme: light;
 }
 
@@ -34,9 +54,10 @@ body {
   margin: 0;
   font-family: var(--font);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--c-text);
   background: var(--c-bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -44,7 +65,9 @@ a {
   text-decoration: none;
 }
 a:hover {
+  color: var(--c-primary-hover);
   text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 h1,
@@ -52,15 +75,20 @@ h2,
 h3 {
   margin: 0 0 12px;
   line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--c-text);
 }
 h1 {
-  font-size: 22px;
+  font-size: 24px;
+  font-weight: 700;
 }
 h2 {
-  font-size: 17px;
+  font-size: 16px;
+  font-weight: 650;
 }
 h3 {
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 650;
 }
 
 button,
@@ -70,87 +98,178 @@ textarea {
   font: inherit;
 }
 
+:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+
+/* Icon lucide trong nút/nhãn: canh giữa theo dòng chữ */
+.lucide {
+  flex-shrink: 0;
+  vertical-align: -0.18em; /* icon trong dòng chữ (liên kết, đoạn văn) */
+}
+
+/* ---------------------------------------------------------------- Nút */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 14px;
   border: 1px solid var(--c-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--c-surface);
-  color: var(--c-text);
+  color: var(--c-text-2);
+  font-weight: 550;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  transition:
+    background 0.15s var(--ease),
+    border-color 0.15s var(--ease),
+    color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
 }
 .btn:hover:not(:disabled) {
-  background: #f1f5f9;
+  background: var(--c-surface-2);
+  border-color: var(--c-border-strong);
+  color: var(--c-text);
   text-decoration: none;
 }
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 .btn-primary {
   background: var(--c-primary);
   border-color: var(--c-primary);
   color: #fff;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.3);
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--c-primary-hover);
+  border-color: var(--c-primary-hover);
+  color: #fff;
 }
 .btn-danger {
   color: var(--c-danger);
-  border-color: #fca5a5;
+  border-color: var(--c-danger-border);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--c-danger-soft);
+  border-color: var(--c-danger);
+  color: var(--c-danger);
+}
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 .btn-sm {
-  padding: 3px 10px;
+  min-height: 30px;
+  padding: 0 10px;
   font-size: 13px;
+  gap: 5px;
+}
+.btn-icon {
+  padding: 0;
+  width: 36px;
+}
+.btn-sm.btn-icon {
+  width: 30px;
 }
 
+/* ---------------------------------------------------------------- Ô nhập */
 .input,
 .select,
 .textarea {
   width: 100%;
-  padding: 7px 10px;
+  min-height: 36px;
+  padding: 7px 11px;
   border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  background: #fff;
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
   color: var(--c-text);
+  transition:
+    border-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: #94a3b8;
+}
+.input:hover,
+.select:hover,
+.textarea:hover {
+  border-color: var(--c-border-strong);
 }
 .input:focus,
 .select:focus,
 .textarea:focus {
-  outline: 2px solid var(--c-primary-soft);
+  outline: none;
   border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px var(--c-primary-ring);
+}
+.select {
+  appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
 }
 
+/* ---------------------------------------------------------------- Thẻ, bảng */
 .card {
   background: var(--c-surface);
   border: 1px solid var(--c-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 16px;
+  padding: 18px 20px;
 }
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card .table {
+  box-shadow: none;
 }
 .table th,
 .table td {
-  padding: 8px 10px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--c-border);
   text-align: left;
   vertical-align: top;
 }
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
 .table th {
   font-weight: 600;
   color: var(--c-muted);
-  background: #f8fafc;
-  font-size: 13px;
+  background: var(--c-surface-2);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.table tbody tr {
+  transition: background 0.12s var(--ease);
+}
+.table tbody tr:hover {
+  background: #f7f9fd;
 }
 
+/* ---------------------------------------------------------------- Tiện ích */
 .muted {
   color: var(--c-muted);
 }
@@ -163,12 +282,28 @@ textarea {
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 .grow {
   flex: 1;
 }
 mark {
   background: var(--c-highlight);
-  padding: 0 1px;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+code {
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12.5px;
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation-duration: 0.01ms !important;
+  }
 }
