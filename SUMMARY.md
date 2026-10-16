@@ -1,4 +1,7 @@
-# Tóm tắt trạng thái ProjectB (baseline SDD v0.6) — cập nhật 16/10/2026
+# Tóm tắt trạng thái ProjectB (baseline SDD v0.6) — cập nhật 17/10/2026
+
+Trạng thái chung: **MVP + toàn bộ P2 (P2-01…P2-09) đã hiện thực và chạy được end to end**; đặc tả nâng lên v0.6 khớp
+với code; CI xanh trên mọi PR. Việc còn lại chủ yếu cần **dữ liệu thật** của nhóm để đo chất lượng (mục 4).
 
 ## 1. Đã hoàn thành
 
@@ -7,23 +10,26 @@
 | Backend MVP | 9 module lõi (auth, users, categories, documents, jobs, ocr, search, dashboard, audit), 4 lớp mỗi module | 50+ test API/unit |
 | Backend P2 | P2-01…P2-09 (10 module/file bổ sung), cờ `FEATURES_ENABLED`, router tắt → 404 | test_p2_*.py |
 | Điểm mở rộng | ModuleSpec + registry, job kind registry (`jobs.run`), event sau commit, port OcrEngine/Storage/Notifier, API truy vấn công khai, UI registry + slot | import-linter 5 contract KEPT; ESLint chặn import sai ranh giới |
-| CSDL | Alembic `0001_core` + `0101…0106` (mỗi module P2 một revision); trigger audit append-only (cho phép ON DELETE SET NULL); CHECK `kind` mở rộng ở 0105; `notifications.message/link_url` ở 0106 | `alembic check` sạch trên SQLite và PostgreSQL; upgrade/downgrade/upgrade |
-| Frontend | React 19 + TS + Vite 8, React Router 7, TanStack Query 5, CSS Modules, Chart.js; 15 feature (6 lõi + 9 P2, lazy); types sinh từ OpenAPI | 17 test Vitest; tsc/eslint/prettier sạch |
-| Hạ tầng | Nginx (SPA + /api), Dockerfile backend/frontend, compose (profile hw, rag), compose.dev, Makefile, CI 3 workflow (ma trận cờ P2) | — |
+| CSDL | Alembic `0001_core` + `0101…0106` (mỗi module P2 một revision); trigger audit append-only (cho phép ON DELETE SET NULL); CHECK `kind` mở rộng ở 0105; `notifications.message/link_url` ở 0106 | `alembic check` sạch trên SQLite và PostgreSQL; upgrade/downgrade/upgrade (CI mỗi PR) |
+| Đặc tả | `document/` v0.6: SDD (file 0), Đặc tả đề tài (file 2), Use Case/Sequence/ERD (file 3, ERD vẽ lại theo migration), script CSDL (file 4, sinh từ Alembic, đủ 16 bảng) | script file 4 chạy sạch trên PostgreSQL 18 |
+| Frontend | React 19 + TS + Vite 8, React Router 7, TanStack Query 5, CSS Modules, Chart.js; 15 feature (6 lõi + 9 P2, lazy); types sinh từ OpenAPI | 18 test Vitest; tsc/eslint/prettier sạch |
+| Giao diện | Design token + component dùng chung; icon `lucide-react`; sidebar/header mới, ô tìm nhanh, avatar; đăng nhập chia đôi; dashboard theo nhóm + biểu đồ theo hướng dẫn trực quan hóa; **nền sáng/tối** (theo hệ thống / sáng / tối, lưu lựa chọn) | E2E 9 passed trên giao diện mới; soát ảnh chụp desktop 1440px + mobile 390px, sáng và tối |
+| Sao lưu (NFR-03) | Service `backup` hằng ngày (database + storage), mỗi bản tự thử khôi phục → OK/WARN/FAILED; `restore` có chốt an toàn | thử thật trên Docker; CI `compose` chạy vòng sao lưu → xóa → khôi phục |
+| Hạ tầng | Nginx (SPA + /api, CSP), Dockerfile backend/frontend, compose (profile hw, rag, tools), compose.dev, Makefile; CI 4 workflow (ma trận cờ P2); ruleset `protect-main` | — |
 | Đánh giá | `backend/eval/`: CER/WER/độ chính xác ký tự, hiệu chỉnh ngưỡng, precision/recall trích xuất, top-1 phân loại | chạy thử với PaddleOCR thật trên dữ liệu tổng hợp |
 | Demo | `demo-start.cmd` / `demo-stop.cmd` (PostgreSQL riêng `.demo\`, worker, beat, API, React :8080) | đã chạy end-to-end với PaddleOCR thật |
 
-### Kết quả kiểm thử (05/10/2026)
+### Kết quả kiểm thử (17/10/2026)
 
 | Bộ | Kết quả |
 |---|---|
-| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 105 passed / 105 passed (16/10, sau migration 0106) |
-| Backend pytest trên Redis thật (Docker), cờ tắt / mọi cờ bật | 104 passed / 104 passed |
-| Bản Docker Compose (Redis + worker + beat + Nginx): E2E | 9 passed, 1 skipped |
-| Backend pytest trên PostgreSQL 18, cờ tắt / mọi cờ bật | 90/90 passed cả hai (trước khi thêm 3 test eval) |
-| Frontend Vitest | 17 passed |
-| E2E Playwright trên demo thật, mọi cờ bật | 9 passed, 1 skipped (test dành cho cờ tắt) |
-| E2E chế độ chỉ MVP (`-Mvp`) | 6 passed, 4 skipped (các test P2 tự bỏ qua khi cờ tắt) |
+| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 105 passed / 105 passed |
+| CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#5) |
+| CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (PR #4, `main` sau #4) |
+| Frontend Vitest | 18 passed (thêm test chuyển giao diện sáng/tối) |
+| E2E Playwright trên demo thật, mọi cờ bật (local, 17/10) | 9 passed, 1 skipped (test dành cho cờ tắt) |
+| CI `e2e`: 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) | xanh trên mọi PR (#2–#5) |
+| E2E chế độ chỉ MVP (`-Mvp`, local 05/10) | 6 passed, 4 skipped (các test P2 tự bỏ qua khi cờ tắt) |
 | ruff, ruff format, mypy, lint-imports, ESLint, tsc, Prettier | sạch |
 
 ## 2. Truy vết yêu cầu → hiện thực → test
@@ -48,6 +54,7 @@
 | P2-08 | imports (job BULK_IMPORT, ZIP an toàn) | imports | test_p2_imports.py; e2e |
 | P2-09 | rollback | rollback (auditRowActions) | test_p2_rollback.py; e2e |
 | NFR-09 | registry + cờ | registry.ts | toàn bộ test chạy lại với `TEST_FEATURES=all`; test_p2_flags.py; registry.test.ts |
+| NFR-03 | `infra/backup/backup.sh` (service `backup`, `restore`) | — | CI `compose`: sao lưu → xóa tài liệu và file → khôi phục → app chạy lại |
 
 ## 3. Chênh lệch so với đặc tả — đã xử lý ở v0.6 (16/10/2026)
 
@@ -70,12 +77,20 @@ Nguyên tắc: code đã đúng thực tế thì hợp thức hóa vào đặc t
 
 Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh lại từ Alembic `0001…0106`, đủ 16 bảng.
 
-## 4. Việc còn lại / rủi ro
+## 4. Việc còn lại
 
-- **NFR-08 chưa có số liệu chính thức:** cần tập test thật (scan rõ, scan khó, chữ viết tay ≥ 30 trang mỗi loại) → chạy `eval/ocr_eval.py`.
-  Thử trên dữ liệu tổng hợp: scan rõ ~91%, scan khó ~90% (chỉ để kiểm tra quy trình). PaddleOCR `vi` hay mất dấu (WER cao).
-- **P2-03 chưa kiểm chứng mục tiêu > 70%:** baseline là PaddleOCR; adapter VietOCR đã viết nhưng chưa cài/thử (cần mẫu chữ viết tay thật).
-- **Precision/recall P2-04 và top-1 P2-05** cần tập mẫu có nhãn (`eval/extraction_eval.py`, `eval/classification_eval.py`).
+| Việc | Cần gì | Công cụ có sẵn |
+|---|---|---|
+| **NFR-08** báo cáo độ chính xác OCR chính thức | tập test thật: scan rõ, scan khó, chữ viết tay, ≥ 30 trang mỗi loại (tách tập phát triển để hiệu chỉnh ngưỡng) | `eval/ocr_eval.py`. Thử trên dữ liệu tổng hợp: scan rõ ~91%, scan khó ~90% (chỉ để kiểm tra quy trình); PaddleOCR `vi` hay mất dấu (WER cao) |
+| **P2-03** kiểm chứng chữ viết tay > 70% | mẫu chữ viết tay thật | baseline PaddleOCR; adapter VietOCR đã viết nhưng chưa cài/thử |
+| **P2-04, P2-05** precision/recall trích xuất, top-1 phân loại | tập mẫu có nhãn | `eval/extraction_eval.py`, `eval/classification_eval.py` |
+| **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB`, `MAX_PAGES` |
+| Bắt buộc CI xanh trước khi merge | sửa ruleset (GUIDE 7.1) | 2 test chập chờn đã sửa (PR #4) nên có thể bật |
+| Chép bản sao lưu ra ngoài máy | tùy nơi triển khai (ổ ngoài, cloud) | `BACKUP_DIR` (GUIDE 6.4) |
+| CD (tự triển khai) | server | chưa làm |
+
+## 5. Đã kiểm chứng khi chạy thật
+
 - **Redis/Docker (06/10/2026):** Smart App Control đã tắt. Đã chuẩn bị chạy Redis + worker + beat trong Docker
   (`docker-start.cmd`, GUIDE mục 6) và gia cố cho Redis thật: tập session của user được gia hạn cùng session
   (trước đây khóa tài khoản có thể không thu hồi được session), bộ đếm rate limit INCR+EXPIRE NX nguyên tử,
@@ -100,14 +115,17 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh
   Docker; (3) healthcheck web luôn unhealthy (localhost → IPv6); (4) Redis treo làm request chờ 10s → timeout 2s.
   Lưu ý: cookie session `Secure` ở production — trình duyệt chấp nhận qua http://127.0.0.1, công cụ như httpx thì không.
   Demo mục 3 vẫn dùng session bộ nhớ + broker PostgreSQL (không cần Docker).
-- **CI (10/10/2026):** repo private github.com/mowazee/ProjectB_TLCN; 4 workflow chạy xanh (14 check: lint, 6 tổ hợp
-  test trên PostgreSQL + Redis, migrations, frontend build, openapi-drift, 3 tổ hợp e2e, compose). Lần chạy đầu phát
+- **CI (từ 10/10/2026):** repo github.com/mowazee/ProjectB_TLCN (public từ 13/10); 4 workflow. Lần chạy đầu phát
   hiện và đã sửa: `.gitignore` bỏ sót `backend/app/shared/storage/`; phiên bản thư viện CI ≠ máy dev (→
   `backend/constraints.txt`); health không nhận HEAD; openapi.json không ổn định; e2e dùng cờ "all"; bandit assert.
-  Từ 13/10 repo public, ruleset `protect-main` chặn push thẳng/force-push vào `main`, bắt PR + 1 approve, chỉ
-  squash merge (GUIDE mục 7.1); chưa bắt buộc CI xanh trước khi merge. **CD chưa làm** (chưa có server).
-- **Sao lưu/khôi phục (NFR-03, 16/10/2026):** service `backup` sao lưu hằng ngày database + storage, mỗi bản tự thử
-  khôi phục vào database tạm (OK/WARN/FAILED), giữ `BACKUP_KEEP` bản; `restore` có chốt an toàn (`--yes`, từ chối
-  khi app còn kết nối, tự tạo bản `pre-restore`). Thử thật trên Docker: sao lưu, phát hiện thiếu file, từ chối khi
-  còn kết nối, khôi phục sau sự cố, lịch hằng ngày; CI `compose` chạy vòng sao lưu → xóa dữ liệu → khôi phục
-  (GUIDE 6.4). Còn lại: chép `BACKUP_DIR` ra ngoài máy theo lịch (tùy nơi triển khai).
+  Ruleset `protect-main` chặn push thẳng/force-push vào `main`, bắt PR + 1 approve, chỉ squash merge (GUIDE 7.1).
+- **Lịch sử PR:** #1 sửa CI lần đầu · #2 hướng dẫn Git/CI · #3 đặc tả v0.6 + `notifications.message/link_url` ·
+  #4 sao lưu/khôi phục (NFR-03) + sửa 2 test chập chờn · #5 thiết kế lại giao diện + icon · #6 nền tối, cập nhật tài liệu.
+- **Test chập chờn (sửa ở PR #4):** `App.test.tsx` do sau đăng nhập có hai lần điều hướng chồng nhau làm trang đích
+  mount 2 lần (lỗi app, test giờ đếm số lần mount); E2E `test_rollback_from_audit` do ba race trong test.
+- **Sao lưu/khôi phục (16/10/2026):** thử thật trên project Docker tách biệt: sao lưu OK, phát hiện thiếu file (WARN),
+  từ chối khi thiếu `--yes`/còn kết nối, khôi phục sau sự cố từ bản cũ nhất, lịch hằng ngày đúng giờ. Lần thử đầu bắt
+  được 2 lỗi của script (biến hàm sh toàn cục làm khôi phục nhầm bản; dọn bản cũ xóa mất bản đang cần) — đã sửa.
+- **Giao diện (16–17/10/2026):** sửa kèm nút menu mobile hiện trên desktop và cột thao tác lệch hàng bảng. Nền tối:
+  màu biểu đồ kiểm tra bằng validator trên đúng màu nền thẻ của app (sáng `#ffffff`, tối `#111827`); trang scan giữ nền
+  trắng ở cả hai chế độ (là nội dung); script đặt giao diện là file tĩnh `theme-init.js` vì CSP của Nginx chặn script inline.

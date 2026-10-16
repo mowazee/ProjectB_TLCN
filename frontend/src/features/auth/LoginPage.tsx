@@ -13,6 +13,7 @@ import {
 import { useState, type FormEvent } from "react";
 import { Navigate, useLocation } from "react-router";
 
+import { ThemeToggle } from "@/shared/components/ThemeToggle";
 import { ErrorBox, Field } from "@/shared/components/ui";
 import { replaceSession, useSession } from "@/shared/session";
 
@@ -71,6 +72,7 @@ export function LoginPage() {
         <small className={s.heroFoot}>Tiểu luận chuyên ngành · UTE · Nhóm 3</small>
       </section>
       <div className={s.side}>
+        <ThemeToggle className={s.themeToggle} />
         <form className={s.form} onSubmit={submit}>
           <div>
             <h1>Đăng nhập</h1>
