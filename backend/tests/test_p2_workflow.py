@@ -41,6 +41,7 @@ def test_full_state_machine_with_notifications(seed, login, db):
     assert officer.get("/api/reviews").status_code == 403
     bell = approver.get("/api/notifications").json()
     assert bell["unread"] == 1 and bell["items"][0]["type"] == "approval.submit"
+    assert bell["items"][0]["message"] == "'Quyết định 1'" and bell["items"][0]["link_url"] == "/reviews"
 
     assert approver.get(f"/api/documents/{doc_id}/approval").json()["allowed_actions"] == ["approve", "reject"]
     assert approver.post(f"/api/documents/{doc_id}/approval/approve", json={"comments": "OK"}).status_code == 200
@@ -58,6 +59,8 @@ def test_full_state_machine_with_notifications(seed, login, db):
     notes = officer.get("/api/notifications").json()
     types = [n["type"] for n in notes["items"]]
     assert "approval.approve" in types and notes["unread"] == len(types)
+    approved = next(n for n in notes["items"] if n["type"] == "approval.approve")
+    assert approved["message"] == "'Quyết định 1' - OK" and approved["link_url"] == f"/documents/{doc_id}"
     first = notes["items"][0]["id"]
     assert officer.post(f"/api/notifications/{first}/read").json()["is_read"] is True
     assert approver.post(f"/api/notifications/{first}/read").status_code == 404  # không lộ của người khác

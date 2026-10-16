@@ -54,7 +54,8 @@ def test_borrow_lifecycle(seed, login, db):
     req = _req(officer, doc_id, 1, 5).json()
     assert req["status"] == "pending" and req["storage_location"] == "KHO-A1 - Kho A - Kệ 1"
     approver = login("approver", features=F)
-    assert approver.get("/api/notifications").json()["items"][0]["type"] == "borrow.created"
+    created = approver.get("/api/notifications").json()["items"][0]
+    assert created["type"] == "borrow.created" and created["link_url"] == "/borrow-requests"
     assert officer.post(f"/api/borrow-requests/{req['id']}/approve").status_code == 403
     assert approver.post(f"/api/borrow-requests/{req['id']}/return").status_code == 409
     ok = approver.post(f"/api/borrow-requests/{req['id']}/approve").json()

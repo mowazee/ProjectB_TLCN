@@ -157,6 +157,7 @@ def create_request(
             title="Yêu cầu mượn hồ sơ mới",
             message=f"'{doc.title}' {from_date:%d/%m/%Y}-{to_date:%d/%m/%Y}",
             type="borrow.created",
+            link_url="/borrow-requests",
         )
     db.commit()
     return _views(db, [req])[0]
@@ -195,7 +196,12 @@ def act(
         }[action]
         brief = documents.document_brief(db, {req.document_id}).get(req.document_id, {})
         get_notifier().notify(
-            db, [req.requester_id], title=title, message=f"'{brief.get('title', '')}'", type=f"borrow.{action.value}"
+            db,
+            [req.requester_id],
+            title=title,
+            message=f"'{brief.get('title', '')}'",
+            type=f"borrow.{action.value}",
+            link_url="/borrow-requests",
         )
     db.commit()
     return _views(db, [req])[0]
@@ -252,6 +258,7 @@ def remind_overdue() -> int:
                     title="Hồ sơ mượn đã quá hạn",
                     message=f"'{briefs.get(r.document_id, {}).get('title', '')}' hạn trả {r.to_date:%d/%m/%Y}",
                     type="borrow.overdue",
+                    link_url="/borrow-requests",
                 )
         db.commit()
         return len(rows)

@@ -57,7 +57,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Hệ thống số hóa hồ sơ tài liệu",
         version="0.5.0",
-        description="REST API (SDD v0.5 mục 7). Session cookie + X-CSRF-Token cho thao tác ghi.",
+        description="REST API (SDD v0.6 mục 7). Session cookie + X-CSRF-Token cho thao tác ghi.",
     )
 
     @app.middleware("http")
