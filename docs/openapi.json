@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Hệ thống số hóa hồ sơ tài liệu",
-    "description": "REST API (SDD v0.5 mục 7). Session cookie + X-CSRF-Token cho thao tác ghi.",
+    "description": "REST API (SDD v0.6 mục 7). Session cookie + X-CSRF-Token cho thao tác ghi.",
     "version": "0.5.0"
   },
   "paths": {
@@ -4791,9 +4791,31 @@
             "type": "string",
             "title": "Title"
           },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
           "type": {
             "type": "string",
             "title": "Type"
+          },
+          "link_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link Url"
           },
           "is_read": {
             "type": "boolean",
@@ -4809,7 +4831,9 @@
         "required": [
           "id",
           "title",
+          "message",
           "type",
+          "link_url",
           "is_read",
           "created_at"
         ],

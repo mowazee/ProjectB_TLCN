@@ -1506,8 +1506,12 @@ export interface components {
             id: string;
             /** Title */
             title: string;
+            /** Message */
+            message: string | null;
             /** Type */
             type: string;
+            /** Link Url */
+            link_url: string | null;
             /** Is Read */
             is_read: boolean;
             /**

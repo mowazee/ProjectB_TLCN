@@ -1,7 +1,7 @@
-# Hệ thống số hóa hồ sơ tài liệu doanh nghiệp (ProjectB — SDD v0.5)
+# Hệ thống số hóa hồ sơ tài liệu doanh nghiệp (ProjectB — SDD v0.6)
 
 Tiểu luận chuyên ngành — UTE, Nhóm 3. Mọi yêu cầu, tên dữ liệu và hợp đồng API bám theo
-**SDD v0.5** (`Tài liệu/0 -Dac_ta_SDD_v0.5.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
+**SDD v0.6** (`document/0 -Dac_ta_SDD_v0.6.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
 
 ProjectB được dựng mới hoàn toàn theo baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng).
 ProjectA (`D:\ProjectA_TLCN`) giữ lại làm tham chiếu bản MVP cũ (Jinja2).

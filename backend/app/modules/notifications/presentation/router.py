@@ -24,7 +24,9 @@ router = APIRouter(
 class NotificationOut(BaseModel):
     id: uuid.UUID
     title: str
+    message: str | None
     type: str
+    link_url: str | None  # đường dẫn route React tương đối, vd. /documents/{id}
     is_read: bool
     created_at: datetime
 
