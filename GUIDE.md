@@ -156,10 +156,50 @@ docker compose exec redis redis-cli info keyspace   # session/hàng đợi trong
 2. Đặt reverse proxy HTTPS (Caddy/Nginx/Traefik) phía trước cổng `WEB_PORT`; cookie session là `Secure` khi `APP_ENV=production`.
 3. `docker compose up -d --build` rồi `docker compose run --rm --no-deps api python scripts/seed_demo.py --admin-only`
    (ở production script từ chối tạo tài khoản demo và bắt buộc có `DEMO_ADMIN_PASSWORD`).
-4. Sao lưu: `docker compose exec postgres pg_dump -U dms dms > backup.sql` + volume `storage` (cùng thời điểm);
-   thử khôi phục trước khi đưa vào dùng (NFR-03).
+4. Sao lưu tự động đã chạy cùng `docker compose up -d` (service `backup`, mục 6.4). Đặt `BACKUP_DIR` ra ổ khác
+   và chép định kỳ ra ngoài máy; chạy thử một lần khôi phục trước khi đưa vào dùng (NFR-03).
 
-CI `compose.yml` chạy đúng quy trình này trên GitHub (build → up → E2E qua Nginx → restart Redis).
+CI `compose.yml` chạy đúng quy trình này trên GitHub (build → up → E2E qua Nginx → restart Redis → sao lưu,
+xóa dữ liệu, khôi phục).
+
+### 6.4 Sao lưu và khôi phục (NFR-03)
+
+Service `backup` (script `infra/backup/backup.sh`) mỗi ngày lúc `BACKUP_AT` (giờ **UTC**; mặc định `19:30` =
+02:30 giờ Việt Nam) tạo một thư mục trong `BACKUP_DIR` (mặc định `./backups`, đã `.gitignore`):
+
+| File | Nội dung |
+|---|---|
+| `db.dump` | `pg_dump -Fc` toàn bộ database |
+| `storage.tar.gz` | toàn bộ volume `storage` (file gốc, ảnh trang) |
+| `SHA256SUMS`, `info.txt`, `counts.txt` | checksum; thời điểm, revision Alembic, dung lượng; số dòng các bảng chính |
+| `STATUS` | `OK`, `WARN` hoặc `FAILED` (chi tiết trong `STATUS.detail`, `verify.log`) |
+
+**Mỗi bản sao lưu đều được tự thử khôi phục:** script khôi phục `db.dump` vào database tạm, so revision Alembic
+và số bảng, kiểm tra `audit_logs` không nhiều hơn hiện tại (audit chỉ ghi thêm), kiểm tra mọi file mà database
+tham chiếu đều có trong `storage.tar.gz`, rồi xóa database tạm. `WARN` khi thiếu file (chỉ xảy ra nếu purge xóa
+file đúng lúc sao lưu); `FAILED` khi checksum/khôi phục lỗi. Giữ `BACKUP_KEEP` bản gần nhất không `FAILED`.
+
+```powershell
+docker compose logs backup                                   # lịch và kết quả các lần sao lưu
+docker compose exec backup sh /backup/backup.sh run          # sao lưu ngay (vd. trước khi nâng cấp)
+docker compose exec backup sh /backup/backup.sh list         # danh sách bản sao lưu + kết quả kiểm tra
+```
+
+Khôi phục (ghi đè database **và** storage bằng bản đã chọn):
+
+```powershell
+docker compose stop api worker beat                          # bắt buộc: không còn ai ghi dữ liệu
+docker compose --profile tools run --rm restore 20261016-193000 --yes
+docker compose up -d
+```
+
+Lệnh `restore` từ chối chạy nếu thiếu `--yes`, nếu bản đã chọn `FAILED` hoặc sai checksum, hoặc nếu còn kết nối
+tới database (quên dừng api/worker/beat; `--force` để bỏ qua). Trước khi ghi đè, nó tự tạo bản `…-pre-restore`
+của trạng thái hiện tại, nên khôi phục nhầm vẫn quay lại được. Thứ tự sao lưu là database trước, file sau: file
+upload trong lúc sao lưu chỉ thành file thừa, không có bản ghi trỏ tới file thiếu.
+
+Bản sao lưu nằm trên cùng máy thì không chống được hỏng ổ hay mất máy: chép `BACKUP_DIR` ra ngoài (ổ ngoài,
+Google Drive, máy khác) theo lịch. Demo Windows (mục 3, `.demo\`) là dữ liệu thử, không sao lưu.
 
 ## 7. Git, GitHub và CI
 

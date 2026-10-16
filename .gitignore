@@ -36,3 +36,6 @@ playwright-report/
 .idea/
 Thumbs.db
 .DS_Store
+
+# Bản sao lưu (NFR-03, BACKUP_DIR mặc định ./backups): dữ liệu thật, không commit
+/backups/
