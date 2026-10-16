@@ -1,3 +1,4 @@
+import { Download, PencilLine, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -156,13 +157,13 @@ export function DocumentDetailPage() {
             {d.can_edit && (
               <>
                 <a className="btn" href={fileUrl(d.id)}>
-                  Tải file gốc
+                  <Download size={16} aria-hidden /> Tải file gốc
                 </a>
                 <button className="btn" onClick={() => setEditing(true)}>
-                  Sửa thông tin
+                  <PencilLine size={16} aria-hidden /> Sửa thông tin
                 </button>
                 <button className="btn btn-danger" onClick={remove} disabled={del.isPending}>
-                  Xóa
+                  <Trash2 size={16} aria-hidden /> Xóa
                 </button>
               </>
             )}

@@ -3,6 +3,7 @@
  * Feature P2 cắm vào slot (tab chi tiết tài liệu, lớp phủ PageViewer, công cụ OCR Editor...) mà không sửa
  * page của feature lõi.
  */
+import type { LucideIcon } from "lucide-react";
 import type { ComponentType, LazyExoticComponent } from "react";
 import type { RouteObject } from "react-router";
 
@@ -17,6 +18,8 @@ export interface NavItem {
   roles?: string[];
   order?: number;
   group?: "main" | "admin";
+  /** Icon lucide-react hiển thị cạnh nhãn menu. */
+  icon?: LucideIcon;
 }
 
 export interface DocumentSlotProps {
@@ -68,5 +71,5 @@ export interface FeatureManifest {
   /** Trường bổ sung trong form upload (render input có name, gửi kèm FormData). */
   uploadFields?: Slot<object>[];
   /** Thẻ bổ sung trên dashboard, đọc từ stats.extras. */
-  dashboardCards?: { key: string; label: string; to?: string }[];
+  dashboardCards?: { key: string; label: string; to?: string; icon?: LucideIcon }[];
 }

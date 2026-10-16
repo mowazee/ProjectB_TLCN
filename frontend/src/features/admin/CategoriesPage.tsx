@@ -1,3 +1,4 @@
+import { FolderTree, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import type { Category } from "@/shared/api/types";
@@ -92,10 +93,11 @@ export function CategoriesPage() {
   return (
     <div>
       <PageHeader
+        icon={FolderTree}
         title="Danh mục tài liệu"
         actions={
           <button className="btn btn-primary" onClick={() => setEditing("new")}>
-            + Tạo danh mục
+            <Plus size={16} aria-hidden /> Tạo danh mục
           </button>
         }
       />
@@ -122,17 +124,19 @@ export function CategoriesPage() {
                 <td>{all.find((p) => p.id === c.parent_id)?.name ?? "—"}</td>
                 <td>{c.retention_period_years ? `${c.retention_period_years} năm` : "—"}</td>
                 <td>{c.is_active ? <Badge tone="ok">Đang dùng</Badge> : <Badge>Ngừng dùng</Badge>}</td>
-                <td className="row">
-                  <button className="btn btn-sm" onClick={() => setEditing(c)}>
-                    Sửa
-                  </button>
-                  <button
-                    className="btn btn-sm"
-                    disabled={save.isPending}
-                    onClick={() => save.mutate({ id: c.id, data: { is_active: !c.is_active } })}
-                  >
-                    {c.is_active ? "Ngừng dùng" : "Dùng lại"}
-                  </button>
+                <td>
+                  <div className="row">
+                    <button className="btn btn-sm" onClick={() => setEditing(c)}>
+                      Sửa
+                    </button>
+                    <button
+                      className="btn btn-sm"
+                      disabled={save.isPending}
+                      onClick={() => save.mutate({ id: c.id, data: { is_active: !c.is_active } })}
+                    >
+                      {c.is_active ? "Ngừng dùng" : "Dùng lại"}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -1,3 +1,4 @@
+import { FileText, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
@@ -47,16 +48,17 @@ export function DocumentsListPage() {
   return (
     <div>
       <PageHeader
+        icon={FileText}
         title="Tài liệu"
         subtitle="Tài liệu trong phạm vi quyền của bạn"
         actions={
           <>
             <Link className="btn" to="/documents/trash">
-              Thùng rác
+              <Trash2 size={16} aria-hidden /> Thùng rác
             </Link>
             {hasRole("OFFICER") && (
               <Link className="btn btn-primary" to="/documents/new">
-                + Tải lên
+                <Upload size={16} aria-hidden /> Tải lên
               </Link>
             )}
           </>

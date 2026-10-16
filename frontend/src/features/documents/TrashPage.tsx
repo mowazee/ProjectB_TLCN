@@ -1,3 +1,4 @@
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
@@ -16,11 +17,12 @@ export function TrashPage() {
   return (
     <div>
       <PageHeader
+        icon={Trash2}
         title="Thùng rác"
         subtitle="Tài liệu đã xóa có thể khôi phục trước hạn; quá hạn sẽ bị xóa vĩnh viễn (vẫn giữ nhật ký)."
         actions={
           <Link className="btn" to="/documents">
-            ‹ Danh sách tài liệu
+            <ArrowLeft size={14} aria-hidden /> Danh sách tài liệu
           </Link>
         }
       />

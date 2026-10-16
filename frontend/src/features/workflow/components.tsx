@@ -1,3 +1,4 @@
+import { ClipboardCheck } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
@@ -123,7 +124,11 @@ export function ReviewsPage() {
   const reviews = useReviews(page);
   return (
     <div>
-      <PageHeader title="Hàng chờ duyệt" subtitle={`Tài liệu ở trạng thái “${APPROVAL_LABELS.pending_review}”`} />
+      <PageHeader
+        icon={ClipboardCheck}
+        title="Hàng chờ duyệt"
+        subtitle={`Tài liệu ở trạng thái “${APPROVAL_LABELS.pending_review}”`}
+      />
       <ErrorBox error={reviews.error} />
       {reviews.isPending ? (
         <Loading />

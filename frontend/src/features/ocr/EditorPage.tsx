@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -130,7 +131,11 @@ export function EditorPage() {
     <div className="stack">
       <PageHeader
         title={`Sửa OCR - trang ${p.page_number}/${p.total_pages}`}
-        subtitle={<Link to={`/documents/${id}/pages/${p.page_number}`}>‹ Về xem trang</Link>}
+        subtitle={
+          <Link to={`/documents/${id}/pages/${p.page_number}`}>
+            <ArrowLeft size={14} aria-hidden /> Về xem trang
+          </Link>
+        }
       />
       {!p.can_edit ? (
         <ErrorBox error={new Error("Bạn không có quyền sửa tài liệu này")} />

@@ -1,3 +1,4 @@
+import { ScrollText } from "lucide-react";
 import { Fragment, useState } from "react";
 import { Link } from "react-router";
 
@@ -21,7 +22,11 @@ export function AuditPage() {
 
   return (
     <div>
-      <PageHeader title="Nhật ký hệ thống" subtitle="Nhật ký chỉ ghi thêm, không sửa/xóa từ giao diện." />
+      <PageHeader
+        icon={ScrollText}
+        title="Nhật ký hệ thống"
+        subtitle="Nhật ký chỉ ghi thêm, không sửa/xóa từ giao diện."
+      />
       <div className="row" style={{ marginBottom: 12 }}>
         <label className="row">
           Từ{" "}
@@ -108,11 +113,13 @@ export function AuditPage() {
                       )}
                     </td>
                     <td>{log.ip_address ?? "—"}</td>
-                    <td className="row">
-                      <button className="btn btn-sm" onClick={() => setOpen(open === log.id ? null : log.id)}>
-                        Chi tiết
-                      </button>
-                      <SlotList items={auditRowActions} props={{ log }} />
+                    <td>
+                      <div className="row">
+                        <button className="btn btn-sm" onClick={() => setOpen(open === log.id ? null : log.id)}>
+                          Chi tiết
+                        </button>
+                        <SlotList items={auditRowActions} props={{ log }} />
+                      </div>
                     </td>
                   </tr>
                   {open === log.id && (

@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -60,6 +61,7 @@ export function SearchPage() {
   return (
     <div>
       <PageHeader
+        icon={Search}
         title="Tìm kiếm nội dung"
         subtitle="Tìm trên text đã OCR/đã sửa, không phân biệt dấu và hoa thường."
       />
