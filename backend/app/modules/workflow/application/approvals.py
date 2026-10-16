@@ -126,8 +126,14 @@ def transition(
         recipients = [submitter] if submitter and submitter != principal.id else []
     if recipients:
         message = f"'{doc.title}'" + (f" - {comments}" if comments else "")
+        link = "/reviews" if action == Action.SUBMIT else f"/documents/{doc.id}"
         get_notifier().notify(
-            db, recipients, title=NOTIFY_TITLES[action], message=message, type=f"approval.{action.value}"
+            db,
+            recipients,
+            title=NOTIFY_TITLES[action],
+            message=message,
+            type=f"approval.{action.value}",
+            link_url=link,
         )
     db.commit()
     return step.to_status

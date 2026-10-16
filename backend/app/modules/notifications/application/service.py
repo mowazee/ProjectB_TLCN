@@ -26,10 +26,10 @@ class DbNotifier:
         type: str,
         link_url: str | None = None,
     ) -> None:
-        # ERD chỉ có title/type: gộp nội dung vào title (link do React suy ra từ type)
-        text = f"{title}: {message}" if message else title
         for uid in dict.fromkeys(user_ids):  # bỏ trùng, giữ thứ tự
-            db.add(Notification(user_id=uid, title=text[:255], type=type[:50]))
+            db.add(
+                Notification(user_id=uid, title=title[:255], message=message or None, type=type[:50], link_url=link_url)
+            )
         db.flush()
 
 

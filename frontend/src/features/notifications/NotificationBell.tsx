@@ -10,7 +10,9 @@ import s from "./notifications.module.css";
 
 const POLL_MS = 30_000; // SDD mục 13: thông báo P2-07 lấy bằng polling nhẹ
 
-function linkFor(type: string): string {
+// Thông báo tạo trước SDD v0.6 chưa có link_url: suy từ type như trước
+function linkFor(type: string, linkUrl: string | null): string {
+  if (linkUrl?.startsWith("/")) return linkUrl;
   if (type === "approval.submit") return "/reviews";
   if (type.startsWith("borrow.")) return "/borrow-requests";
   return "/documents";
@@ -65,7 +67,7 @@ export function NotificationBell() {
               {data.data.items.map((n) => (
                 <li key={n.id} className={n.is_read ? s.read : ""}>
                   <Link
-                    to={linkFor(n.type)}
+                    to={linkFor(n.type, n.link_url)}
                     onClick={() => {
                       if (!n.is_read) read.mutate(n.id);
                       setOpen(false);
@@ -73,6 +75,7 @@ export function NotificationBell() {
                   >
                     {n.title}
                   </Link>
+                  {n.message && <div>{n.message}</div>}
                   <div className="muted">{formatDateTime(n.created_at)}</div>
                 </li>
               ))}

@@ -1,4 +1,4 @@
-# Tóm tắt trạng thái ProjectB (baseline SDD v0.5) — cập nhật 05/10/2026
+# Tóm tắt trạng thái ProjectB (baseline SDD v0.6) — cập nhật 16/10/2026
 
 ## 1. Đã hoàn thành
 
@@ -7,7 +7,7 @@
 | Backend MVP | 9 module lõi (auth, users, categories, documents, jobs, ocr, search, dashboard, audit), 4 lớp mỗi module | 50+ test API/unit |
 | Backend P2 | P2-01…P2-09 (10 module/file bổ sung), cờ `FEATURES_ENABLED`, router tắt → 404 | test_p2_*.py |
 | Điểm mở rộng | ModuleSpec + registry, job kind registry (`jobs.run`), event sau commit, port OcrEngine/Storage/Notifier, API truy vấn công khai, UI registry + slot | import-linter 5 contract KEPT; ESLint chặn import sai ranh giới |
-| CSDL | Alembic `0001_core` + `0101…0105` (mỗi module P2 một revision); trigger audit append-only (cho phép ON DELETE SET NULL); CHECK `kind` mở rộng ở 0105 | `alembic check` sạch trên SQLite và PostgreSQL; upgrade/downgrade/upgrade |
+| CSDL | Alembic `0001_core` + `0101…0106` (mỗi module P2 một revision); trigger audit append-only (cho phép ON DELETE SET NULL); CHECK `kind` mở rộng ở 0105; `notifications.message/link_url` ở 0106 | `alembic check` sạch trên SQLite và PostgreSQL; upgrade/downgrade/upgrade |
 | Frontend | React 19 + TS + Vite 8, React Router 7, TanStack Query 5, CSS Modules, Chart.js; 15 feature (6 lõi + 9 P2, lazy); types sinh từ OpenAPI | 17 test Vitest; tsc/eslint/prettier sạch |
 | Hạ tầng | Nginx (SPA + /api), Dockerfile backend/frontend, compose (profile hw, rag), compose.dev, Makefile, CI 3 workflow (ma trận cờ P2) | — |
 | Đánh giá | `backend/eval/`: CER/WER/độ chính xác ký tự, hiệu chỉnh ngưỡng, precision/recall trích xuất, top-1 phân loại | chạy thử với PaddleOCR thật trên dữ liệu tổng hợp |
@@ -17,7 +17,7 @@
 
 | Bộ | Kết quả |
 |---|---|
-| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 104 passed / 104 passed (06/10: + hạ tầng Redis, nhận lại job, sklearn) |
+| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 105 passed / 105 passed (16/10, sau migration 0106) |
 | Backend pytest trên Redis thật (Docker), cờ tắt / mọi cờ bật | 104 passed / 104 passed |
 | Bản Docker Compose (Redis + worker + beat + Nginx): E2E | 9 passed, 1 skipped |
 | Backend pytest trên PostgreSQL 18, cờ tắt / mọi cờ bật | 90/90 passed cả hai (trước khi thêm 3 test eval) |
@@ -49,23 +49,26 @@
 | P2-09 | rollback | rollback (auditRowActions) | test_p2_rollback.py; e2e |
 | NFR-09 | registry + cờ | registry.ts | toàn bộ test chạy lại với `TEST_FEATURES=all`; test_p2_flags.py; registry.test.ts |
 
-## 3. Chênh lệch so với đặc tả — nhóm cần quyết định / cập nhật file 0, 3 (SDD mục 12)
+## 3. Chênh lệch so với đặc tả — đã xử lý ở v0.6 (16/10/2026)
 
-1. **Cột bổ sung ngoài ERD (bảng P2):** `notifications.created_at`, `document_approvals.created_at` (sắp xếp lịch sử),
-   `borrow_requests.purpose` (UC-11 yêu cầu nhập mục đích) và `borrow_requests.created_at`. Đề nghị bổ sung vào ERD file 3.
-2. **notifications chỉ có `title`, `type`:** nội dung được gộp vào `title`; không có liên kết tới tài liệu. Đề nghị thêm `message`, `link_url`.
-3. **`processing_jobs.document_id` cho phép NULL:** job cấp lô BULK_IMPORT (P2-08) chưa gắn tài liệu.
-4. **Endpoint bổ sung (ngoài SDD 7.1/7.2):** `GET /api/departments`; `GET/PUT /api/documents/{id}/storage-location` (gán vị trí bản cứng,
-   tiền điều kiện của UC-11); `GET /api/documents/{id}/approval` (trạng thái + action được phép); `POST /api/notifications/read-all`;
-   `GET /api/audit/{id}/rollback` (xem trước). `DocumentOut` thêm `job_id` (poll tiến độ/retry).
-5. **P2-01 "rejected → draft":** API không có action riêng; hiện thực cho phép `submit` trực tiếp từ `rejected` (hiểu là rejected→draft→pending_review).
-6. ~~P2-05 không dùng scikit-learn~~ — **đã khắc phục 06/10/2026**: dùng scikit-learn TF-IDF + Logistic Regression
-   đúng Đặc tả đề tài mục 2. Điểm gợi ý là xác suất 0-1; `CLASSIFY_MIN_SCORE` mặc định 0.3 áp cho gợi ý cao nhất
-   (UC-22 bước 2a; trước đây lọc từng gợi ý). Nhóm hiệu chỉnh ngưỡng bằng `eval/classification_eval.py` trên tập mẫu thật.
-7. **P2-02:** khung highlight theo tỉ lệ ký tự trong dòng OCR; từ khóa vắt qua hai dòng chưa được đánh dấu. Trang đã sửa → không vẽ, báo lý do.
-8. **D-02 vẫn mở:** phạm vi xem đang là "chủ sở hữu + cùng phòng ban"; Admin xem tất cả.
-9. **Dashboard:** số job hoàn tất/lỗi chỉ đếm job OCR (để bật P2 không làm đổi số liệu MVP).
-10. **Rollback (P2-09)** hỗ trợ: metadata tài liệu, danh mục, bản sửa OCR. Các thao tác khác trả 422 `ROLLBACK_NOT_SUPPORTED`.
+Bộ tài liệu `document/` nâng lên **v0.6** (file 0, 2, 3 và script CSDL file 4); file 1 (khảo sát) không đánh số phiên bản nên giữ nguyên.
+Nguyên tắc: code đã đúng thực tế thì hợp thức hóa vào đặc tả; chỗ code còn thiếu thì sửa code.
+
+| # | Chênh lệch (v0.5) | Quyết định v0.6 | Ở đâu |
+|---|---|---|---|
+| 1 | Cột ngoài ERD ở bảng P2: `document_approvals.created_at`, `borrow_requests.purpose/created_at`, `notifications.created_at` | Đưa vào ERD | SDD §6; file 3 Hình 8 (vẽ lại), bảng thực thể |
+| 2 | `notifications` gộp nội dung vào `title`, không có link | **Sửa code**: migration `0106` thêm `message`, `link_url`; workflow/borrowing truyền link; chuông React mở đúng `link_url` (thông báo cũ vẫn suy từ `type`) | SDD §6, §7.2; file 3 ERD |
+| 3 | `processing_jobs.document_id` cho phép NULL | Ghi nhận (job cấp lô BULK_IMPORT) | SDD §6, P2-08; file 3 ERD, UC-23 |
+| 4 | 5 endpoint + `DocumentOut.job_id` ngoài SDD | Đưa vào SDD §7 (đánh dấu `++`) | SDD §7.1, §7.2 |
+| 5 | P2-01 "rejected → draft" | Chốt `rejected → pending_review` bằng `submit` (bỏ bước draft trung gian) | SDD P2-01; file 3 UC-13, UC-14 (Hình 5 vốn đã đúng) |
+| 6 | P2-05 scikit-learn | Đã sửa 06/10; ghi vào tiêu chí (TF-IDF + Logistic Regression, `CLASSIFY_MIN_SCORE` 0,3 cho gợi ý cao nhất) | SDD P2-05; file 2 §3; file 3 UC-22 |
+| 7 | Giới hạn highlight P2-02 | Ghi là giới hạn chấp nhận | SDD P2-02; file 3 UC-19 |
+| 8 | D-02 còn mở | **Chốt**: chủ sở hữu + cùng phòng ban; Admin xem tất cả; xuất bản không mở rộng phạm vi | SDD §3, §11; file 2 §6; file 3 UC-05a, UC-15 |
+| 9 | Dashboard chỉ đếm job OCR | Ghi vào FR-08 | SDD FR-08; file 3 UC-07 |
+| 10 | Phạm vi rollback P2-09 | Ghi rõ loại hỗ trợ + 422 `ROLLBACK_NOT_SUPPORTED` + API xem trước | SDD P2-09, §7.2; file 3 UC-08b |
+| + | `documents.department_id` có trong DB nhưng ERD v0.5 không vẽ | Vẽ lên ERD (căn cứ của D-02) | file 3 Hình 8 |
+
+Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh lại từ Alembic `0001…0106`, đủ 16 bảng.
 
 ## 4. Việc còn lại / rủi ro
 

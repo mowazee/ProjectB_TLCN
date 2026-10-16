@@ -1,4 +1,4 @@
-"""Policy quyền theo tài liệu (SDD mục 3; D-02 còn mở - áp dụng đề xuất tạm thời):
+"""Policy quyền theo tài liệu (SDD mục 3; D-02 đã chốt ở SDD v0.6):
 
 - Admin: mọi tài liệu.
 - Phạm vi (scope): tài liệu do mình sở hữu hoặc thuộc phòng ban của mình.
