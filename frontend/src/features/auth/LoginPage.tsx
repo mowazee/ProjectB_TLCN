@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router";
+import { Navigate, useLocation } from "react-router";
 
 import { ErrorBox, Field } from "@/shared/components/ui";
 import { replaceSession, useSession } from "@/shared/session";
@@ -11,7 +11,6 @@ import s from "./auth.module.css";
 export function LoginPage() {
   const { session } = useSession();
   const client = useQueryClient();
-  const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? "/";
   const [username, setUsername] = useState("");
@@ -19,10 +18,9 @@ export function LoginPage() {
 
   const mutation = useMutation({
     mutationFn: () => login(username.trim(), password),
-    onSuccess: (data) => {
-      replaceSession(client, data);
-      navigate(from, { replace: true });
-    },
+    // Chỉ ghi session; <Navigate> bên dưới chuyển trang khi session có giá trị. Gọi thêm navigate() ở đây
+    // tạo hai lần điều hướng chồng nhau -> trang đích mount hai lần (từng làm App.test chập chờn trên CI).
+    onSuccess: (data) => replaceSession(client, data),
   });
 
   if (session) return <Navigate to={from} replace />;
