@@ -94,10 +94,15 @@ services:
   worker-hw:
     <<: *backend
     profiles: [hw]
+    # Image riêng có VietOCR (PyTorch CPU); image chung của api/worker giữ nhẹ. OCR_HW_ENGINE=auto -> vietocr.
+    build: { context: ./backend, args: { WITH_HW: "1" } }
+    image: docso-backend-hw:0.5
     command: ["celery", "-A", "app.workers.celery_app:celery_app", "worker", "-Q", "ocr_hw", "-P", "solo", "-l", "info"]
     environment:
       <<: *backend-env
       WORKER_OCR_PROFILES: handwriting
+      # Cấu hình + weights VietOCR (~150 MB) tải một lần vào volume "models", khởi động lại không tải lại
+      VIETOCR_CACHE_DIR: /home/app/.paddlex/vietocr
     depends_on: *after-migrate
     stop_grace_period: 60s
     healthcheck: { disable: true }

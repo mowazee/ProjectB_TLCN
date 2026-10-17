@@ -71,9 +71,11 @@ class Settings(BaseSettings):
 
     # OCR
     OCR_ENGINE: str = "paddleocr"
-    OCR_HW_ENGINE: str = "paddleocr-hw"  # P2-03: paddleocr-hw (baseline) | vietocr
+    # P2-03: auto (vietocr nếu đã cài, không thì paddleocr-hw) | vietocr | paddleocr-hw (baseline)
+    OCR_HW_ENGINE: str = "auto"
     OCR_HW_REC_MODEL: str = ""  # P2-03 paddleocr-hw: tên model nhận dạng (trống = mặc định theo ngôn ngữ)
     VIETOCR_CONFIG: str = "vgg_transformer"  # P2-03 vietocr: cấu hình/weights VietOCR
+    VIETOCR_CACHE_DIR: str = ""  # nơi lưu cấu hình + weights VietOCR (trống = ~/.cache/vietocr)
     OCR_LANG: str = "vi"
     OCR_DEVICE: str = "cpu"
     OCR_RENDER_DPI: int = 200

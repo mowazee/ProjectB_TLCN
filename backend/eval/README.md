@@ -40,6 +40,21 @@ vào `eval/reports/` (kèm cấu hình máy, engine, DPI) để đưa vào báo 
 
 Đặt giá trị đề xuất vào `NEEDS_REVIEW_THRESHOLD` trong `.env` (mặc định 85).
 
+### 3b. Chữ viết tay đo từ dữ liệu trong ứng dụng (P2-03)
+
+Không cần tự viết `*.gt.txt`: upload tài liệu chữ viết tay (tick "Chữ viết tay"), sửa text từng trang trong OCR
+Editor cho đúng hoàn toàn với bản gốc, rồi:
+
+```powershell
+.\.venv\Scripts\python.exe eval\handwriting_from_app.py                    # database demo
+.\.venv\Scripts\python.exe eval\handwriting_from_app.py --database-url postgresql+psycopg://...
+```
+
+So `ocr_results.raw_text` (máy) với bản sửa mới nhất (đáp án) của các trang `is_handwritten`, gộp theo
+`engine_version`, đối chiếu mục tiêu > 70%. Chỉ tính bản sửa mới hơn lần OCR gần nhất. Trang sửa chưa kỹ làm số
+đẹp hơn thực tế; số báo cáo chính thức vẫn nên tách tập test riêng như mục 1–2. Cài và chạy thử engine:
+`scripts/setup_handwriting.py` (GUIDE mục 4.3).
+
 ## 4. Trích xuất trường (P2-04) và phân loại (P2-05)
 
 ```powershell

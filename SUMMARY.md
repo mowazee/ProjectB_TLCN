@@ -46,7 +46,7 @@ với code; CI xanh trên mọi PR. Việc còn lại chủ yếu cần **dữ l
 | FR-08 | dashboard, audit | dashboard (Chart.js), admin/AuditPage | test_editor_search.py, test_admin.py |
 | P2-01 | workflow | workflow (nút, lịch sử, /reviews) | test_p2_workflow.py; e2e |
 | P2-02 | search/highlight_module | highlight (pageOverlays) | test_p2_versions_highlight.py; HighlightOverlay.test.tsx; e2e |
-| P2-03 | ocr/handwriting_module (queue ocr_hw) | handwriting (uploadFields, reprocess) | test_p2_handwriting.py |
+| P2-03 | ocr/handwriting_module (queue ocr_hw); engine VietOCR (auto) | handwriting (uploadFields, reprocess) | test_p2_handwriting.py; test_eval_handwriting.py (đo từ bản sửa trong app) |
 | P2-04 | extraction (job EXTRACT, UNIQUE) | extraction (tab) | test_p2_extraction_classification.py |
 | P2-05 | classification (job CLASSIFY, scikit-learn TF-IDF + Logistic Regression) | classification (tab) | test_p2_extraction_classification.py |
 | P2-06 | ocr/versions_module (difflib) | versions (editorTools) | test_p2_versions_highlight.py; e2e |
@@ -82,7 +82,7 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh
 | Việc | Cần gì | Công cụ có sẵn |
 |---|---|---|
 | **NFR-08** báo cáo độ chính xác OCR chính thức | tập test thật: scan rõ, scan khó, chữ viết tay, ≥ 30 trang mỗi loại (tách tập phát triển để hiệu chỉnh ngưỡng) | `eval/ocr_eval.py`. Thử trên dữ liệu tổng hợp: scan rõ ~91%, scan khó ~90% (chỉ để kiểm tra quy trình); PaddleOCR `vi` hay mất dấu (WER cao) |
-| **P2-03** kiểm chứng chữ viết tay > 70% | mẫu chữ viết tay thật | baseline PaddleOCR; adapter VietOCR đã viết nhưng chưa cài/thử |
+| **P2-03** kiểm chứng chữ viết tay > 70% | mẫu chữ viết tay thật: upload (tick "Chữ viết tay"), sửa text cho đúng trong OCR Editor | **đã cài sẵn VietOCR** (`OCR_HW_ENGINE=auto`, GUIDE 4.3); đo bằng `eval/handwriting_from_app.py`. Ảnh vẽ bằng font kiểu viết tay (chỉ kiểm tra cài đặt): VietOCR 94,4%, PaddleOCR 91,5% nhưng chèn chữ Hán và tự tin sai |
 | **P2-04, P2-05** precision/recall trích xuất, top-1 phân loại | tập mẫu có nhãn | `eval/extraction_eval.py`, `eval/classification_eval.py` |
 | **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB`, `MAX_PAGES` |
 | Bắt buộc CI xanh trước khi merge | sửa ruleset (GUIDE 7.1) | 2 test chập chờn đã sửa (PR #4) nên có thể bật |

@@ -1,4 +1,4 @@
-# Khóa phiên bản (constraints) - bộ đã kiểm thử: 104 test, E2E, Docker Compose, PaddleOCR thật.
+# Khóa phiên bản (constraints) - bộ đã kiểm thử: 105+ test, E2E, Docker Compose, PaddleOCR thật.
 # Mọi nơi cài đặt dùng: pip install -r requirements*.txt -c constraints.txt (CI, Dockerfile, GUIDE).
 # Chỉ ràng buộc phiên bản, không tự cài thêm gói. Nâng cấp thư viện: sửa bản ở đây (hoặc pip install -U trong
 # .venv rồi chạy lại: python -m pip freeze --exclude-editable > constraints.txt, giữ 4 dòng đầu), chạy test, mở PR.
@@ -18,6 +18,7 @@ ast_serialize==0.12.1
 attrs==26.1.0
 bandit==1.9.4
 bce-python-sdk==0.9.79
+beautifulsoup4==4.15.0
 billiard==4.3.0
 boolean.py==5.0
 CacheControl==0.14.4
@@ -39,6 +40,7 @@ cryptography==50.0.2
 cyclonedx-python-lib==11.12.0
 defusedxml==0.7.1
 dnspython==2.8.0
+einops==0.8.2
 email-validator==2.3.0
 fakeredis==2.39.0
 fastapi==0.142.2
@@ -47,6 +49,7 @@ filetype==1.2.0
 frozenlist==1.8.0
 fsspec==2026.9.0
 future==1.0.0
+gdown==6.4.2
 greenlet==3.5.6
 grimp==3.17
 h11==0.16.0
@@ -61,6 +64,7 @@ idna==3.20
 imagesize==2.0.1
 import-linter==2.15
 iniconfig==2.3.0
+Jinja2==3.1.6
 jiwer==4.0.0
 joblib==1.6.0
 kombu==5.6.2
@@ -72,6 +76,7 @@ MarkupSafe==3.0.4
 mdurl==0.1.2
 modelscope==1.40.1
 modelscope-hub==0.4.5
+mpmath==1.3.0
 msgpack==1.2.3
 multidict==6.9.1
 mypy==2.4.0
@@ -118,6 +123,7 @@ Pygments==2.21.0
 pymupdf==1.28.2
 pyparsing==3.3.3
 pypdfium2==5.13.0
+PySocks==1.7.1
 pytest==9.1.1
 pytest-base-url==2.1.0
 pytest-cov==7.1.0
@@ -141,13 +147,17 @@ setuptools==84.0.0
 shapely==2.1.2
 six==1.17.0
 sortedcontainers==2.4.0
+soupsieve==3.0.3
 SQLAlchemy==2.0.54
 starlette==1.7.0
 stevedore==5.9.1
+sympy==1.14.0
 text-unidecode==1.3
 threadpoolctl==3.7.0
 tomli==2.4.1
 tomli_w==1.2.0
+torch==2.14.1
+torchvision==0.29.1
 tqdm==4.70.1
 truststore==0.10.4
 typing-inspection==0.4.4
@@ -157,6 +167,7 @@ tzlocal==5.4.4
 ujson==6.0.0
 urllib3==2.8.0
 uvicorn==0.54.0
+vietocr==0.3.13
 vine==5.1.0
 watchfiles==1.3.0
 wcwidth==0.9.1

@@ -2,6 +2,7 @@
 # Mặc định chạy API; compose ghi đè command cho worker/beat.
 #   docker build -t docso-backend .                       # API + worker OCR in
 #   docker build --build-arg WITH_OCR=0 -t docso-api .    # image nhẹ không có PaddleOCR (chỉ API/beat)
+#   docker build --build-arg WITH_HW=1 -t docso-backend-hw .  # + VietOCR (PyTorch CPU) cho worker chữ viết tay P2-03
 FROM python:3.12-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
@@ -11,10 +12,16 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
-COPY requirements.txt requirements-ocr.txt constraints.txt ./
+COPY requirements.txt requirements-ocr.txt requirements-hw.txt constraints.txt ./
 ARG WITH_OCR=1
+ARG WITH_HW=0
 RUN pip install -r requirements.txt -c constraints.txt \
     && if [ "$WITH_OCR" = "1" ]; then pip install -r requirements-ocr.txt -c constraints.txt; fi
+# VietOCR: PyTorch bản CPU (bản mặc định trên Linux kèm CUDA, vài GB); vietocr --no-deps (xem requirements-hw.txt)
+RUN if [ "$WITH_HW" = "1" ]; then \
+      pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-hw.txt -c constraints.txt \
+      && pip install vietocr==0.3.13 --no-deps; \
+    fi
 
 COPY alembic.ini ./
 COPY alembic ./alembic
