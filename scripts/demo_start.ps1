@@ -129,6 +129,23 @@ try {
     & $Py (Join-Path $Backend 'scripts\seed_demo.py')
     if ($LASTEXITCODE -ne 0) { throw 'Nạp dữ liệu mẫu thất bại' }
 
+    if (-not $Mvp) {
+        # P2-03: OCR_HW_ENGINE=auto -> VietOCR nếu đã cài (backend\requirements-hw.txt). Tải trước cấu hình +
+        # weights (~150 MB, một lần) để job chữ viết tay đầu tiên không phải chờ tải. Lỗi ở đây không chặn demo.
+        Step 'Chuẩn bị OCR chữ viết tay (P2-03)'
+        $ErrorActionPreference = 'Continue'   # import torch/paddle ghi cảnh báo ra stderr
+        $hwEngine = & $Py -c "from app.modules.ocr.infrastructure.engines import handwriting as h; n = h.resolved_engine_name(); n == 'vietocr' and h.prepare_vietocr(); print(n)" 2>> "$Logs\handwriting.log"
+        $code = $LASTEXITCODE
+        $ErrorActionPreference = 'Stop'
+        if ($code -ne 0) {
+            Write-Host "    Không chuẩn bị được model chữ viết tay (xem $Logs\handwriting.log); OCR chữ in vẫn chạy." -ForegroundColor Yellow
+        } elseif ($hwEngine -eq 'vietocr') {
+            Write-Host '    Engine chữ viết tay: VietOCR (model đã sẵn trong cache)'
+        } else {
+            Write-Host "    Engine chữ viết tay: $hwEngine (chưa cài VietOCR - xem GUIDE mục 4.3)" -ForegroundColor Yellow
+        }
+    }
+
     Step 'Khởi động worker OCR (nạp model ~10-30 giây; hàng đợi default, ocr, ocr_hw)'
     $celery = Join-Path $Backend '.venv\Scripts\celery.exe'
     $worker = Start-Process -PassThru -WindowStyle Hidden -WorkingDirectory $Backend -FilePath $celery `

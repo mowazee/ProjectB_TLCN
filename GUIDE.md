@@ -99,6 +99,33 @@ Khi đổi API: `python scripts/export_openapi.py` rồi `npm run gen:api` và c
 - Giao diện sáng/tối được đặt trước khi React chạy bởi `public/theme-init.js` (file tĩnh, vì CSP của Nginx chặn
   script inline). Đổi khóa lưu (`theme`) thì sửa cả file này lẫn `src/shared/theme.ts`.
 
+### 4.3 OCR chữ viết tay (P2-03, VietOCR)
+
+Tài liệu tick **"Chữ viết tay"** khi upload (hoặc "Chạy lại OCR – chữ viết tay" ở trang chi tiết) được OCR bằng
+engine riêng trên hàng đợi `ocr_hw`. `OCR_HW_ENGINE=auto` (mặc định) chọn **VietOCR** nếu đã cài, không thì lùi về
+PaddleOCR (`paddleocr-hw`, model chữ in — thường không đạt với chữ viết tay).
+
+Cài VietOCR một lần (thêm PyTorch ~ vài trăm MB; **không** dùng `pip install vietocr` thường vì gói ghim Pillow cũ):
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pip install -r requirements-hw.txt -c constraints.txt
+.\.venv\Scripts\python.exe -m pip install vietocr==0.3.13 --no-deps
+.\.venv\Scripts\python.exe scripts\setup_handwriting.py           # tải model (~150 MB) vào cache + chạy thử
+.\.venv\Scripts\python.exe scripts\setup_handwriting.py anh.jpg   # thử trên ảnh của bạn, in text nhận được
+```
+
+Model lưu ở `VIETOCR_CACHE_DIR` (mặc định `%USERPROFILE%\.cache\vietocr`), tải một lần, sau đó chạy không cần mạng.
+Demo (mục 3) tự kiểm tra và in "Engine chữ viết tay: VietOCR" khi khởi động. Docker: `.\docker-start.cmd -Hw`
+build image riêng `docso-backend-hw` (PyTorch CPU) cho `worker-hw`; image chung của api/worker không mang thêm.
+
+**Đo độ chính xác (mục tiêu > 70%, D-06) ngay trên dữ liệu trong ứng dụng:** upload ảnh chữ viết tay → OCR tự chạy →
+mở OCR Editor, sửa text cho **đúng hoàn toàn** với bản gốc (cả dấu, xuống dòng) → Lưu → chạy
+`.\.venv\Scripts\python.exe eval\handwriting_from_app.py` (đọc database demo; `--database-url` cho nơi khác).
+Script so text OCR thô với bản đã sửa, in độ chính xác từng trang và theo engine, ghi JSON vào `eval\reports\`.
+Chưa đạt thì thử engine/cấu hình khác (`OCR_HW_ENGINE`, `VIETOCR_CONFIG`), chạy lại OCR các tài liệu đó
+("Chạy lại OCR – chữ viết tay"), sửa lại và đo lại — script chỉ tính bản sửa mới hơn lần OCR gần nhất.
+
 ## 5. Kiểm thử và chất lượng
 
 ```powershell

@@ -8,5 +8,5 @@ paddleocr>=3.0,<4.0
 # scikit-learn (P2-05, trong requirements.txt) cài chung được với PaddleOCR. Riêng máy Windows bật Smart App
 # Control: SAC chặn DLL _liblinear mà PaddleX tự import scikit-learn nếu có → tắt SAC hoặc chạy worker bằng Docker.
 
-# P2-03 chữ viết tay: adapter VietOCR là tùy chọn (kéo theo PyTorch, vài GB).
-# Cài khi benchmark: pip install vietocr   rồi đặt OCR_HW_ENGINE=vietocr
+# P2-03 chữ viết tay: VietOCR cài riêng bằng requirements-hw.txt (PyTorch; vietocr --no-deps). Không chạy
+# "pip install vietocr" thường: gói ghim Pillow 10.2 làm hỏng PaddleOCR. OCR_HW_ENGINE=auto tự chọn khi đã cài.

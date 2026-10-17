@@ -1,0 +1,10 @@
+# P2-03 OCR chữ viết tay bằng VietOCR (chỉ phần nhận dạng). Cài sau requirements-ocr.txt:
+#   pip install -r requirements-hw.txt -c constraints.txt
+#   pip install vietocr==0.3.13 --no-deps
+# vietocr phải cài --no-deps: gói ghim pillow==10.2.0, imgaug, albumentations (chỉ dùng khi HUẤN LUYỆN; imgaug
+# không chạy với numpy 2) -> cài thẳng sẽ hạ Pillow mà PaddleOCR đang dùng. Phần nhận dạng chỉ cần các gói dưới.
+# Linux/Docker: thêm --extra-index-url https://download.pytorch.org/whl/cpu để lấy bản CPU (bản mặc định kèm CUDA, vài GB).
+torch
+torchvision
+einops
+gdown
