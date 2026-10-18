@@ -26,7 +26,7 @@ và chạy được end to end**; đặc tả v0.7 khớp với code; CI xanh tr
 | Backend pytest (SQLite), cờ tắt / mọi cờ bật | 127 passed, 1 skipped / 127 passed, 1 skipped (18/10, đủ v0.7) |
 | CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#5) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (PR #4, `main` sau #4) |
-| Frontend Vitest | 29 passed (18/10: thêm Nhóm quyền, Tài khoản, Hàng đợi, danh sách tài liệu, chuyển hướng sau đăng nhập) |
+| Frontend Vitest | 30 passed (18/10: thêm Nhóm quyền, Tài khoản, Hàng đợi, danh sách tài liệu, chuyển hướng sau đăng nhập) |
 | E2E Playwright trên demo thật, mọi cờ bật (local, 17/10) | 9 passed, 1 skipped (test dành cho cờ tắt) |
 | CI `e2e`: 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) | xanh trên mọi PR (#2–#5) |
 | E2E chế độ chỉ MVP (`-Mvp`, local 05/10) | 6 passed, 4 skipped (các test P2 tự bỏ qua khi cờ tắt) |
