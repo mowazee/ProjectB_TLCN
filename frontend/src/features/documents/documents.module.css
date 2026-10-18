@@ -1,3 +1,43 @@
+/* FR-13: chuyển "Tất cả / Được chia sẻ với tôi" (segmented control) */
+.views {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface-2);
+}
+.view {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--c-muted);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 550;
+  cursor: pointer;
+  transition:
+    background 0.15s var(--ease),
+    color 0.15s var(--ease);
+}
+.view:hover {
+  color: var(--c-text);
+}
+.view:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--c-primary-ring);
+}
+.viewActive,
+.viewActive:hover {
+  background: var(--c-surface);
+  color: var(--c-text);
+  box-shadow: var(--shadow-sm);
+}
 /* flex: số bộ lọc thay đổi (v0.7 thêm trạng thái duyệt khi workflow bật); ô tìm rộng, select chia đều, nút ở cuối */
 .filters {
   display: flex;

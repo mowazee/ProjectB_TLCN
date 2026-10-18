@@ -1,4 +1,4 @@
-import { FileText, Trash2, Upload } from "lucide-react";
+import { FileText, Files, Share2, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 
@@ -20,6 +20,7 @@ import { useSession } from "@/shared/session";
 import { useDocuments } from "./api";
 import { useRememberListSearch } from "./backLink";
 import s from "./documents.module.css";
+import { ShareModeBadge } from "./sharing/ShareModeBadge";
 
 const STATUS_OPTIONS = [
   ["", "Mọi trạng thái"],
@@ -48,6 +49,7 @@ export function DocumentsListPage() {
   const categoryId = params.get("category_id");
   const status = params.get("status") ?? "";
   const approval = params.get("approval_status") ?? "";
+  const sharedWithMe = params.get("shared") === "with_me";
   const { hasRole, hasFeature } = useSession();
   const workflow = hasFeature("workflow"); // FR-07 (v0.7): cột + bộ lọc trạng thái duyệt khi quy trình duyệt bật
   useRememberListSearch(useLocation().search);
@@ -59,6 +61,7 @@ export function DocumentsListPage() {
     category_id: categoryId ? Number(categoryId) : undefined,
     status: status || undefined,
     approval_status: (workflow && approval) || undefined,
+    shared: workflow && sharedWithMe ? "with_me" : undefined,
   });
 
   const update = (key: string, value: string) => {
@@ -90,6 +93,24 @@ export function DocumentsListPage() {
           </>
         }
       />
+      {workflow && (
+        // FR-13: chuyển nhanh giữa mọi tài liệu trong phạm vi và tài liệu người khác chia sẻ tới mình
+        <div className={s.views} role="group" aria-label="Phạm vi danh sách">
+          {[
+            { key: "", label: "Tất cả tài liệu", icon: Files },
+            { key: "with_me", label: "Được chia sẻ với tôi", icon: Share2 },
+          ].map(({ key, label, icon: Icon }) => (
+            <button
+              key={label}
+              aria-pressed={(key === "with_me") === sharedWithMe}
+              className={`${s.view} ${(key === "with_me") === sharedWithMe ? s.viewActive : ""}`}
+              onClick={() => update("shared", key)}
+            >
+              <Icon size={15} aria-hidden /> {label}
+            </button>
+          ))}
+        </div>
+      )}
       <div className={s.filters}>
         <input
           className="input"
@@ -147,7 +168,11 @@ export function DocumentsListPage() {
       {list.isPending ? (
         <Loading />
       ) : list.data && list.data.items.length === 0 ? (
-        <EmptyState>Chưa có tài liệu nào phù hợp.</EmptyState>
+        <EmptyState icon={sharedWithMe ? Share2 : undefined}>
+          {sharedWithMe && workflow
+            ? "Chưa có tài liệu nào được người khác chia sẻ với bạn."
+            : "Chưa có tài liệu nào phù hợp."}
+        </EmptyState>
       ) : (
         list.data && (
           <>
@@ -170,6 +195,7 @@ export function DocumentsListPage() {
                       <Link className={s.title} to={`/documents/${d.id}`}>
                         {d.title}
                       </Link>
+                      {workflow && d.approval_status === "published" && <ShareModeBadge mode={d.share_mode} compact />}
                       <div className="muted">
                         {d.file_type} · {d.file_name}
                       </div>

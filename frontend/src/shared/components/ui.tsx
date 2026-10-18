@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, CircleAlert, Inbox, X, type LucideIcon } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { ApiError, errorMessage } from "@/shared/api/client";
 import { APPROVAL_LABELS, JOB_STATUS_LABELS, PAGE_STATUS_LABELS } from "@/shared/lib/format";
@@ -164,15 +164,33 @@ export function Modal({
   children,
   onClose,
   actions,
+  aside,
+  closeLabel = "Đóng",
+  size = "md",
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   actions?: ReactNode;
+  /** Nội dung bên trái thanh nút (vd. tóm tắt "ai có quyền"). */
+  aside?: ReactNode;
+  closeLabel?: string;
+  size?: "md" | "lg";
 }) {
+  // Esc đóng hộp thoại (ngoài nút X và bấm ra ngoài)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
   return (
     <div className={s.backdrop} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={s.modal} role="dialog" aria-modal="true" aria-label={title}>
+      <div
+        className={`${s.modal} ${size === "lg" ? s.modalLg : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <div className={s.modalHead}>
           <h2>{title}</h2>
           <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Đóng hộp thoại">
@@ -181,10 +199,11 @@ export function Modal({
         </div>
         <div className={s.modalBody}>{children}</div>
         <div className={s.modalActions}>
-          {actions}
+          {aside && <div className={s.modalAside}>{aside}</div>}
           <button className="btn" onClick={onClose}>
-            Đóng
+            {closeLabel}
           </button>
+          {actions}
         </div>
       </div>
     </div>

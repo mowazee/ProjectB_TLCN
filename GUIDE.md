@@ -61,6 +61,14 @@ thoại, đổi mật khẩu (đổi xong các thiết bị khác bị đăng xu
 **Phòng ban** (FR-10, chỉ xóa được phòng ban không còn người dùng và tài liệu) và có nút "Đăng xuất khỏi mọi thiết bị"
 trong form sửa người dùng. Đổi mật khẩu tài khoản demo xong muốn trả về mặc định: `.\demo-start.cmd -Reset`.
 
+**Chia sẻ tài liệu** (FR-13, SDD v0.8): sau khi tài liệu được xuất bản, chủ sở hữu (hoặc Admin) bấm **Chia sẻ** ở trang chi
+tiết và chọn: **Riêng tư** (chỉ mình, quản trị viên, kiểm duyệt viên của phòng và người được thêm), **Nội bộ** (mặc định:
+phòng ban của tài liệu + các phòng ban tích chọn) hoặc **Toàn hệ thống**; có thể thêm từng người (gõ ≥ 2 ký tự để tìm,
+người được thêm nhận thông báo). Người được chia sẻ chỉ xem, tìm kiếm, tải và yêu cầu mượn (Người dùng thông thường không
+mượn); không sửa, xóa hay duyệt. Hủy xuất bản thì chia sẻ tạm ngưng, xuất bản lại thì áp dụng lại. Ở danh sách tài liệu,
+nút **Được chia sẻ với tôi** lọc tài liệu người phòng khác chia sẻ tới bạn. Thử nhanh: `nhanvien` chia sẻ một tài liệu đã
+xuất bản cho Phòng Kế toán → đăng nhập `ketoan` (tab ẩn danh) → Tài liệu → Được chia sẻ với tôi.
+
 Menu bên trái gom theo nhóm **Tài liệu / Quy trình / Quản trị / Cá nhân** (chỉ hiện mục vai trò đó dùng được).
 **Hàng đợi xử lý** (`/jobs`, Nghiệp vụ và Admin, FR-11) liệt kê job OCR, trích xuất, phân loại, nhập hàng loạt; job lỗi
 có nút "Chạy lại". Nhãn **"Chờ quá lâu"** nghĩa là job đang chờ quá `JOB_REQUEUE_AFTER_SECONDS` (mặc định 10 phút) hoặc
