@@ -320,3 +320,42 @@ sửa phiên bản trong file, chạy test, để CI xác nhận.
 | Sửa frontend nhưng demo vẫn hiện giao diện cũ | Demo phục vụ bản build: `.\demo-start.cmd -Rebuild` (hoặc `cd frontend; npm run build`) rồi Ctrl+F5. Bản Docker: `.\docker-start.cmd -Build`. |
 | Một phần giao diện vẫn sáng khi bật nền tối | Màu bị viết cứng trong CSS/TSX: đổi sang biến (mục 4.2). Tìm nhanh: `grep -rnE "#[0-9a-fA-F]{3,6}" frontend/src --include=*.css`. |
 | npm báo xung đột TypeScript | Giữ `typescript ~5.9` (typescript-eslint và openapi-typescript chưa hỗ trợ TS 6/7). |
+
+## 9. Cải thiện OCR tiếng Việt có dấu (việc để làm sau)
+
+Ghi nhận 18/10/2026: kết quả OCR còn sai khá nhiều chữ có dấu. Mục này lưu chẩn đoán và các phương án để làm sau;
+**chưa có thay đổi code nào** cho các phương án dưới đây.
+
+### 9.1 Chẩn đoán
+
+1. **Model chữ in không chuyên tiếng Việt.** Với `lang="vi"`, PaddleOCR 3.x dùng `PP-OCRv6_medium_rec` — model
+   **đa ngôn ngữ chung** cho tiếng Trung/Nhật/Anh và mọi ngôn ngữ chữ Latin (xem `_get_ocr_model_names` trong
+   `paddleocr/_pipelines/ocr.py`). Bộ ký tự có hàng nghìn chữ Hán, chữ hai dấu chồng ("ệ", "ổ", "ẫ") chiếm phần
+   nhỏ khi huấn luyện → đã thấy chèn chữ Hán (`图`), mất dấu ("nǎm") mà độ tin cậy vẫn 0,95 (không rơi vào
+   `needs_review`).
+2. **Độ phân giải thấp so với kích thước dấu:** PDF render ở `OCR_RENDER_DPI=200`; dấu chỉ cao vài pixel.
+3. **Khung dòng cắt sát chữ:** dấu trên chữ hoa ("Ể", "Ố") hay dấu nặng dễ nằm ngoài khung detection. Adapter
+   VietOCR đã nới khung 4 px (`VietOcrHandwritingEngine.PAD`), PaddleOCR chưa.
+
+### 9.2 Phương án (xếp theo hiệu quả / công sức)
+
+| # | Phương án | Công sức | Kỳ vọng | Lưu ý |
+|---|---|---|---|---|
+| 1 | **VietOCR cho cả chữ in**: PaddleOCR chỉ dò dòng, VietOCR (huấn luyện riêng tiếng Việt) đọc chữ. Adapter có sẵn (`engines/handwriting.py`); thêm lựa chọn engine cho profile `print` (vd. `OCR_ENGINE=vietocr`) | nhỏ (~½ ngày) | **lớn nhất** — bộ ký tự chỉ có chữ Việt, hết chèn chữ Hán, dấu tốt hơn | chậm hơn Paddle trên CPU; worker in cần cài `requirements-hw.txt` (mục 4.3) |
+| 2 | **Tăng `OCR_RENDER_DPI` lên 300**; phóng to ảnh khi dòng chữ cao < ~32 px | rất nhỏ | vừa — dấu rõ nét hơn | ~2× thời gian/trang; đo trước khi chốt |
+| 3 | **Lọc ký tự lạ**: bỏ/đánh dấu ký tự ngoài bảng chữ tiếng Việt (chữ Hán…) và hạ độ tin cậy dòng đó để trang vào "cần xem lại" | nhỏ | vừa — hết "tự tin sai" | chỉ che triệu chứng, không sửa dấu |
+| 4 | **Sửa lỗi sau OCR bằng mô hình ngôn ngữ tiếng Việt** (khôi phục/sửa dấu theo ngữ cảnh), chỉ áp lên từ độ tin cậy thấp | vừa | vừa–lớn với văn bản hành chính | dễ sửa nhầm tên riêng, số hiệu; giữ nguyên `raw_text`, lưu kết quả như một phiên bản `ocr_corrections` |
+| 5 | **Fine-tune VietOCR bằng dữ liệu của nhóm**: mỗi lần sửa trong OCR Editor đã tạo cặp (ảnh dòng, text đúng); vài nghìn dòng là thấy cải thiện | lớn | **lớn**, nhất là chữ viết tay và mẫu văn bản riêng | cần GPU để huấn luyện (Google Colab đủ); hợp với đồ án học kỳ sau |
+| 6 | **Model thế hệ mới**: VLM (PaddleOCR-VL, Vintern — VLM tiếng Việt) hoặc **dịch vụ OCR đám mây** tiếng Việt (FPT.AI, Viettel AI, Google Vision); cắm qua port `OcrEngine` có sẵn | vừa | thường cao nhất | VLM cần GPU; đám mây gửi hồ sơ ra ngoài (bảo mật), tốn phí, cần internet |
+| 7 | **Chất lượng đầu vào**: scan ≥ 300 DPI, ảnh chụp không bóng/không nghiêng — ghi vào hướng dẫn người dùng | không code | lớn với ảnh chụp điện thoại | — |
+
+### 9.3 Cách làm đề xuất
+
+1. Làm **phương án 1 + 2 + 3** trước (nhỏ, đúng nguyên nhân gốc, không đổi kiến trúc).
+2. **Đo trước/sau trên cùng một bộ ảnh**: chữ in `eval/ocr_eval.py`, chữ viết tay `eval/handwriting_from_app.py`.
+   Thêm chỉ số **"lỗi dấu"**: so độ chính xác *có dấu* với *bỏ dấu* (vd. bỏ dấu 98% mà có dấu 85% → vấn đề nằm ở
+   dấu chứ không phải nhận sai chữ cái).
+3. Chỉ cân nhắc phương án 4–6 nếu số liệu sau bước 1–3 vẫn chưa đạt mục tiêu NFR-08 (> 90% scan, > 70% chữ viết tay).
+
+Trước khi bắt đầu, cần: biết ảnh sai dấu là chữ in hay viết tay (cột "Nguồn text"/`engine_version` cho biết engine
+đã dùng), và 2–3 ảnh mẫu kèm text đúng để chạy thử từng phương án.

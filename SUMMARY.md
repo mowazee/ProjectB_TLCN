@@ -84,6 +84,7 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh
 | **NFR-08** báo cáo độ chính xác OCR chính thức | tập test thật: scan rõ, scan khó, chữ viết tay, ≥ 30 trang mỗi loại (tách tập phát triển để hiệu chỉnh ngưỡng) | `eval/ocr_eval.py`. Thử trên dữ liệu tổng hợp: scan rõ ~91%, scan khó ~90% (chỉ để kiểm tra quy trình); PaddleOCR `vi` hay mất dấu (WER cao) |
 | **P2-03** kiểm chứng chữ viết tay > 70% | mẫu chữ viết tay thật: upload (tick "Chữ viết tay"), sửa text cho đúng trong OCR Editor | **đã cài sẵn VietOCR** (`OCR_HW_ENGINE=auto`, GUIDE 4.3); đo bằng `eval/handwriting_from_app.py`. Ảnh vẽ bằng font kiểu viết tay (chỉ kiểm tra cài đặt): VietOCR 94,4%, PaddleOCR 91,5% nhưng chèn chữ Hán và tự tin sai |
 | **P2-04, P2-05** precision/recall trích xuất, top-1 phân loại | tập mẫu có nhãn | `eval/extraction_eval.py`, `eval/classification_eval.py` |
+| **Cải thiện OCR có dấu** (chữ in và viết tay còn sai dấu nhiều) | 2–3 ảnh mẫu kèm text đúng; biết là chữ in hay viết tay | chẩn đoán + 7 phương án + thứ tự làm: GUIDE mục 9 (ưu tiên VietOCR cho chữ in, DPI 300, lọc ký tự lạ) |
 | **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB`, `MAX_PAGES` |
 | Bắt buộc CI xanh trước khi merge | sửa ruleset (GUIDE 7.1) | 2 test chập chờn đã sửa (PR #4) nên có thể bật |
 | Chép bản sao lưu ra ngoài máy | tùy nơi triển khai (ổ ngoài, cloud) | `BACKUP_DIR` (GUIDE 6.4) |
