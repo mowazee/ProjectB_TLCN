@@ -24,7 +24,7 @@ from app.modules.borrowing.infrastructure.models import BorrowRequest, StorageLo
 from app.modules.documents.application import queries as documents
 from app.modules.users.application.queries import display_names, user_ids_with_roles
 from app.shared.config import settings
-from app.shared.context import Principal, RequestContext
+from app.shared.context import APPROVER, OFFICER, Principal, RequestContext
 from app.shared.db import SessionLocal
 from app.shared.errors import ConflictError, NotFoundError, PermissionDeniedError, UnprocessableError
 from app.shared.notify import get_notifier
@@ -129,6 +129,8 @@ def create_request(
     purpose: str | None,
     ctx: RequestContext,
 ) -> BorrowView:
+    if not principal.has_any(OFFICER, APPROVER):  # FR-12: Người dùng thông thường chỉ xem, không mượn hồ sơ
+        raise PermissionDeniedError("Vai trò của bạn không được tạo yêu cầu mượn hồ sơ")
     doc = documents.ensure_can_view(db, principal, document_id)
     if from_date > to_date:
         raise UnprocessableError("Ngày bắt đầu phải trước ngày kết thúc", fields={"to_date": "before_from_date"})

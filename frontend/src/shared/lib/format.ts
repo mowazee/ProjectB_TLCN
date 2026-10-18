@@ -45,6 +45,7 @@ export const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Quản trị viên",
   OFFICER: "Nghiệp vụ",
   APPROVER: "Kiểm duyệt",
+  VIEWER: "Người dùng thông thường",
 };
 
 /** Confidence là điểm model tự đánh giá, không phải độ chính xác (NFR-08). */

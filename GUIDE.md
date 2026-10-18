@@ -51,6 +51,10 @@ Bấm đúp file `.cmd` trong Explorer cũng được.
 | Nghiệp vụ (P. Hành chính) | nhanvien | Demo@12345 |
 | Kiểm duyệt (P. Hành chính) | kiemduyet | Demo@12345 |
 | Nghiệp vụ (P. Kế toán) | ketoan | Demo@12345 |
+| Người dùng thông thường (P. Hành chính) | nguoidung | Demo@12345 |
+
+`nguoidung` chỉ xem, tìm kiếm, tải tài liệu **đã xuất bản** của phòng ban mình (SDD v0.7, FR-12): muốn thấy tài liệu,
+đăng nhập `kiemduyet` duyệt và xuất bản trước. Ma trận quyền từng vai trò: Quản trị → Nhóm quyền.
 
 Gợi ý kịch bản demo: đăng nhập `nhanvien` → Tài liệu → mở hợp đồng mẫu → xem trang/sửa OCR (thử mở 2 tab để thấy 409) →
 Tìm kiếm "nghiem thu" → mở kết quả (khung highlight) → gửi duyệt → đăng nhập `kiemduyet` (tab ẩn danh) → Duyệt tài liệu →

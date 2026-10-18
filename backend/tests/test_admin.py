@@ -46,7 +46,7 @@ def test_admin_cannot_lock_self(seed, login):
 
 def test_roles_departments_and_users_list(seed, login):
     admin = login("admin")
-    assert [r["name"] for r in admin.get("/api/roles").json()] == ["ADMIN", "OFFICER", "APPROVER"]
+    assert [r["name"] for r in admin.get("/api/roles").json()] == ["ADMIN", "OFFICER", "APPROVER", "VIEWER"]
     page = admin.get("/api/users", params={"page_size": 2}).json()
     assert page["total"] == 4 and len(page["items"]) == 2 and page["page_size"] == 2
     assert len(login("officer").get("/api/departments").json()) == 3

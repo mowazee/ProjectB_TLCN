@@ -1,0 +1,91 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.roles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.role {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
+}
+.role:hover {
+  border-color: var(--c-border-strong);
+}
+.active,
+.active:hover {
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px var(--c-primary-ring);
+}
+.roleIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--tone-blue-bg);
+  color: var(--tone-blue-fg);
+}
+.roleText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+.roleText small {
+  color: var(--c-muted);
+}
+.perms {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+.membersHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.membersHead h2 {
+  margin: 0;
+}
+.pick {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  max-height: 360px;
+  overflow: auto;
+}
+.pick li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+}
+.pick li:hover {
+  background: var(--c-surface-2);
+}
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

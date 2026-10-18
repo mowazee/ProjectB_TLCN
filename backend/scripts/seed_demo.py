@@ -45,6 +45,7 @@ USERS = [  # username, họ tên, vai trò, mã phòng ban
     ("nhanvien", "Nguyễn Văn Nghiệp Vụ", "OFFICER", "HC-TH"),
     ("kiemduyet", "Trần Thị Kiểm Duyệt", "APPROVER", "HC-TH"),
     ("ketoan", "Lê Văn Kế Toán", "OFFICER", "KT"),
+    ("nguoidung", "Phạm Thị Người Dùng", "VIEWER", "HC-TH"),  # FR-12: chỉ xem tài liệu đã xuất bản cùng phòng ban
 ]
 CATEGORIES = [  # mã, tên, số năm lưu trữ, mô tả (mô tả giúp P2-05 gợi ý khi chưa có dữ liệu)
     ("HOP-DONG", "Hợp đồng", 10, "hợp đồng kinh tế mua bán thuê dịch vụ bên A bên B giá trị thanh toán"),

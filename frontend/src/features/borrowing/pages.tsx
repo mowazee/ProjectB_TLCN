@@ -103,6 +103,8 @@ export function BorrowTab({ document }: DocumentSlotProps) {
   const locations = useLocations();
   const setLocation = useSetDocLocation(document.id);
   const { create } = useBorrowMutations();
+  const { hasRole } = useSession();
+  const canBorrow = hasRole("OFFICER", "APPROVER"); // FR-12: Người dùng thông thường không mượn hồ sơ
   const list = useBorrows({ page: 1, document_id: document.id });
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({ from_date: today, to_date: today, purpose: "" });
@@ -142,7 +144,7 @@ export function BorrowTab({ document }: DocumentSlotProps) {
         )}
       </div>
       <ErrorBox error={setLocation.error} />
-      {loc && (
+      {loc && canBorrow && (
         <form className="row" onSubmit={submit} style={{ alignItems: "flex-end" }}>
           <Field label="Từ ngày" htmlFor="fd" error={errors.from_date}>
             <input

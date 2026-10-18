@@ -22,7 +22,7 @@ export const borrowingManifest: FeatureManifest = {
     },
   ],
   nav: [
-    { to: "/borrow-requests", label: "Mượn hồ sơ", order: 40, icon: BookOpenCheck },
+    { to: "/borrow-requests", label: "Mượn hồ sơ", roles: ["OFFICER", "APPROVER"], order: 40, icon: BookOpenCheck },
     {
       to: "/admin/storage-locations",
       label: "Kho lưu trữ",

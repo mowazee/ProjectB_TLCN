@@ -1712,7 +1712,15 @@ export interface components {
             /** Submitted At */
             submitted_at: string | null;
         };
-        /** RoleOut */
+        /**
+         * RoleCode
+         * @enum {string}
+         */
+        RoleCode: "ADMIN" | "OFFICER" | "APPROVER" | "VIEWER";
+        /**
+         * RoleOut
+         * @description FR-12: vai trò hệ thống cố định kèm ma trận quyền chỉ đọc (users/domain/roles.py).
+         */
         RoleOut: {
             /** Id */
             id: number;
@@ -1720,6 +1728,21 @@ export interface components {
             name: string;
             /** Description */
             description: string | null;
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /**
+             * Permissions
+             * @default []
+             */
+            permissions: string[];
+            /**
+             * Member Count
+             * @default 0
+             */
+            member_count: number;
         };
         /** RollbackIn */
         RollbackIn: {
@@ -2015,6 +2038,9 @@ export interface operations {
         parameters: {
             query?: {
                 q?: string | null;
+                role?: components["schemas"]["RoleCode"] | null;
+                department_id?: number | null;
+                is_active?: boolean | null;
                 page?: number;
                 page_size?: number;
             };

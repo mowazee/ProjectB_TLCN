@@ -55,7 +55,7 @@ scripts/            demo_start/stop.ps1 (demo một chạm), docker_start/stop.p
 - **Docker (giống production — Redis session/broker, worker + beat trong container):** cài Docker Desktop
   (GUIDE mục 6.1) rồi `.\docker-start.cmd -Demo` → http://127.0.0.1:8080. Dừng: `.\docker-stop.cmd`.
 
-Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin trong `.env`), `nhanvien`, `kiemduyet`, `ketoan` / `Demo@12345`.
+Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin trong `.env`), `nhanvien`, `kiemduyet`, `ketoan`, `nguoidung` (Người dùng thông thường: chỉ xem tài liệu đã xuất bản) / `Demo@12345`.
 
 ## Kiểm thử
 

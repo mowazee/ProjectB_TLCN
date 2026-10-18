@@ -99,7 +99,8 @@ def test_permissions_by_scope(seed, login):
     approver = login("approver")
     assert approver.get(f"/api/documents/{doc_id}").json()["can_edit"] is False
     assert approver.patch(f"/api/documents/{doc_id}", json={"title": "x"}).status_code == 403
-    assert approver.get(f"/api/documents/{doc_id}/file").status_code == 403
+    assert approver.get(f"/api/documents/{doc_id}/file").status_code == 200  # D-08 (v0.7): ai xem được thì tải được
+    assert other.get(f"/api/documents/{doc_id}/file").status_code == 403  # ngoài phạm vi xem: vẫn chặn
     assert upload(approver, seed["category"].id, make_pdf(["a"]), "a.pdf").status_code == 403
     assert login("admin").get("/api/documents").json()["total"] == 1
 

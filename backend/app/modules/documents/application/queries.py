@@ -13,17 +13,34 @@ from sqlalchemy.orm import Session
 from app.modules.documents.domain import policies
 from app.modules.documents.domain.lifecycle import ApprovalStatus, LifecycleStatus, PageOcrStatus
 from app.modules.documents.infrastructure.models import Document, DocumentPage
+from app.shared.config import settings
 from app.shared.context import Principal
 from app.shared.errors import NotFoundError, PermissionDeniedError
 
 
+def publication_required() -> bool:
+    """D-02 (v0.7): VIEWER chỉ thấy tài liệu đã xuất bản khi có quy trình duyệt (cờ workflow bật)."""
+    return "workflow" in settings.features_enabled
+
+
 def scope_of(doc: Document) -> policies.DocScope:
-    return policies.DocScope(doc.owner_id, doc.department_id)
+    return policies.DocScope(doc.owner_id, doc.department_id, str(doc.approval_status), publication_required())
 
 
 def _scope_clause(principal: Principal) -> Any:
+    """Bản SQL của policies.in_scope (giữ hai bản khớp nhau; test_viewer_scope kiểm cả hai)."""
     if principal.is_admin:
         return true()
+    if policies.is_reader_only(principal):
+        if principal.department_id is None:
+            return false()
+        # Người chỉ đọc không thấy thùng rác: tài liệu đã xóa nằm ngoài phạm vi kể cả khi include_deleted
+        clause = and_(
+            Document.department_id == principal.department_id, Document.lifecycle_status == LifecycleStatus.ACTIVE
+        )
+        if publication_required():
+            clause = and_(clause, Document.approval_status == ApprovalStatus.PUBLISHED)
+        return clause
     own = Document.owner_id == principal.id
     if principal.department_id is not None:
         return or_(own, Document.department_id == principal.department_id)
