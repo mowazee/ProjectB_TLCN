@@ -17,15 +17,18 @@ from fastapi import APIRouter, Depends, File, Form, Path, Query, Response, Uploa
 from fastapi.responses import FileResponse
 
 from app.modules.auth.presentation.deps import Ctx, CurrentPrincipal, DbSession
-from app.modules.documents.application import files, manage, upload
+from app.modules.documents.application import files, manage, sharing, upload
 from app.modules.documents.application.queries import ensure_can_view, list_pages
 from app.modules.documents.domain.lifecycle import ApprovalStatus, LifecycleStatus
 from app.modules.documents.presentation.schemas import (
     DocumentOut,
     DocumentPatch,
     PageSummary,
+    SharingIn,
+    SharingOut,
     UploadOut,
     document_out,
+    sharing_out,
 )
 from app.shared.http import page_params
 from app.shared.pagination import Page, PageParams
@@ -68,6 +71,7 @@ def list_documents(
     status: Annotated[str | None, Query(pattern="^(queued|processing|completed|failed|needs_review)$")] = None,
     lifecycle_status: LifecycleStatus = LifecycleStatus.ACTIVE,
     approval_status: ApprovalStatus | None = None,
+    shared: Annotated[str | None, Query(pattern="^with_me$")] = None,
 ) -> Page[DocumentOut]:
     views, total = manage.list_documents(
         db,
@@ -78,6 +82,7 @@ def list_documents(
         status=status,
         lifecycle_status=lifecycle_status,
         approval_status=approval_status,
+        shared_with_me=shared == "with_me",
     )
     return Page(items=[document_out(v) for v in views], total=total, page=params.page, page_size=params.page_size)
 
@@ -105,6 +110,29 @@ def delete_document(document_id: uuid.UUID, db: DbSession, principal: CurrentPri
 def restore_document(document_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal, ctx: Ctx) -> DocumentOut:
     doc = manage.restore(db, principal, document_id, ctx)
     return document_out(manage.build_views(db, principal, [doc])[0])
+
+
+@router.get("/{document_id}/sharing", response_model=SharingOut)
+def get_sharing(document_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal) -> SharingOut:
+    """FR-13: cấu hình chia sẻ - chủ sở hữu, Admin."""
+    return sharing_out(sharing.get_sharing(db, principal, document_id))
+
+
+@router.put("/{document_id}/sharing", response_model=SharingOut)
+def update_sharing(
+    document_id: uuid.UUID, data: SharingIn, db: DbSession, principal: CurrentPrincipal, ctx: Ctx
+) -> SharingOut:
+    """FR-13: thay toàn bộ cấu hình chia sẻ; 409 DOCUMENT_NOT_PUBLISHED khi chưa xuất bản."""
+    view = sharing.update_sharing(
+        db,
+        principal,
+        document_id,
+        share_mode=data.share_mode,
+        department_ids=data.department_ids,
+        user_ids=data.user_ids,
+        ctx=ctx,
+    )
+    return sharing_out(view)
 
 
 @router.get("/{document_id}/pages", response_model=list[PageSummary])

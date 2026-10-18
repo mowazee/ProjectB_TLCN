@@ -7,14 +7,14 @@ các hàm ensure_* để kiểm quyền trên một tài liệu; không truy v�
 import uuid
 from typing import Any
 
-from sqlalchemy import Select, and_, false, func, or_, select, true
+from sqlalchemy import Select, and_, exists, false, func, or_, select, true
 from sqlalchemy.orm import Session
 
 from app.modules.documents.domain import policies
-from app.modules.documents.domain.lifecycle import ApprovalStatus, LifecycleStatus, PageOcrStatus
-from app.modules.documents.infrastructure.models import Document, DocumentPage
+from app.modules.documents.domain.lifecycle import ApprovalStatus, LifecycleStatus, PageOcrStatus, ShareMode
+from app.modules.documents.infrastructure.models import Document, DocumentPage, DocumentShare
 from app.shared.config import settings
-from app.shared.context import Principal
+from app.shared.context import APPROVER, Principal
 from app.shared.errors import NotFoundError, PermissionDeniedError
 
 
@@ -24,39 +24,114 @@ def publication_required() -> bool:
 
 
 def scope_of(doc: Document) -> policies.DocScope:
-    return policies.DocScope(doc.owner_id, doc.department_id, str(doc.approval_status), publication_required())
+    """Chỉ đọc document_shares khi tài liệu đã xuất bản (lúc đó chia sẻ mới có hiệu lực, D-09)."""
+    required = publication_required()
+    shares = doc.shares if required and doc.approval_status == ApprovalStatus.PUBLISHED else []
+    return policies.DocScope(
+        doc.owner_id,
+        doc.department_id,
+        str(doc.approval_status),
+        required,
+        str(doc.share_mode),
+        frozenset(s.department_id for s in shares if s.department_id is not None),
+        frozenset(s.user_id for s in shares if s.user_id is not None),
+    )
 
 
-def _scope_clause(principal: Principal) -> Any:
-    """Bản SQL của policies.in_scope (giữ hai bản khớp nhau; test_viewer_scope kiểm cả hai)."""
+def _department_clause(principal: Principal) -> Any:
+    """Bản SQL của policies.in_department_scope (D-02): quản lý, duyệt, thùng rác, hàng đợi."""
     if principal.is_admin:
         return true()
-    if policies.is_reader_only(principal):
-        if principal.department_id is None:
-            return false()
-        # Người chỉ đọc không thấy thùng rác: tài liệu đã xóa nằm ngoài phạm vi kể cả khi include_deleted
-        clause = and_(
-            Document.department_id == principal.department_id, Document.lifecycle_status == LifecycleStatus.ACTIVE
-        )
-        if publication_required():
-            clause = and_(clause, Document.approval_status == ApprovalStatus.PUBLISHED)
-        return clause
+    if policies.is_reader_only(principal) or principal.id is None:
+        return false()
     own = Document.owner_id == principal.id
     if principal.department_id is not None:
         return or_(own, Document.department_id == principal.department_id)
-    return own if principal.id else false()
+    return own
+
+
+def _shared_with(principal: Principal, *, department: bool) -> Any:
+    target = (
+        DocumentShare.department_id == principal.department_id if department else DocumentShare.user_id == principal.id
+    )
+    return exists().where(DocumentShare.document_id == Document.id, target)
+
+
+def _audience_clause(principal: Principal) -> Any:
+    """Bản SQL của policies.in_share_audience (D-09) - chỉ áp cho tài liệu đã xuất bản."""
+    conds = [
+        Document.owner_id == principal.id,
+        Document.share_mode == ShareMode.PUBLIC,
+        _shared_with(principal, department=False),
+    ]
+    dep = principal.department_id
+    if dep is not None:
+        if APPROVER in principal.roles:
+            conds.append(Document.department_id == dep)
+        conds.append(
+            and_(
+                Document.share_mode == ShareMode.INTERNAL,
+                or_(Document.department_id == dep, _shared_with(principal, department=True)),
+            )
+        )
+    return or_(*conds)
+
+
+def _view_clause(principal: Principal) -> Any:
+    """Bản SQL của policies.can_view (giữ hai bản khớp nhau; test_v08_sharing kiểm cả hai)."""
+    if principal.is_admin:
+        return true()
+    reader = policies.is_reader_only(principal)
+    if not publication_required():
+        if reader:  # không có khái niệm xuất bản: VIEWER xem tài liệu cùng phòng ban
+            if principal.department_id is None:
+                return false()
+            return Document.department_id == principal.department_id
+        return _department_clause(principal)
+    published = Document.approval_status == ApprovalStatus.PUBLISHED
+    unpublished = false() if reader else _department_clause(principal)
+    return or_(and_(published, _audience_clause(principal)), and_(~published, unpublished))
+
+
+def _scope_clause(principal: Principal) -> Any:
+    """Phạm vi xem; người chỉ đọc không thấy thùng rác (tài liệu đã xóa nằm ngoài phạm vi kể cả khi include_deleted)."""
+    clause = _view_clause(principal)
+    if policies.is_reader_only(principal):
+        clause = and_(clause, Document.lifecycle_status == LifecycleStatus.ACTIVE)
+    return clause
 
 
 def visible_document_ids(
     principal: Principal, *, include_deleted: bool = False, category_id: int | None = None
 ) -> Select[tuple[uuid.UUID]]:
-    """SELECT id các tài liệu người dùng được xem (mặc định chỉ tài liệu active)."""
+    """SELECT id các tài liệu người dùng được XEM (mặc định chỉ tài liệu active) - mở rộng theo chia sẻ (D-09)."""
     clause = _scope_clause(principal)
     if not include_deleted:
         clause = and_(clause, Document.lifecycle_status == LifecycleStatus.ACTIVE)
     if category_id is not None:
         clause = and_(clause, Document.category_id == category_id)
     return select(Document.id).where(clause)
+
+
+def department_document_ids(principal: Principal, *, include_deleted: bool = False) -> Select[tuple[uuid.UUID]]:
+    """SELECT id tài liệu thuộc phạm vi PHÒNG BAN (D-02) - không mở rộng theo chia sẻ: hàng đợi xử lý, duyệt mượn."""
+    clause = _department_clause(principal)
+    if not include_deleted:
+        clause = and_(clause, Document.lifecycle_status == LifecycleStatus.ACTIVE)
+    return select(Document.id).where(clause)
+
+
+def shared_with_me_clause(principal: Principal) -> Any:
+    """FR-13: tài liệu đã xuất bản người khác chia sẻ tới mình (không phải của mình, không thuộc phòng ban mình)."""
+    if not publication_required() or principal.id is None:
+        return false()
+    not_mine = or_(Document.owner_id.is_(None), Document.owner_id != principal.id)
+    other_department = (
+        or_(Document.department_id.is_(None), Document.department_id != principal.department_id)
+        if principal.department_id is not None
+        else true()
+    )
+    return and_(Document.approval_status == ApprovalStatus.PUBLISHED, not_mine, other_department)
 
 
 def get_document(db: Session, document_id: uuid.UUID) -> Document | None:
@@ -80,8 +155,22 @@ def ensure_can_manage(db: Session, principal: Principal, document_id: uuid.UUID)
     return doc
 
 
+def ensure_can_review(db: Session, principal: Principal, document_id: uuid.UUID) -> Document:
+    """Duyệt, xuất bản, hủy xuất bản, duyệt mượn: Kiểm duyệt viên phòng ban của tài liệu (chia sẻ không mở)."""
+    doc = db.get(Document, document_id)
+    if doc is None or doc.lifecycle_status != LifecycleStatus.ACTIVE:
+        raise NotFoundError("Không tìm thấy tài liệu")
+    if not policies.can_review(principal, scope_of(doc)):
+        raise PermissionDeniedError("Chỉ Kiểm duyệt viên phòng ban của tài liệu được thực hiện thao tác này")
+    return doc
+
+
 def can_manage(principal: Principal, doc: Document) -> bool:
     return policies.can_manage(principal, scope_of(doc))
+
+
+def can_review(principal: Principal, doc: Document) -> bool:
+    return policies.can_review(principal, scope_of(doc))
 
 
 def is_active(db: Session, document_id: uuid.UUID) -> bool:

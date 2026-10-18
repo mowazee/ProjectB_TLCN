@@ -9,6 +9,14 @@ class LifecycleStatus(StrEnum):
     DELETED = "deleted"
 
 
+class ShareMode(StrEnum):
+    """D-09 (SDD v0.8): chế độ chia sẻ, chỉ có hiệu lực khi tài liệu đã xuất bản."""
+
+    PRIVATE = "private"  # chủ sở hữu, Admin, Kiểm duyệt viên phòng ban của tài liệu, người được thêm đích danh
+    INTERNAL = "internal"  # mặc định: + phòng ban của tài liệu và các phòng ban được chọn
+    PUBLIC = "public"  # mọi người dùng đã đăng nhập
+
+
 class ApprovalStatus(StrEnum):
     DRAFT = "draft"
     PENDING_REVIEW = "pending_review"

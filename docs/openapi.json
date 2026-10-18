@@ -336,6 +336,55 @@
         }
       }
     },
+    "/api/users/lookup": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Lookup Users",
+        "description": "FR-13 (v0.8): tìm người dùng đang hoạt động để chia sẻ tài liệu (Nghiệp vụ, Admin); tối đa 20 kết quả.",
+        "operationId": "lookup_users_api_users_lookup_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100,
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserLookupOut"
+                  },
+                  "title": "Response Lookup Users Api Users Lookup Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/users/{user_id}": {
       "patch": {
         "tags": [
@@ -872,6 +921,23 @@
             }
           },
           {
+            "name": "shared",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^with_me$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Shared"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "required": false,
@@ -1073,6 +1139,102 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/documents/{document_id}/sharing": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Get Sharing",
+        "description": "FR-13: cấu hình chia sẻ - chủ sở hữu, Admin.",
+        "operationId": "get_sharing_api_documents__document_id__sharing_get",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharingOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Update Sharing",
+        "description": "FR-13: thay toàn bộ cấu hình chia sẻ; 409 DOCUMENT_NOT_PUBLISHED khi chưa xuất bản.",
+        "operationId": "update_sharing_api_documents__document_id__sharing_put",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SharingIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharingOut"
                 }
               }
             }
@@ -4448,6 +4610,24 @@
         "type": "object",
         "title": "DepartmentPatch"
       },
+      "DepartmentRefOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "DepartmentRefOut"
+      },
       "DiffOut": {
         "properties": {
           "from_version": {
@@ -4673,6 +4853,16 @@
           "can_edit": {
             "type": "boolean",
             "title": "Can Edit"
+          },
+          "share_mode": {
+            "type": "string",
+            "title": "Share Mode",
+            "description": "FR-13: private | internal | public; chỉ có hiệu lực khi đã xuất bản"
+          },
+          "can_share": {
+            "type": "boolean",
+            "title": "Can Share",
+            "description": "FR-13: người dùng hiện tại đổi được cấu hình chia sẻ"
           }
         },
         "type": "object",
@@ -4697,7 +4887,9 @@
           "total_pages",
           "needs_review_pages",
           "job_status",
-          "can_edit"
+          "can_edit",
+          "share_mode",
+          "can_share"
         ],
         "title": "DocumentOut"
       },
@@ -6403,6 +6595,134 @@
         ],
         "title": "SessionOut"
       },
+      "ShareMode": {
+        "type": "string",
+        "enum": [
+          "private",
+          "internal",
+          "public"
+        ],
+        "title": "ShareMode",
+        "description": "D-09 (SDD v0.8): chế độ chia sẻ, chỉ có hiệu lực khi tài liệu đã xuất bản."
+      },
+      "ShareUserOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "department_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "full_name",
+          "department_name"
+        ],
+        "title": "ShareUserOut"
+      },
+      "SharingIn": {
+        "properties": {
+          "share_mode": {
+            "$ref": "#/components/schemas/ShareMode"
+          },
+          "department_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Department Ids"
+          },
+          "user_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "User Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "share_mode"
+        ],
+        "title": "SharingIn"
+      },
+      "SharingOut": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "share_mode": {
+            "type": "string",
+            "title": "Share Mode"
+          },
+          "is_published": {
+            "type": "boolean",
+            "title": "Is Published",
+            "description": "False: cấu hình tạm ngưng, phạm vi xem theo D-02"
+          },
+          "owner_department": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DepartmentRefOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Phòng ban của tài liệu - luôn có quyền ở chế độ Nội bộ"
+          },
+          "departments": {
+            "items": {
+              "$ref": "#/components/schemas/DepartmentRefOut"
+            },
+            "type": "array",
+            "title": "Departments"
+          },
+          "users": {
+            "items": {
+              "$ref": "#/components/schemas/ShareUserOut"
+            },
+            "type": "array",
+            "title": "Users"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "share_mode",
+          "is_published",
+          "owner_department",
+          "departments",
+          "users"
+        ],
+        "title": "SharingOut"
+      },
       "SuggestionOut": {
         "properties": {
           "category_id": {
@@ -6604,6 +6924,43 @@
           "roles"
         ],
         "title": "UserIn"
+      },
+      "UserLookupOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "department_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "full_name",
+          "department_name"
+        ],
+        "title": "UserLookupOut",
+        "description": "FR-13: tối thiểu để chọn người chia sẻ - không có email, vai trò, trạng thái."
       },
       "UserOut": {
         "properties": {

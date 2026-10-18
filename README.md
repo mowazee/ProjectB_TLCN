@@ -41,7 +41,7 @@ frontend/           React + TypeScript + Vite (src/app, src/features/*, src/shar
 infra/nginx/        default.conf (SPA + reverse proxy /api, CSP)
 infra/backup/       backup.sh (sao lưu/khôi phục, chạy trong service backup/restore)
 docs/openapi.json   hợp đồng API (sinh types React: npm run gen:api)
-document/           đặc tả v0.8: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.7 (lên v0.8 cùng migration 0108)
+document/           đặc tả v0.8: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.8 (sinh từ Alembic 0001…0108)
 tests/e2e/          Playwright (Python) chạy trên hệ thống thật
 .github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2), compose.yml (Docker + sao lưu)
 compose.yaml        Docker Compose (profile hw, rag, tools); compose.dev.yaml
@@ -61,8 +61,8 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin trong
 
 | Bộ | Lệnh | Kết quả hiện tại |
 |---|---|---|
-| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 127 passed, 1 skipped |
-| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 127 passed, 1 skipped |
+| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 135 passed, 1 skipped |
+| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 135 passed, 1 skipped |
 | Backend trên PostgreSQL 18 + Redis | CI `backend.yml` (6 tổ hợp cờ) | xanh mỗi PR |
 | Frontend | `cd frontend; npm test` | 30 passed |
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |

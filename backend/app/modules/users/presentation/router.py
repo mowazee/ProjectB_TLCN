@@ -1,4 +1,5 @@
 """API users (SDD mục 7.1): GET/POST /api/users; PATCH /api/users/{id}; GET /api/roles.
+GET /api/users/lookup (v0.8, FR-13): tra cứu người dùng để chia sẻ tài liệu (Nghiệp vụ, Admin).
 Phòng ban (FR-10, v0.7): GET /api/departments (mọi người dùng, cho form/bộ lọc), POST/PATCH/DELETE (Admin).
 POST /api/users/{id}/revoke-sessions (Admin, v0.7)."""
 
@@ -10,7 +11,7 @@ from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.modules.auth.presentation.deps import Ctx, CurrentPrincipal, DbSession, require_roles
-from app.modules.users.application import departments, manage
+from app.modules.users.application import departments, manage, queries
 from app.modules.users.domain.roles import ROLE_PERMISSIONS, ROLE_SUMMARIES, RoleCode
 from app.modules.users.infrastructure.models import User
 from app.shared.http import page_params
@@ -104,6 +105,27 @@ def list_users(
         db, principal, params, q, role=role, department_id=department_id, is_active=is_active
     )
     return Page(items=[user_out(u) for u in rows], total=total, page=params.page, page_size=params.page_size)
+
+
+class UserLookupOut(BaseModel):
+    """FR-13: tối thiểu để chọn người chia sẻ - không có email, vai trò, trạng thái."""
+
+    id: uuid.UUID
+    username: str
+    full_name: str
+    department_name: str | None
+
+
+@router.get("/users/lookup", response_model=list[UserLookupOut], dependencies=[Depends(require_roles("OFFICER"))])
+def lookup_users(
+    db: DbSession, q: Annotated[str, Query(min_length=2, max_length=100)], principal: CurrentPrincipal
+) -> list[UserLookupOut]:
+    """FR-13 (v0.8): tìm người dùng đang hoạt động để chia sẻ tài liệu (Nghiệp vụ, Admin); tối đa 20 kết quả."""
+    return [
+        UserLookupOut(id=u.id, username=u.username, full_name=u.full_name, department_name=u.department_name)
+        for u in queries.lookup_users(db, q, limit=20)
+        if u.id != principal.id
+    ]
 
 
 @router.post("/users", response_model=UserOut, status_code=status.HTTP_201_CREATED, dependencies=[AdminOnly])

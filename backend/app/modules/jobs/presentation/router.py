@@ -14,10 +14,10 @@ from sqlalchemy.orm import Session
 
 from app.modules.auth.presentation.deps import Ctx, CurrentPrincipal, DbSession, require_roles
 from app.modules.documents.application.queries import (
+    department_document_ids,
     document_brief,
     ensure_can_manage,
     ensure_can_view,
-    visible_document_ids,
 )
 from app.modules.jobs.application import queries as jobs
 from app.modules.jobs.domain.model import JobStatus, public_error_message
@@ -105,7 +105,8 @@ def list_jobs(
     """FR-11: job của tài liệu trong phạm vi xem (kể cả thùng rác) + job nhập hàng loạt do mình tạo (Admin: tất cả)."""
     rows, total = jobs.list_jobs(
         db,
-        document_ids_select=visible_document_ids(principal, include_deleted=True),
+        # job là việc xử lý của phòng ban quản lý tài liệu: chia sẻ (FR-13) không đưa job phòng khác vào đây
+        document_ids_select=department_document_ids(principal, include_deleted=True),
         batch_owner=None if principal.is_admin else str(principal.id),
         params=params,
         status=status,

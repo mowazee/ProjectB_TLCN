@@ -23,7 +23,7 @@ và chạy được end to end**; đặc tả v0.7 khớp với code; CI xanh tr
 
 | Bộ | Kết quả |
 |---|---|
-| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 127 passed, 1 skipped / 127 passed, 1 skipped (18/10, đủ v0.7) |
+| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 135 passed, 1 skipped / 135 passed, 1 skipped (18/10, thêm FR-13 backend) |
 | CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#5) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (PR #4, `main` sau #4) |
 | Frontend Vitest | 30 passed (18/10: thêm Nhóm quyền, Tài khoản, Hàng đợi, danh sách tài liệu, chuyển hướng sau đăng nhập) |
@@ -47,6 +47,7 @@ và chạy được end to end**; đặc tả v0.7 khớp với code; CI xanh tr
 | FR-09 | users/application/account, auth/presentation/account_router (`/api/account`) | features/account (/account), notifications/NotificationsPage (/notifications) | test_v07_admin_account.py (sai mật khẩu 400, 429 kể cả khi đúng, xoay phiên + thu hồi phiên khác); AccountPage.test.tsx |
 | FR-10 | users/application/departments | admin/DepartmentsPage | test_v07_admin_account.py (trùng mã 409, còn dùng 409 DEPARTMENT_IN_USE, chỉ Admin ghi) |
 | FR-11 | jobs: GET /api/jobs (phạm vi qua documents.visible_document_ids), `is_stale` + `requeue_count` do beat ghi | jobs/JobsPage (/jobs) | test_v07_jobs_documents.py (phạm vi theo vai trò, lọc, đánh dấu job kẹt kể cả sau khi beat gửi lại); JobsPage.test.tsx |
+| FR-13 | documents/domain/policies (tách phạm vi xem / phạm vi phòng ban), queries (_view_clause, department_document_ids), application/sharing; GET/PUT /api/documents/{id}/sharing; GET /api/users/lookup; migration 0108 | (PR giao diện) | test_v08_sharing.py: ma trận 9 người × chế độ × trạng thái xuất bản, policy khớp SQL; chia sẻ không mở quyền quản lý/duyệt/duyệt mượn; jobs, thùng rác theo phòng ban; 14 mutation đều bị bắt |
 | FR-12 | users/domain/roles, documents/policies (VIEWER) | admin/RolesPage | test_v07_roles.py; RolesPage.test.tsx |
 | P2-01 | workflow | workflow (nút, lịch sử, /reviews) | test_p2_workflow.py; e2e |
 | P2-02 | search/highlight_module | highlight (pageOverlays) | test_p2_versions_highlight.py; HighlightOverlay.test.tsx; e2e |
@@ -89,7 +90,7 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh
 | **P2-03** kiểm chứng chữ viết tay > 70% | mẫu chữ viết tay thật: upload (tick "Chữ viết tay"), sửa text cho đúng trong OCR Editor | **đã cài sẵn VietOCR** (`OCR_HW_ENGINE=auto`, GUIDE 4.3); đo bằng `eval/handwriting_from_app.py`. Ảnh vẽ bằng font kiểu viết tay (chỉ kiểm tra cài đặt): VietOCR 94,4%, PaddleOCR 91,5% nhưng chèn chữ Hán và tự tin sai |
 | **P2-04, P2-05** precision/recall trích xuất, top-1 phân loại | tập mẫu có nhãn | `eval/extraction_eval.py`, `eval/classification_eval.py` |
 | **Hiện thực SDD v0.7** (FR-09…FR-12, mở rộng FR-01/FR-07): vai trò Người dùng thông thường, nhóm quyền, quản lý người dùng nâng cao, phòng ban, tài khoản của tôi, hàng đợi xử lý, cột trạng thái duyệt, nút quay lại, menu gom nhóm | đặc tả đã chốt (D-07, D-08) | xong: (2) vai trò & quyền + migration 0107 (#10); (3) quản trị & tài khoản (#11); (4) hàng đợi xử lý, cột/lọc trạng thái duyệt, nút quay lại, menu gom nhóm, sửa chuyển hướng sau đăng xuất (#12) |
-| **Hiện thực SDD v0.8 — FR-13 Chia sẻ tài liệu đã xuất bản** (D-09): Riêng tư / Nội bộ (phòng ban của tài liệu + phòng ban chọn thêm) / Toàn hệ thống + người đích danh; chia sẻ chỉ mở quyền xem; duyệt, xuất bản, duyệt mượn giới hạn ở Kiểm duyệt viên phòng ban của tài liệu | đặc tả v0.8 (UC-29, ERD 17 bảng) | 3 PR: (1) đặc tả v0.8; (2) backend: migration 0108, tách phạm vi xem/phòng ban, API chia sẻ, tra cứu người dùng, ma trận test; (3) giao diện: hộp thoại Chia sẻ, nhãn chế độ, bộ lọc "Được chia sẻ với tôi" |
+| **Hiện thực SDD v0.8 — FR-13 Chia sẻ tài liệu đã xuất bản** (D-09): Riêng tư / Nội bộ (phòng ban của tài liệu + phòng ban chọn thêm) / Toàn hệ thống + người đích danh; chia sẻ chỉ mở quyền xem; duyệt, xuất bản, duyệt mượn giới hạn ở Kiểm duyệt viên phòng ban của tài liệu | đặc tả v0.8 (UC-29, ERD 17 bảng) | xong (1) đặc tả v0.8 (#13); (2) backend: migration 0108, tách phạm vi xem/phòng ban, API chia sẻ, tra cứu người dùng, ma trận test (PostgreSQL 18: 136 passed). Còn (3) giao diện: hộp thoại Chia sẻ, nhãn chế độ, bộ lọc "Được chia sẻ với tôi" |
 | **Cải thiện OCR có dấu** (chữ in và viết tay còn sai dấu nhiều) | 2–3 ảnh mẫu kèm text đúng; biết là chữ in hay viết tay | chẩn đoán + 7 phương án + thứ tự làm: GUIDE mục 9 (ưu tiên VietOCR cho chữ in, DPI 300, lọc ký tự lạ) |
 | **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB`, `MAX_PAGES` |
 | Bắt buộc CI xanh trước khi merge | sửa ruleset (GUIDE 7.1) | 2 test chập chờn đã sửa (PR #4) nên có thể bật |

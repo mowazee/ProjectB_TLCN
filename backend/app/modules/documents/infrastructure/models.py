@@ -2,17 +2,30 @@
 
 Ba cột trạng thái tách riêng: lifecycle_status (ở đây), processing_jobs.status (module jobs),
 approval_status (P2-01, cột có sẵn từ MVP). documents.storage_location_id do module
-borrowing (P2-07) thêm bằng migration riêng.
+borrowing (P2-07) thêm bằng migration riêng. share_mode và document_shares: chia sẻ tài liệu đã xuất bản
+(FR-13, D-09, migration 0108 - lõi).
 """
 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint, Uuid, false, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    Uuid,
+    false,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.modules.documents.domain.lifecycle import ApprovalStatus, LifecycleStatus, PageOcrStatus
-from app.shared.db import Base, str_enum, utcnow
+from app.modules.documents.domain.lifecycle import ApprovalStatus, LifecycleStatus, PageOcrStatus, ShareMode
+from app.shared.db import Base, BigIntPK, str_enum, utcnow
 
 FILE_TYPES = {"application/pdf": "PDF", "image/png": "PNG", "image/jpeg": "JPG"}
 
@@ -42,6 +55,11 @@ class Document(Base):
         server_default=ApprovalStatus.DRAFT.value,
     )
     is_handwritten: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    share_mode: Mapped[ShareMode] = mapped_column(
+        str_enum(ShareMode, "ck_documents_share_mode"),
+        default=ShareMode.INTERNAL,
+        server_default=ShareMode.INTERNAL.value,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, server_default=func.now(), index=True
     )
@@ -50,9 +68,32 @@ class Document(Base):
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # Chỉ đọc khi cần (tài liệu đã xuất bản); danh sách dùng selectinload để tránh N+1
+    shares: Mapped[list["DocumentShare"]] = relationship(
+        lazy="select", cascade="all, delete-orphan", passive_deletes=True
+    )
+
     @property
     def file_type(self) -> str:
         return FILE_TYPES.get(self.mime_type, self.mime_type)
+
+
+class DocumentShare(Base):
+    """FR-13: người nhận chia sẻ - một phòng ban HOẶC một người dùng (đúng một cột khác NULL)."""
+
+    __tablename__ = "document_shares"
+    __table_args__ = (
+        CheckConstraint("(department_id IS NULL) <> (user_id IS NULL)", name="ck_document_shares_target"),
+        UniqueConstraint("document_id", "department_id", name="uq_document_shares_department"),
+        UniqueConstraint("document_id", "user_id", name="uq_document_shares_user"),
+    )
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True, autoincrement=True)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    department_id: Mapped[int | None] = mapped_column(ForeignKey("departments.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, server_default=func.now())
 
 
 class DocumentPage(Base):

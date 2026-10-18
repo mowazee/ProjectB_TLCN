@@ -6,6 +6,8 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.modules.documents.application.manage import DocumentView
+from app.modules.documents.application.sharing import SharingView
+from app.modules.documents.domain.lifecycle import ShareMode
 
 
 class CategoryRef(BaseModel):
@@ -41,6 +43,8 @@ class DocumentOut(BaseModel):
     job_status: str | None = Field(description="Trạng thái job OCR mới nhất")
     job_id: uuid.UUID | None = Field(default=None, description="Job OCR mới nhất (poll tiến độ / retry)")
     can_edit: bool
+    share_mode: str = Field(description="FR-13: private | internal | public; chỉ có hiệu lực khi đã xuất bản")
+    can_share: bool = Field(description="FR-13: người dùng hiện tại đổi được cấu hình chia sẻ")
 
 
 class DocumentPatch(BaseModel):
@@ -88,5 +92,53 @@ def document_out(v: DocumentView) -> DocumentOut:
         needs_review_pages=v.needs_review_pages,
         job_status=v.job_status,
         job_id=v.job_id,
+        share_mode=v.share_mode,
+        can_share=v.can_share,
         can_edit=v.can_edit,
+    )
+
+
+# ---------------------------------------------------------------- FR-13 chia sẻ (v0.8)
+class DepartmentRefOut(BaseModel):
+    id: int
+    name: str
+
+
+class ShareUserOut(BaseModel):
+    id: uuid.UUID
+    username: str
+    full_name: str
+    department_name: str | None
+
+
+class SharingOut(BaseModel):
+    document_id: uuid.UUID
+    share_mode: str
+    is_published: bool = Field(description="False: cấu hình tạm ngưng, phạm vi xem theo D-02")
+    owner_department: DepartmentRefOut | None = Field(
+        description="Phòng ban của tài liệu - luôn có quyền ở chế độ Nội bộ"
+    )
+    departments: list[DepartmentRefOut]
+    users: list[ShareUserOut]
+
+
+class SharingIn(BaseModel):
+    share_mode: ShareMode
+    department_ids: list[int] = Field(default_factory=list, max_length=100)
+    user_ids: list[uuid.UUID] = Field(default_factory=list, max_length=200)
+
+
+def sharing_out(v: SharingView) -> SharingOut:
+    return SharingOut(
+        document_id=v.document_id,
+        share_mode=v.share_mode,
+        is_published=v.is_published,
+        owner_department=DepartmentRefOut(id=v.owner_department.id, name=v.owner_department.name)
+        if v.owner_department
+        else None,
+        departments=[DepartmentRefOut(id=d.id, name=d.name) for d in v.departments],
+        users=[
+            ShareUserOut(id=u.id, username=u.username, full_name=u.full_name, department_name=u.department_name)
+            for u in v.users
+        ],
     )
