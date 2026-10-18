@@ -6,7 +6,7 @@ const ids = (features: string[]) => enabledManifests(features).map((m) => m.id);
 
 describe("UI registry (NFR-09)", () => {
   it("chỉ bật manifest P2 khi cờ có trong session.features", () => {
-    expect(ids([])).toEqual(["dashboard", "documents", "ocr", "search", "admin"]);
+    expect(ids([])).toEqual(["dashboard", "documents", "ocr", "search", "admin", "account"]);
     expect(ids(["workflow"])).toContain("workflow");
     expect(ids(["workflow"])).not.toContain("borrowing");
     expect(ids(manifests.flatMap((m) => (m.feature ? [m.feature] : []))).length).toBe(manifests.length);

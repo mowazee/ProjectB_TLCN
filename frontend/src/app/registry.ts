@@ -2,6 +2,7 @@
  * UI registry (Đặc tả đề tài v0.5 mục 4.3, 4.6): danh sách manifest; feature P2/P3 chỉ thêm MỘT dòng.
  * Manifest có `feature` chỉ bật khi cờ nằm trong session.features (GET /api/auth/me).
  */
+import { accountManifest } from "@/features/account";
 import { adminManifest } from "@/features/admin";
 import { borrowingManifest } from "@/features/borrowing";
 import { classificationManifest } from "@/features/classification";
@@ -28,6 +29,7 @@ export const manifests: FeatureManifest[] = [
   ocrManifest,
   searchManifest,
   adminManifest, // lõi MVP
+  accountManifest, // FR-09 (v0.7)
   workflowManifest, // P2-01
   highlightManifest, // P2-02
   handwritingManifest, // P2-03

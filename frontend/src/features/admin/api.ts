@@ -7,6 +7,8 @@ import type {
   CategoryIn,
   CategoryPatch,
   Department,
+  DepartmentIn,
+  DepartmentPatch,
   Paged,
   Role,
   User,
@@ -14,11 +16,37 @@ import type {
   UserPatch,
 } from "@/shared/api/types";
 
-export function useUsers(page: number, q: string) {
+export interface UserFilters {
+  q: string;
+  role: string;
+  department_id: string;
+  /** "" = tất cả, "true" = hoạt động, "false" = đã khóa */
+  is_active: string;
+}
+
+/** FR-01 (v0.7): lọc phía server theo từ khóa, vai trò, phòng ban, trạng thái. */
+export function useUsers(page: number, f: UserFilters) {
   return useQuery({
-    queryKey: ["users", page, q],
-    queryFn: () => api<Paged<User>>("/api/users", { query: { page, page_size: 20, q } }),
+    queryKey: ["users", page, f],
+    queryFn: () =>
+      api<Paged<User>>("/api/users", {
+        query: {
+          page,
+          page_size: 20,
+          q: f.q || undefined,
+          role: f.role || undefined,
+          department_id: f.department_id || undefined,
+          is_active: f.is_active || undefined,
+        },
+      }),
     placeholderData: (prev) => prev,
+  });
+}
+
+/** FR-01 (v0.7): buộc đăng xuất mọi phiên của một người dùng. */
+export function useRevokeSessions() {
+  return useMutation({
+    mutationFn: (id: string) => api<{ revoked: number }>(`/api/users/${id}/revoke-sessions`, { method: "POST" }),
   });
 }
 
@@ -53,6 +81,26 @@ export function useDepartments() {
   });
 }
 
+/** FR-10: user_count/document_count đổi khi sửa người dùng, nên useSaveUser cũng làm mới khóa này. */
+export function useSaveDepartment() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id?: number; data: DepartmentIn | DepartmentPatch }) =>
+      id
+        ? api<Department>(`/api/departments/${id}`, { method: "PATCH", json: data })
+        : api<Department>("/api/departments", { json: data }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["departments"] }),
+  });
+}
+
+export function useDeleteDepartment() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api<void>(`/api/departments/${id}`, { method: "DELETE" }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["departments"] }),
+  });
+}
+
 export function useSaveUser() {
   const client = useQueryClient();
   return useMutation({
@@ -61,6 +109,7 @@ export function useSaveUser() {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["users"] });
       client.invalidateQueries({ queryKey: ["roles"] });
+      client.invalidateQueries({ queryKey: ["departments"] });
     },
   });
 }

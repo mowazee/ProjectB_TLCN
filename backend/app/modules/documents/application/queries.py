@@ -7,7 +7,7 @@ các hàm ensure_* để kiểm quyền trên một tài liệu; không truy v�
 import uuid
 from typing import Any
 
-from sqlalchemy import Select, and_, false, or_, select, true
+from sqlalchemy import Select, and_, false, func, or_, select, true
 from sqlalchemy.orm import Session
 
 from app.modules.documents.domain import policies
@@ -227,3 +227,13 @@ def dashboard_counts(db: Session, principal: Principal) -> dict[str, Any]:
 
 def documents_with_approval(principal: Principal, status: ApprovalStatus) -> Select[tuple[uuid.UUID]]:
     return visible_document_ids(principal).where(Document.approval_status == status)
+
+
+def count_by_department(db: Session) -> dict[int, int]:
+    """FR-10: số tài liệu (kể cả trong thùng rác) của từng phòng ban - phòng ban còn tài liệu thì không xóa được."""
+    rows = db.execute(
+        select(Document.department_id, func.count(Document.id))
+        .where(Document.department_id.isnot(None))
+        .group_by(Document.department_id)
+    ).all()
+    return {int(dep): int(n) for dep, n in rows}
