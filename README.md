@@ -1,10 +1,10 @@
-# Hệ thống số hóa hồ sơ tài liệu doanh nghiệp (ProjectB — SDD v0.7)
+# Hệ thống số hóa hồ sơ tài liệu doanh nghiệp (ProjectB — SDD v0.8)
 
 Tiểu luận chuyên ngành — UTE, Nhóm 3. Mọi yêu cầu, tên dữ liệu và hợp đồng API bám theo
-**SDD v0.7** (`document/0 -Dac_ta_SDD_v0.7.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
+**SDD v0.8** (`document/0 -Dac_ta_SDD_v0.8.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
 
 ProjectB được dựng mới hoàn toàn từ baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng);
-đặc tả nâng lên v0.6 (16/10/2026) sau khi hiện thực xong để khớp với code; v0.7 (18/10/2026) thêm phân hệ quản trị và tài khoản (FR-09…FR-12, đã hiện thực). **Trạng thái:** MVP + P2 chạy end to end,
+đặc tả nâng lên v0.6 (16/10/2026) sau khi hiện thực xong để khớp với code; v0.7 (18/10/2026) thêm phân hệ quản trị và tài khoản (FR-09…FR-12, đã hiện thực); v0.8 (18/10/2026) thêm chia sẻ tài liệu đã xuất bản (FR-13, đang hiện thực). **Trạng thái:** MVP + P2 chạy end to end,
 CI xanh; việc còn lại cần dữ liệu thật để đo chất lượng OCR — xem [SUMMARY.md](SUMMARY.md) mục 4.
 ProjectA (`D:\ProjectA_TLCN`) giữ lại làm tham chiếu bản MVP cũ (Jinja2).
 
@@ -41,7 +41,7 @@ frontend/           React + TypeScript + Vite (src/app, src/features/*, src/shar
 infra/nginx/        default.conf (SPA + reverse proxy /api, CSP)
 infra/backup/       backup.sh (sao lưu/khôi phục, chạy trong service backup/restore)
 docs/openapi.json   hợp đồng API (sinh types React: npm run gen:api)
-document/           đặc tả v0.7: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.6 (lên v0.7 cùng migration 0107)
+document/           đặc tả v0.8: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.7 (lên v0.8 cùng migration 0108)
 tests/e2e/          Playwright (Python) chạy trên hệ thống thật
 .github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2), compose.yml (Docker + sao lưu)
 compose.yaml        Docker Compose (profile hw, rag, tools); compose.dev.yaml
