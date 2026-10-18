@@ -5,17 +5,20 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, func, select
+from sqlalchemy.orm import Session, selectinload
 
 from app.modules.audit.application.recorder import record
 from app.modules.categories.application import manage as categories
 from app.modules.documents.application.queries import (
+    _department_clause,
     _scope_clause,
+    _view_clause,
     can_manage,
     ensure_can_manage,
     ensure_can_view,
     scope_of,
+    shared_with_me_clause,
 )
 from app.modules.documents.domain import policies
 from app.modules.documents.domain.events import DocumentDeleted, DocumentRestored
@@ -49,6 +52,11 @@ class DocumentView:
     job_status: str | None = None
     can_edit: bool = False
     job_id: uuid.UUID | None = None
+    can_share: bool = False  # FR-13: chủ sở hữu/Admin, tài liệu đã xuất bản
+
+    @property
+    def share_mode(self) -> str:
+        return str(self.doc.share_mode)
 
     @property
     def restore_deadline(self) -> datetime | None:
@@ -98,6 +106,7 @@ def build_views(db: Session, principal: Principal, docs: list[Document]) -> list
                 job_status=job_map[d.id][1] if d.id in job_map else None,
                 can_edit=can_manage(principal, d),
                 job_id=job_map[d.id][0] if d.id in job_map else None,
+                can_share=policies.can_share(principal, scope_of(d)),
             )
         )
     return views
@@ -113,10 +122,19 @@ def list_documents(
     status: str | None = None,
     lifecycle_status: LifecycleStatus = LifecycleStatus.ACTIVE,
     approval_status: ApprovalStatus | None = None,
+    shared_with_me: bool = False,
 ) -> tuple[list[DocumentView], int]:
     """status: trạng thái job OCR mới nhất (queued/processing/completed/failed) hoặc
-    'needs_review' (có trang cần xem lại). lifecycle_status=deleted là thùng rác. approval_status: FR-07 (v0.7)."""
-    stmt = select(Document).where(_scope_clause(principal), Document.lifecycle_status == lifecycle_status)
+    'needs_review' (có trang cần xem lại). lifecycle_status=deleted là thùng rác. approval_status: FR-07 (v0.7).
+    shared_with_me: tài liệu người khác chia sẻ tới mình (FR-13, v0.8)."""
+    if lifecycle_status == LifecycleStatus.DELETED:
+        # Thùng rác = phạm vi quản lý (phòng ban VÀ xem được): ai thấy ở đây thì khôi phục được; chia sẻ không mở
+        scope = and_(_department_clause(principal), _view_clause(principal))
+    else:
+        scope = _scope_clause(principal)
+    stmt = select(Document).where(scope, Document.lifecycle_status == lifecycle_status)
+    if shared_with_me:
+        stmt = stmt.where(shared_with_me_clause(principal))
     if q:
         stmt = stmt.where(func.lower(Document.title).contains(q.strip().lower(), autoescape=True))
     if category_id is not None:
@@ -134,7 +152,11 @@ def list_documents(
         stmt = stmt.join(latest, latest.c.document_id == Document.id).where(latest.c.status == status)
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     order = Document.deleted_at.desc() if lifecycle_status == LifecycleStatus.DELETED else Document.created_at.desc()
-    docs = list(db.scalars(stmt.order_by(order).offset(params.offset).limit(params.page_size)).all())
+    docs = list(
+        db.scalars(
+            stmt.options(selectinload(Document.shares)).order_by(order).offset(params.offset).limit(params.page_size)
+        ).all()
+    )
     return build_views(db, principal, docs), total
 
 
@@ -242,6 +264,6 @@ def get_trashed_scope_check(db: Session, principal: Principal, document_id: uuid
     doc = db.get(Document, document_id)
     if doc is None:
         raise NotFoundError("Không tìm thấy tài liệu")
-    if not policies.can_view(principal, scope_of(doc)):
+    if not policies.can_manage(principal, scope_of(doc)):  # thùng rác theo phạm vi quản lý, không theo chia sẻ
         raise PermissionDeniedError("Bạn không có quyền truy cập tài liệu này")
     return doc

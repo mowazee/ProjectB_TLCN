@@ -80,10 +80,12 @@ def transition(
     """Thực hiện action; trả approval_status mới."""
     if not principal.roles & ACTION_ROLES[action]:
         raise PermissionDeniedError("Vai trò của bạn không được thực hiện thao tác này")
+    # Gửi duyệt: Nghiệp vụ quản lý tài liệu; duyệt/xuất bản/hủy: Kiểm duyệt viên phòng ban của tài liệu - chia sẻ
+    # (FR-13, v0.8) chỉ mở quyền xem nên Kiểm duyệt viên phòng khác được chia sẻ không hủy xuất bản được
     doc = (
         documents.ensure_can_manage(db, principal, document_id)
         if action == Action.SUBMIT
-        else documents.ensure_can_view(db, principal, document_id)
+        else documents.ensure_can_review(db, principal, document_id)
     )
     comments = (comments or "").strip() or None
     if action == Action.REJECT and not comments:
@@ -163,6 +165,8 @@ def state(db: Session, principal: Principal, document_id: uuid.UUID) -> dict[str
     actions = allowed_actions(current, principal.roles)
     if "submit" in actions and not documents.can_manage(principal, doc):
         actions.remove("submit")
+    if not documents.can_review(principal, doc):  # FR-13: người được chia sẻ không duyệt/xuất bản
+        actions = [a for a in actions if a == "submit"]
     return {"approval_status": current, "allowed_actions": actions}
 
 

@@ -108,6 +108,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lookup Users
+         * @description FR-13 (v0.8): tìm người dùng đang hoạt động để chia sẻ tài liệu (Nghiệp vụ, Admin); tối đa 20 kết quả.
+         */
+        get: operations["lookup_users_api_users_lookup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users/{user_id}": {
         parameters: {
             query?: never;
@@ -281,6 +301,30 @@ export interface paths {
         put?: never;
         /** Restore Document */
         post: operations["restore_document_api_documents__document_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents/{document_id}/sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sharing
+         * @description FR-13: cấu hình chia sẻ - chủ sở hữu, Admin.
+         */
+        get: operations["get_sharing_api_documents__document_id__sharing_get"];
+        /**
+         * Update Sharing
+         * @description FR-13: thay toàn bộ cấu hình chia sẻ; 409 DOCUMENT_NOT_PUBLISHED khi chưa xuất bản.
+         */
+        put: operations["update_sharing_api_documents__document_id__sharing_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1334,6 +1378,13 @@ export interface components {
             /** Description */
             description?: string | null;
         };
+        /** DepartmentRefOut */
+        DepartmentRefOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
         /** DiffOut */
         DiffOut: {
             /** From Version */
@@ -1420,6 +1471,16 @@ export interface components {
             job_id?: string | null;
             /** Can Edit */
             can_edit: boolean;
+            /**
+             * Share Mode
+             * @description FR-13: private | internal | public; chỉ có hiệu lực khi đã xuất bản
+             */
+            share_mode: string;
+            /**
+             * Can Share
+             * @description FR-13: người dùng hiện tại đổi được cấu hình chia sẻ
+             */
+            can_share: boolean;
         };
         /** DocumentPatch */
         DocumentPatch: {
@@ -2035,6 +2096,55 @@ export interface components {
             /** Features */
             features: string[];
         };
+        /**
+         * ShareMode
+         * @description D-09 (SDD v0.8): chế độ chia sẻ, chỉ có hiệu lực khi tài liệu đã xuất bản.
+         * @enum {string}
+         */
+        ShareMode: "private" | "internal" | "public";
+        /** ShareUserOut */
+        ShareUserOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Username */
+            username: string;
+            /** Full Name */
+            full_name: string;
+            /** Department Name */
+            department_name: string | null;
+        };
+        /** SharingIn */
+        SharingIn: {
+            share_mode: components["schemas"]["ShareMode"];
+            /** Department Ids */
+            department_ids?: number[];
+            /** User Ids */
+            user_ids?: string[];
+        };
+        /** SharingOut */
+        SharingOut: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Share Mode */
+            share_mode: string;
+            /**
+             * Is Published
+             * @description False: cấu hình tạm ngưng, phạm vi xem theo D-02
+             */
+            is_published: boolean;
+            /** @description Phòng ban của tài liệu - luôn có quyền ở chế độ Nội bộ */
+            owner_department: components["schemas"]["DepartmentRefOut"] | null;
+            /** Departments */
+            departments: components["schemas"]["DepartmentRefOut"][];
+            /** Users */
+            users: components["schemas"]["ShareUserOut"][];
+        };
         /** SuggestionOut */
         SuggestionOut: {
             /** Category Id */
@@ -2108,6 +2218,23 @@ export interface components {
             department_id?: number | null;
             /** Phone */
             phone?: string | null;
+        };
+        /**
+         * UserLookupOut
+         * @description FR-13: tối thiểu để chọn người chia sẻ - không có email, vai trò, trạng thái.
+         */
+        UserLookupOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Username */
+            username: string;
+            /** Full Name */
+            full_name: string;
+            /** Department Name */
+            department_name: string | null;
         };
         /** UserOut */
         UserOut: {
@@ -2414,6 +2541,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lookup_users_api_users_lookup_get: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserLookupOut"][];
                 };
             };
             /** @description Validation Error */
@@ -2739,6 +2897,7 @@ export interface operations {
                 status?: string | null;
                 lifecycle_status?: components["schemas"]["LifecycleStatus"];
                 approval_status?: components["schemas"]["ApprovalStatus"] | null;
+                shared?: string | null;
                 page?: number;
                 page_size?: number;
             };
@@ -2914,6 +3073,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sharing_api_documents__document_id__sharing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_sharing_api_documents__document_id__sharing_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SharingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharingOut"];
                 };
             };
             /** @description Validation Error */

@@ -173,7 +173,7 @@ def act(
     req = db.scalar(select(BorrowRequest).where(BorrowRequest.id == request_id).with_for_update())
     if req is None:
         raise NotFoundError("Không tìm thấy yêu cầu mượn")
-    documents.ensure_can_view(db, principal, req.document_id)
+    documents.ensure_can_review(db, principal, req.document_id)  # FR-13: Kiểm duyệt viên phòng ban của tài liệu
     expected, target = TRANSITIONS[action]
     if req.status != expected:
         raise ConflictError(
@@ -226,7 +226,8 @@ def list_requests(
     else:
         stmt = stmt.where(
             or_(
-                BorrowRequest.document_id.in_(documents.visible_document_ids(principal)),
+                # yêu cầu mình duyệt được: phạm vi phòng ban, không mở theo chia sẻ (FR-13)
+                BorrowRequest.document_id.in_(documents.department_document_ids(principal)),
                 BorrowRequest.requester_id == principal.id,
             )
         )
@@ -268,7 +269,7 @@ def remind_overdue() -> int:
 
 def dashboard_counts(db: Session, principal: Principal) -> dict[str, int]:
     base = select(func.count(BorrowRequest.id)).where(
-        BorrowRequest.document_id.in_(documents.visible_document_ids(principal))
+        BorrowRequest.document_id.in_(documents.department_document_ids(principal))
     )
     return {
         "borrow_pending": db.scalar(base.where(BorrowRequest.status == PENDING)) or 0,

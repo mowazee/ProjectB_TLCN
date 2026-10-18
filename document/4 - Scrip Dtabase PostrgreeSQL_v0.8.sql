@@ -1,11 +1,11 @@
 -- =====================================================================
--- DATABASE SCHEMA - MVP + P2, phiên bản 0.7 (18/10/2026)
--- Sinh tự động từ Alembic (0001_core → 0107), KHÔNG sửa tay.
--- Đồng bộ: "0 - Đặc tả SDD v0.7" mục 6 và
---          "3 - Các lược đồ usecase_sequence_erd_database v0.7" (ERD, 16 bảng)
+-- DATABASE SCHEMA - MVP + P2, phiên bản 0.8 (18/10/2026)
+-- Sinh tự động từ Alembic (0001_core → 0108), KHÔNG sửa tay.
+-- Đồng bộ: "0 - Đặc tả SDD v0.8" mục 6 và
+--          "3 - Các lược đồ usecase_sequence_erd_database v0.8" (ERD, 17 bảng)
 -- Tạo lại (trong backend/, PowerShell):
 --   $env:DATABASE_URL="postgresql+psycopg://u:p@localhost/db"
---   .venv\Scripts\alembic.exe upgrade head --sql > "..\document\4 - Scrip Dtabase PostrgreeSQL_v0.7.sql"
+--   .venv\Scripts\alembic.exe upgrade head --sql > "..\document\4 - Scrip Dtabase PostrgreeSQL_v0.8.sql"
 --   (rồi chép lại khối chú thích này lên đầu file)
 -- Thay đổi so với bản v0.5 (bản đó chỉ có phần MVP, revision 0001):
 --   + 5 bảng P2: document_approvals (0101), notifications (0102),
@@ -15,6 +15,8 @@
 --   + processing_jobs.document_id cho phép NULL (job cấp lô BULK_IMPORT)
 --   + trigger audit append-only cho phép ON DELETE SET NULL khi purge (FR-07)
 -- v0.7: thêm vai trò VIEWER - Người dùng thông thường (0107, chỉ dữ liệu, không đổi bảng).
+-- v0.8: chia sẻ tài liệu đã xuất bản (FR-13, D-09, 0108): documents.share_mode
+--   (private | internal | public, mặc định internal) và bảng document_shares (17 bảng).
 -- Toàn bộ chạy trong một transaction (BEGIN … COMMIT).
 -- =====================================================================
 BEGIN;
@@ -115,13 +117,13 @@ CREATE TABLE documents (
 
 CREATE INDEX ix_documents_lifecycle_status ON documents (lifecycle_status);
 
+CREATE INDEX ix_documents_category_id ON documents (category_id);
+
 CREATE INDEX ix_documents_owner_id ON documents (owner_id);
 
 CREATE INDEX ix_documents_department_id ON documents (department_id);
 
 CREATE INDEX ix_documents_created_at ON documents (created_at);
-
-CREATE INDEX ix_documents_category_id ON documents (category_id);
 
 CREATE TABLE document_pages (
     id UUID NOT NULL, 
@@ -381,6 +383,37 @@ UPDATE alembic_version SET version_num='0106' WHERE alembic_version.version_num 
 INSERT INTO roles (name, description) SELECT 'VIEWER', 'Người dùng thông thường' WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name = 'VIEWER');
 
 UPDATE alembic_version SET version_num='0107' WHERE alembic_version.version_num = '0106';
+
+-- Running upgrade 0107 -> 0108
+
+ALTER TABLE documents ADD COLUMN share_mode VARCHAR(30) DEFAULT 'internal' NOT NULL;
+
+ALTER TABLE documents ADD CONSTRAINT ck_documents_share_mode CHECK (share_mode IN ('private', 'internal', 'public'));
+
+CREATE TABLE document_shares (
+    id BIGSERIAL NOT NULL, 
+    document_id UUID NOT NULL, 
+    department_id INTEGER, 
+    user_id UUID, 
+    created_by UUID, 
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL, 
+    PRIMARY KEY (id), 
+    CONSTRAINT ck_document_shares_target CHECK ((department_id IS NULL) <> (user_id IS NULL)), 
+    CONSTRAINT uq_document_shares_department UNIQUE (document_id, department_id), 
+    CONSTRAINT uq_document_shares_user UNIQUE (document_id, user_id), 
+    FOREIGN KEY(document_id) REFERENCES documents (id) ON DELETE CASCADE, 
+    FOREIGN KEY(department_id) REFERENCES departments (id) ON DELETE CASCADE, 
+    FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE, 
+    FOREIGN KEY(created_by) REFERENCES users (id) ON DELETE SET NULL
+);
+
+CREATE INDEX ix_document_shares_document_id ON document_shares (document_id);
+
+CREATE INDEX ix_document_shares_department_id ON document_shares (department_id);
+
+CREATE INDEX ix_document_shares_user_id ON document_shares (user_id);
+
+UPDATE alembic_version SET version_num='0108' WHERE alembic_version.version_num = '0107';
 
 COMMIT;
 
