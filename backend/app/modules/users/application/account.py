@@ -21,6 +21,11 @@ from app.shared.security.session import SessionData, get_session_store
 MIN_PASSWORD = 8
 
 
+def _field(name: str, code: str) -> dict[str, str]:
+    """fields của lỗi 4xx; tách hàm để bandit B105 không nhầm {"..._password": "wrong"} là mật khẩu viết cứng."""
+    return {name: code}
+
+
 @dataclass(frozen=True)
 class AccountView:
     id: uuid.UUID
@@ -112,17 +117,17 @@ def change_password(db: Session, principal: Principal, current: str, new: str, c
         if failures > settings.LOGIN_MAX_FAILURES:
             raise TooManyRequestsError("Nhập sai mật khẩu quá nhiều lần, vui lòng thử lại sau")
         raise InvalidInputError(
-            "Mật khẩu hiện tại không đúng", code="WRONG_PASSWORD", fields={"current_password": "wrong"}
+            "Mật khẩu hiện tại không đúng", code="WRONG_PASSWORD", fields=_field("current_password", "wrong")
         )
     if store.incr(key, settings.LOGIN_WINDOW_SECONDS) > settings.LOGIN_MAX_FAILURES + 1:
         # như đăng nhập: đã vượt ngưỡng thì chặn hết cửa sổ, kể cả khi lần này đúng (chống dò bằng phiên bị lộ)
         raise TooManyRequestsError("Nhập sai mật khẩu quá nhiều lần, vui lòng thử lại sau")
     if len(new) < MIN_PASSWORD:
         raise UnprocessableError(
-            f"Mật khẩu mới phải có ít nhất {MIN_PASSWORD} ký tự", fields={"new_password": "too_short"}
+            f"Mật khẩu mới phải có ít nhất {MIN_PASSWORD} ký tự", fields=_field("new_password", "too_short")
         )
     if verify_password(new, user.password_hash):
-        raise UnprocessableError("Mật khẩu mới phải khác mật khẩu hiện tại", fields={"new_password": "unchanged"})
+        raise UnprocessableError("Mật khẩu mới phải khác mật khẩu hiện tại", fields=_field("new_password", "unchanged"))
     store.reset(key)
     user.password_hash = hash_password(new)
     revoked = store.revoke_user(user.id)
