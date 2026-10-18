@@ -214,6 +214,7 @@ Write-Host '  Quản trị viên          admin           Admin@12345'
 Write-Host '  Nhân viên nghiệp vụ    nhanvien        Demo@12345   (Phòng Hành chính - Tổng hợp)'
 Write-Host '  Kiểm duyệt viên        kiemduyet       Demo@12345   (Phòng Hành chính - Tổng hợp)'
 Write-Host '  Nhân viên nghiệp vụ    ketoan          Demo@12345   (Phòng Kế toán)'
+Write-Host '  Người dùng thông thường nguoidung       Demo@12345   (Phòng Hành chính - Tổng hợp; chỉ xem tài liệu đã xuất bản)'
 Write-Host ''
 Write-Host 'Tài liệu mẫu được OCR ở nền trong khoảng 1-2 phút.'
 Write-Host "Nhật ký: $Logs     Dừng demo: .\demo-stop.cmd"

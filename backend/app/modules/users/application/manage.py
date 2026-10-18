@@ -238,9 +238,29 @@ def update_user(
         after={**after, "password_reset": bool(changes.get("password"))},
     )
     db.commit()
-    if not user.is_active:
-        get_session_store().revoke_user(user.id)  # SDD mục 3: phiên hiện có bị thu hồi
+    # SDD mục 3: khóa tài khoản thu hồi phiên; FR-01 (v0.7): Admin đặt lại mật khẩu cho người khác cũng thu hồi
+    # (người dùng tự đổi mật khẩu đi qua account.change_password).
+    if not user.is_active or (changes.get("password") and user.id != actor.id):
+        get_session_store().revoke_user(user.id)
     return user
+
+
+def revoke_sessions(db: Session, actor: Principal, user_id: uuid.UUID, ctx: RequestContext) -> int:
+    """FR-01 (v0.7): buộc đăng xuất mọi phiên của một người dùng."""
+    user = get_user(db, actor, user_id)
+    revoked = get_session_store().revoke_user(user.id)
+    record(
+        db,
+        action="revoke_sessions",
+        module="users",
+        actor_id=actor.id,
+        ctx=ctx,
+        entity_type="user",
+        entity_id=user.id,
+        after={"revoked_sessions": revoked},
+    )
+    db.commit()
+    return revoked
 
 
 def find_first_admin(db: Session) -> User | None:

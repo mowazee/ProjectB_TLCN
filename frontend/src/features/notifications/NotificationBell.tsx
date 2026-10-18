@@ -7,17 +7,10 @@ import { api } from "@/shared/api/client";
 import type { NotificationPage } from "@/shared/api/types";
 import { formatDateTime } from "@/shared/lib/format";
 
+import { linkFor } from "./link";
 import s from "./notifications.module.css";
 
 const POLL_MS = 30_000; // SDD mục 13: thông báo P2-07 lấy bằng polling nhẹ
-
-// Thông báo tạo trước SDD v0.6 chưa có link_url: suy từ type như trước
-function linkFor(type: string, linkUrl: string | null): string {
-  if (linkUrl?.startsWith("/")) return linkUrl;
-  if (type === "approval.submit") return "/reviews";
-  if (type.startsWith("borrow.")) return "/borrow-requests";
-  return "/documents";
-}
 
 export function NotificationBell() {
   const client = useQueryClient();
@@ -90,6 +83,9 @@ export function NotificationBell() {
               ))}
             </ul>
           )}
+          <Link to="/notifications" className={s.all} onClick={() => setOpen(false)}>
+            Xem tất cả thông báo
+          </Link>
         </div>
       )}
     </div>

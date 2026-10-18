@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { ROLE_LABELS } from "@/shared/lib/format";
 import { replaceSession, useSession } from "@/shared/session";
@@ -31,13 +31,15 @@ export function UserMenu() {
     .toUpperCase();
   return (
     <div className={s.user}>
-      <span className={s.avatar} aria-hidden>
-        {initials}
-      </span>
-      <div className={s.who}>
-        <span>{name}</span>
-        <small>{session.roles.map((r) => ROLE_LABELS[r] ?? r).join(", ")}</small>
-      </div>
+      <Link to="/account" className={s.me} title="Tài khoản của tôi">
+        <span className={s.avatar} aria-hidden>
+          {initials}
+        </span>
+        <div className={s.who}>
+          <span>{name}</span>
+          <small>{session.roles.map((r) => ROLE_LABELS[r] ?? r).join(", ")}</small>
+        </div>
+      </Link>
       <button
         className="btn btn-ghost btn-icon"
         onClick={() => mutation.mutate()}

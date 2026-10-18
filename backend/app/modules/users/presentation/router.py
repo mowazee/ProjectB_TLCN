@@ -1,5 +1,6 @@
 """API users (SDD mục 7.1): GET/POST /api/users; PATCH /api/users/{id}; GET /api/roles.
-Bổ sung GET /api/departments (danh sách phòng ban cho form người dùng)."""
+Phòng ban (FR-10, v0.7): GET /api/departments (mọi người dùng, cho form/bộ lọc), POST/PATCH/DELETE (Admin).
+POST /api/users/{id}/revoke-sessions (Admin, v0.7)."""
 
 import uuid
 from datetime import datetime
@@ -9,7 +10,7 @@ from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.modules.auth.presentation.deps import Ctx, CurrentPrincipal, DbSession, require_roles
-from app.modules.users.application import manage
+from app.modules.users.application import departments, manage
 from app.modules.users.domain.roles import ROLE_PERMISSIONS, ROLE_SUMMARIES, RoleCode
 from app.modules.users.infrastructure.models import User
 from app.shared.http import page_params
@@ -24,6 +25,9 @@ class DepartmentOut(BaseModel):
     id: int
     name: str
     code: str
+    description: str | None = None
+    user_count: int = 0
+    document_count: int = 0
 
 
 class RoleOut(BaseModel):
@@ -133,6 +137,49 @@ def list_roles(db: DbSession) -> list[RoleOut]:
     return out
 
 
+@router.post("/users/{user_id}/revoke-sessions", dependencies=[AdminOnly])
+def revoke_sessions(user_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal, ctx: Ctx) -> dict[str, int]:
+    """FR-01 (v0.7): buộc đăng xuất mọi phiên của người dùng."""
+    return {"revoked": manage.revoke_sessions(db, principal, user_id, ctx)}
+
+
+class DepartmentIn(BaseModel):
+    code: str = Field(min_length=1, max_length=50)
+    name: str = Field(min_length=1, max_length=150)
+    description: str | None = Field(default=None, max_length=1000)
+
+
+class DepartmentPatch(BaseModel):
+    code: str | None = Field(default=None, min_length=1, max_length=50)
+    name: str | None = Field(default=None, min_length=1, max_length=150)
+    description: str | None = Field(default=None, max_length=1000)
+
+
+def _dep_out(db: DbSession, dep_id: int) -> DepartmentOut:
+    return next(DepartmentOut.model_validate(d) for d in departments.list_with_counts(db) if d.id == dep_id)
+
+
+@router.post(
+    "/departments", response_model=DepartmentOut, status_code=status.HTTP_201_CREATED, dependencies=[AdminOnly]
+)
+def create_department(data: DepartmentIn, db: DbSession, principal: CurrentPrincipal, ctx: Ctx) -> DepartmentOut:
+    dep = departments.create(db, principal, code=data.code, name=data.name, description=data.description, ctx=ctx)
+    return _dep_out(db, dep.id)
+
+
+@router.patch("/departments/{department_id}", response_model=DepartmentOut, dependencies=[AdminOnly])
+def update_department(
+    department_id: int, data: DepartmentPatch, db: DbSession, principal: CurrentPrincipal, ctx: Ctx
+) -> DepartmentOut:
+    departments.update(db, principal, department_id, data.model_dump(exclude_unset=True), ctx)
+    return _dep_out(db, department_id)
+
+
+@router.delete("/departments/{department_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[AdminOnly])
+def delete_department(department_id: int, db: DbSession, principal: CurrentPrincipal, ctx: Ctx) -> None:
+    departments.delete(db, principal, department_id, ctx)
+
+
 @router.get("/departments", response_model=list[DepartmentOut])
 def list_departments(db: DbSession, _: CurrentPrincipal) -> list[DepartmentOut]:
-    return [DepartmentOut.model_validate(d) for d in manage.list_departments(db)]
+    return [DepartmentOut.model_validate(d) for d in departments.list_with_counts(db)]

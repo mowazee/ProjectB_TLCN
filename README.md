@@ -61,10 +61,10 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin trong
 
 | Bộ | Lệnh | Kết quả hiện tại |
 |---|---|---|
-| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 105 passed |
-| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 105 passed |
+| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 122 passed, 1 skipped |
+| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 122 passed, 1 skipped |
 | Backend trên PostgreSQL 18 + Redis | CI `backend.yml` (6 tổ hợp cờ) | xanh mỗi PR |
-| Frontend | `cd frontend; npm test` | 18 passed |
+| Frontend | `cd frontend; npm test` | 21 passed |
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |
 | E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | 9 passed, 1 skipped (mọi cờ bật) |
 | Docker + sao lưu/khôi phục | CI `compose.yml` | xanh |

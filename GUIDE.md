@@ -56,6 +56,11 @@ Bấm đúp file `.cmd` trong Explorer cũng được.
 `nguoidung` chỉ xem, tìm kiếm, tải tài liệu **đã xuất bản** của phòng ban mình (SDD v0.7, FR-12): muốn thấy tài liệu,
 đăng nhập `kiemduyet` duyệt và xuất bản trước. Ma trận quyền từng vai trò: Quản trị → Nhóm quyền.
 
+Mỗi người dùng bấm vào avatar/tên ở góc phải thanh tiêu đề để mở **Tài khoản của tôi** (FR-09): sửa họ tên, số điện
+thoại, đổi mật khẩu (đổi xong các thiết bị khác bị đăng xuất); chuông thông báo có "Xem tất cả thông báo". Admin quản lý
+**Phòng ban** (FR-10, chỉ xóa được phòng ban không còn người dùng và tài liệu) và có nút "Đăng xuất khỏi mọi thiết bị"
+trong form sửa người dùng. Đổi mật khẩu tài khoản demo xong muốn trả về mặc định: `.\demo-start.cmd -Reset`.
+
 Gợi ý kịch bản demo: đăng nhập `nhanvien` → Tài liệu → mở hợp đồng mẫu → xem trang/sửa OCR (thử mở 2 tab để thấy 409) →
 Tìm kiếm "nghiem thu" → mở kết quả (khung highlight) → gửi duyệt → đăng nhập `kiemduyet` (tab ẩn danh) → Duyệt tài liệu →
 xuất bản; Mượn hồ sơ; Nhập hàng loạt (ZIP); `admin` → Nhật ký → Khôi phục.

@@ -23,10 +23,10 @@ với code; CI xanh trên mọi PR. Việc còn lại chủ yếu cần **dữ l
 
 | Bộ | Kết quả |
 |---|---|
-| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 105 passed / 105 passed |
+| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 122 passed, 1 skipped / 122 passed, 1 skipped (18/10, sau FR-09/FR-10) |
 | CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#5) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (PR #4, `main` sau #4) |
-| Frontend Vitest | 18 passed (thêm test chuyển giao diện sáng/tối) |
+| Frontend Vitest | 21 passed (18/10: thêm Nhóm quyền, Tài khoản của tôi) |
 | E2E Playwright trên demo thật, mọi cờ bật (local, 17/10) | 9 passed, 1 skipped (test dành cho cờ tắt) |
 | CI `e2e`: 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) | xanh trên mọi PR (#2–#5) |
 | E2E chế độ chỉ MVP (`-Mvp`, local 05/10) | 6 passed, 4 skipped (các test P2 tự bỏ qua khi cờ tắt) |
@@ -36,7 +36,7 @@ với code; CI xanh trên mọi PR. Việc còn lại chủ yếu cần **dữ l
 
 | Mã | Backend | Frontend | Test chính |
 |---|---|---|---|
-| FR-01 | auth, users | features/auth, admin/UsersPage | test_auth.py (401/403/429, CSRF, Origin, khóa user thu hồi session) |
+| FR-01 | auth, users | features/auth, admin/UsersPage (lọc vai trò/phòng ban/trạng thái, đăng xuất mọi thiết bị) | test_auth.py (401/403/429, CSRF, Origin, khóa user thu hồi session); test_v07_admin_account.py (thu hồi phiên, đặt lại mật khẩu thu hồi phiên) |
 | FR-02 | categories | admin/CategoriesPage | test_admin.py (ngừng dùng không chọn được, tài liệu cũ vẫn hiển thị) |
 | FR-03 | documents/upload, file_inspector | documents/UploadPage | test_documents.py (415, 413, lỗi storage không tạo job) |
 | FR-04 | jobs/runner, ocr/run_ocr, beat requeue | jobs/JobStatus (poll 2s) | test_ocr_jobs.py (retry không trùng, needs_review, engine lỗi, job treo) |
@@ -44,6 +44,9 @@ với code; CI xanh trên mọi PR. Việc còn lại chủ yếu cần **dữ l
 | FR-06 | search (FTS PostgreSQL / substring SQLite, không dấu) | search/SearchPage | test_editor_search.py; e2e |
 | FR-07 | documents/manage, purge (beat) | documents/TrashPage | test_documents.py (410 quá hạn, purge giữ audit, bỏ qua job đang chạy) |
 | FR-08 | dashboard, audit | dashboard (Chart.js), admin/AuditPage | test_editor_search.py, test_admin.py |
+| FR-09 | users/application/account, auth/presentation/account_router (`/api/account`) | features/account (/account), notifications/NotificationsPage (/notifications) | test_v07_admin_account.py (sai mật khẩu 400, 429 kể cả khi đúng, xoay phiên + thu hồi phiên khác); AccountPage.test.tsx |
+| FR-10 | users/application/departments | admin/DepartmentsPage | test_v07_admin_account.py (trùng mã 409, còn dùng 409 DEPARTMENT_IN_USE, chỉ Admin ghi) |
+| FR-12 | users/domain/roles, documents/policies (VIEWER) | admin/RolesPage | test_v07_roles.py; RolesPage.test.tsx |
 | P2-01 | workflow | workflow (nút, lịch sử, /reviews) | test_p2_workflow.py; e2e |
 | P2-02 | search/highlight_module | highlight (pageOverlays) | test_p2_versions_highlight.py; HighlightOverlay.test.tsx; e2e |
 | P2-03 | ocr/handwriting_module (queue ocr_hw); engine VietOCR (auto) | handwriting (uploadFields, reprocess) | test_p2_handwriting.py; test_eval_handwriting.py (đo từ bản sửa trong app) |
@@ -84,7 +87,7 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh
 | **NFR-08** báo cáo độ chính xác OCR chính thức | tập test thật: scan rõ, scan khó, chữ viết tay, ≥ 30 trang mỗi loại (tách tập phát triển để hiệu chỉnh ngưỡng) | `eval/ocr_eval.py`. Thử trên dữ liệu tổng hợp: scan rõ ~91%, scan khó ~90% (chỉ để kiểm tra quy trình); PaddleOCR `vi` hay mất dấu (WER cao) |
 | **P2-03** kiểm chứng chữ viết tay > 70% | mẫu chữ viết tay thật: upload (tick "Chữ viết tay"), sửa text cho đúng trong OCR Editor | **đã cài sẵn VietOCR** (`OCR_HW_ENGINE=auto`, GUIDE 4.3); đo bằng `eval/handwriting_from_app.py`. Ảnh vẽ bằng font kiểu viết tay (chỉ kiểm tra cài đặt): VietOCR 94,4%, PaddleOCR 91,5% nhưng chèn chữ Hán và tự tin sai |
 | **P2-04, P2-05** precision/recall trích xuất, top-1 phân loại | tập mẫu có nhãn | `eval/extraction_eval.py`, `eval/classification_eval.py` |
-| **Hiện thực SDD v0.7** (FR-09…FR-12, mở rộng FR-01/FR-07): vai trò Người dùng thông thường, nhóm quyền, quản lý người dùng nâng cao, phòng ban, tài khoản của tôi, hàng đợi xử lý, cột trạng thái duyệt, nút quay lại, menu gom nhóm | đặc tả đã chốt (D-07, D-08) | chia 3 PR: (2) vai trò & quyền + migration 0107 + file 4 v0.7; (3) quản trị & tài khoản; (4) tài liệu & điều hướng |
+| **Hiện thực SDD v0.7** (FR-09…FR-12, mở rộng FR-01/FR-07): vai trò Người dùng thông thường, nhóm quyền, quản lý người dùng nâng cao, phòng ban, tài khoản của tôi, hàng đợi xử lý, cột trạng thái duyệt, nút quay lại, menu gom nhóm | đặc tả đã chốt (D-07, D-08) | đã xong: (2) vai trò & quyền + migration 0107 (#10); (3) quản trị & tài khoản (FR-09, FR-10, FR-01 mở rộng). Còn (4): hàng đợi xử lý (FR-11), cột/lọc trạng thái duyệt, nút quay lại, menu gom nhóm |
 | **Cải thiện OCR có dấu** (chữ in và viết tay còn sai dấu nhiều) | 2–3 ảnh mẫu kèm text đúng; biết là chữ in hay viết tay | chẩn đoán + 7 phương án + thứ tự làm: GUIDE mục 9 (ưu tiên VietOCR cho chữ in, DPI 300, lọc ký tự lạ) |
 | **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB`, `MAX_PAGES` |
 | Bắt buộc CI xanh trước khi merge | sửa ruleset (GUIDE 7.1) | 2 test chập chờn đã sửa (PR #4) nên có thể bật |

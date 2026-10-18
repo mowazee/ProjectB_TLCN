@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { LogOut, Users } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import type { User } from "@/shared/api/types";
@@ -16,7 +16,23 @@ import {
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { ROLE_LABELS, formatDateTime } from "@/shared/lib/format";
 
-import { useDepartments, useRoles, useSaveUser, useUsers } from "./api";
+import { useDepartments, useRevokeSessions, useRoles, useSaveUser, useUsers, type UserFilters } from "./api";
+
+/** FR-01 (v0.7): buộc đăng xuất mọi thiết bị (nghi lộ mật khẩu, máy dùng chung...). */
+function RevokeSessions({ user }: { user: User }) {
+  const revoke = useRevokeSessions();
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      <ErrorBox error={revoke.error} />
+      <div className="row">
+        <button type="button" className="btn btn-sm" disabled={revoke.isPending} onClick={() => revoke.mutate(user.id)}>
+          <LogOut size={15} aria-hidden /> Đăng xuất khỏi mọi thiết bị
+        </button>
+        {revoke.data && <span className="muted">Đã thu hồi {revoke.data.revoked} phiên đăng nhập.</span>}
+      </div>
+    </div>
+  );
+}
 
 function UserForm({ user, onClose }: { user: User | null; onClose: () => void }) {
   const roles = useRoles();
@@ -95,7 +111,12 @@ function UserForm({ user, onClose }: { user: User | null; onClose: () => void })
         <Field label="Điện thoại" htmlFor="ph" error={errors.phone}>
           <input id="ph" className="input" value={form.phone} onChange={(e) => set("phone", e.target.value)} />
         </Field>
-        <Field label={user ? "Mật khẩu mới (để trống nếu không đổi)" : "Mật khẩu"} htmlFor="pw" error={errors.password}>
+        <Field
+          label={user ? "Đặt lại mật khẩu (để trống nếu không đổi)" : "Mật khẩu"}
+          htmlFor="pw"
+          hint={user ? "Người dùng sẽ bị đăng xuất khỏi mọi thiết bị và đăng nhập lại bằng mật khẩu mới" : undefined}
+          error={errors.password}
+        >
           <input
             id="pw"
             className="input"
@@ -143,18 +164,29 @@ function UserForm({ user, onClose }: { user: User | null; onClose: () => void })
             Đang hoạt động (bỏ chọn để khóa tài khoản và thu hồi phiên đăng nhập)
           </label>
         )}
+        {user && <RevokeSessions user={user} />}
       </form>
     </Modal>
   );
 }
 
-/** UC-06 (FR-01): Admin tạo, sửa, khóa người dùng và gán vai trò. */
+const NO_FILTERS: UserFilters = { q: "", role: "", department_id: "", is_active: "" };
+
+/** UC-06 (FR-01): Admin tạo, sửa, khóa người dùng, gán vai trò; lọc theo vai trò/phòng ban/trạng thái (v0.7). */
 export function UsersPage() {
   const [page, setPage] = useState(1);
-  const [q, setQ] = useState("");
-  const query = useDebounce(q);
-  const users = useUsers(page, query);
+  const [filters, setFilters] = useState(NO_FILTERS);
+  const q = useDebounce(filters.q);
+  const users = useUsers(page, { ...filters, q });
+  const roles = useRoles();
+  const deps = useDepartments();
+  const depName = new Map(deps.data?.map((d) => [d.id, d.name]));
   const [editing, setEditing] = useState<User | null | "new">(null);
+  const set = (k: keyof UserFilters, v: string) => {
+    setFilters((f) => ({ ...f, [k]: v }));
+    setPage(1);
+  };
+  const filtered = Object.values(filters).some(Boolean);
 
   return (
     <div>
@@ -167,21 +199,71 @@ export function UsersPage() {
           </button>
         }
       />
-      <input
-        className="input"
-        placeholder="Tìm theo tên đăng nhập, họ tên, email..."
-        value={q}
-        onChange={(e) => {
-          setQ(e.target.value);
-          setPage(1);
-        }}
-        style={{ marginBottom: 12 }}
-      />
+      <div className="row" style={{ marginBottom: 12 }}>
+        <input
+          className="input grow"
+          style={{ minWidth: 220 }}
+          placeholder="Tìm theo tên đăng nhập, họ tên, email..."
+          aria-label="Tìm người dùng"
+          value={filters.q}
+          onChange={(e) => set("q", e.target.value)}
+        />
+        <select
+          className="select"
+          style={{ width: "auto" }}
+          aria-label="Lọc theo vai trò"
+          value={filters.role}
+          onChange={(e) => set("role", e.target.value)}
+        >
+          <option value="">Mọi vai trò</option>
+          {roles.data?.map((r) => (
+            <option key={r.id} value={r.name}>
+              {ROLE_LABELS[r.name] ?? r.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className="select"
+          style={{ width: "auto" }}
+          aria-label="Lọc theo phòng ban"
+          value={filters.department_id}
+          onChange={(e) => set("department_id", e.target.value)}
+        >
+          <option value="">Mọi phòng ban</option>
+          {deps.data?.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className="select"
+          style={{ width: "auto" }}
+          aria-label="Lọc theo trạng thái"
+          value={filters.is_active}
+          onChange={(e) => set("is_active", e.target.value)}
+        >
+          <option value="">Mọi trạng thái</option>
+          <option value="true">Hoạt động</option>
+          <option value="false">Đã khóa</option>
+        </select>
+        {filtered && (
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              setFilters(NO_FILTERS);
+              setPage(1);
+            }}
+          >
+            Xóa bộ lọc
+          </button>
+        )}
+      </div>
       <ErrorBox error={users.error} />
       {users.isPending ? (
         <Loading />
       ) : !users.data?.items.length ? (
-        <EmptyState>Không có người dùng.</EmptyState>
+        <EmptyState>{filtered ? "Không có người dùng khớp bộ lọc." : "Không có người dùng."}</EmptyState>
       ) : (
         <>
           <table className="table">
@@ -190,6 +272,7 @@ export function UsersPage() {
                 <th>Tên đăng nhập</th>
                 <th>Họ tên</th>
                 <th>Email</th>
+                <th>Phòng ban</th>
                 <th>Vai trò</th>
                 <th>Trạng thái</th>
                 <th>Đăng nhập gần nhất</th>
@@ -202,6 +285,7 @@ export function UsersPage() {
                   <td>{u.username}</td>
                   <td>{u.full_name}</td>
                   <td>{u.email}</td>
+                  <td>{u.department_id ? (depName.get(u.department_id) ?? "—") : "—"}</td>
                   <td>{u.roles.map((r) => ROLE_LABELS[r] ?? r).join(", ")}</td>
                   <td>{u.is_active ? <Badge tone="ok">Hoạt động</Badge> : <Badge tone="danger">Đã khóa</Badge>}</td>
                   <td>{formatDateTime(u.last_login_at)}</td>
