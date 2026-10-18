@@ -122,16 +122,20 @@ def department_document_ids(principal: Principal, *, include_deleted: bool = Fal
 
 
 def shared_with_me_clause(principal: Principal) -> Any:
-    """FR-13: tài liệu đã xuất bản người khác chia sẻ tới mình (không phải của mình, không thuộc phòng ban mình)."""
+    """FR-13: tài liệu đã xuất bản người khác chia sẻ tới mình - được thêm đích danh (kể cả người cùng phòng ban),
+    phòng ban mình được chọn ở chế độ Nội bộ, hoặc tài liệu Toàn hệ thống của phòng ban khác. Dùng kèm phạm vi xem."""
     if not publication_required() or principal.id is None:
         return false()
     not_mine = or_(Document.owner_id.is_(None), Document.owner_id != principal.id)
-    other_department = (
-        or_(Document.department_id.is_(None), Document.department_id != principal.department_id)
-        if principal.department_id is not None
-        else true()
-    )
-    return and_(Document.approval_status == ApprovalStatus.PUBLISHED, not_mine, other_department)
+    reasons = [_shared_with(principal, department=False)]
+    dep = principal.department_id
+    if dep is not None:
+        reasons.append(and_(Document.share_mode == ShareMode.INTERNAL, _shared_with(principal, department=True)))
+        other_department = or_(Document.department_id.is_(None), Document.department_id != dep)
+        reasons.append(and_(Document.share_mode == ShareMode.PUBLIC, other_department))
+    else:
+        reasons.append(Document.share_mode == ShareMode.PUBLIC)
+    return and_(Document.approval_status == ApprovalStatus.PUBLISHED, not_mine, or_(*reasons))
 
 
 def get_document(db: Session, document_id: uuid.UUID) -> Document | None:

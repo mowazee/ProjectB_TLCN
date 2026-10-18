@@ -1,4 +1,4 @@
-import { Download, PencilLine, Trash2 } from "lucide-react";
+import { Download, PencilLine, Share2, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -20,6 +20,7 @@ import {
 } from "@/shared/components/ui";
 import { useCategories } from "@/shared/hooks/useCategories";
 import { formatBytes, formatDateTime } from "@/shared/lib/format";
+import { useSession } from "@/shared/session";
 import { SlotList, useSlots } from "@/shared/slots";
 
 import {
@@ -33,6 +34,8 @@ import {
 } from "./api";
 import { BackToList } from "./BackToList";
 import s from "./documents.module.css";
+import { ShareDialog } from "./sharing/ShareDialog";
+import { ShareModeBadge } from "./sharing/ShareModeBadge";
 
 function EditMetadata({ doc, onClose }: { doc: DocumentOut; onClose: () => void }) {
   const categories = useCategories(true);
@@ -118,6 +121,8 @@ export function DocumentDetailPage() {
   const del = useDeleteDocument();
   const { documentTabs, documentActions } = useSlots();
   const [editing, setEditing] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const { session, hasFeature } = useSession();
 
   if (doc.isPending) return <Loading />;
   if (doc.error || !doc.data) {
@@ -129,6 +134,9 @@ export function DocumentDetailPage() {
     );
   }
   const d = doc.data;
+  // Chủ sở hữu/Admin thấy nút Chia sẻ mờ khi tài liệu chưa xuất bản (biết tính năng có, và vì sao chưa dùng được)
+  const isOwnerOrAdmin = session?.user.id === d.owner?.id || Boolean(session?.roles.includes("ADMIN"));
+  const canShareLater = hasFeature("workflow") && isOwnerOrAdmin && d.lifecycle_status === "active";
 
   const remove = () => {
     if (window.confirm(`Chuyển "${d.title}" vào thùng rác?`)) {
@@ -163,6 +171,23 @@ export function DocumentDetailPage() {
         actions={
           <div className={s.actions}>
             <SlotList items={documentActions} props={{ document: d }} />
+            {/* FR-13: chủ sở hữu/Admin chia sẻ tài liệu đã xuất bản; chưa xuất bản thì nút mờ kèm lý do */}
+            {d.can_share ? (
+              <button className="btn btn-primary" onClick={() => setSharing(true)}>
+                <Share2 size={16} aria-hidden /> Chia sẻ
+              </button>
+            ) : (
+              canShareLater && (
+                <span title="Chỉ chia sẻ được tài liệu đã xuất bản">
+                  <button className="btn" disabled aria-describedby="share-hint">
+                    <Share2 size={16} aria-hidden /> Chia sẻ
+                  </button>
+                  <span id="share-hint" className="sr-only">
+                    Chỉ chia sẻ được tài liệu đã xuất bản
+                  </span>
+                </span>
+              )
+            )}
             {/* D-08: ai xem được tài liệu thì tải được file gốc (server ghi nhật ký mỗi lượt tải) */}
             <a className="btn" href={fileUrl(d.id)}>
               <Download size={16} aria-hidden /> Tải file gốc
@@ -193,6 +218,18 @@ export function DocumentDetailPage() {
               <ApprovalBadge status={d.approval_status} />
             </dd>
           </div>
+          {hasFeature("workflow") && (
+            <div>
+              <dt>Chia sẻ</dt>
+              <dd>
+                {d.approval_status === "published" ? (
+                  <ShareModeBadge mode={d.share_mode} />
+                ) : (
+                  <span className="muted">Áp dụng khi xuất bản</span>
+                )}
+              </dd>
+            </div>
+          )}
           <div>
             <dt>Số trang</dt>
             <dd>
@@ -215,6 +252,7 @@ export function DocumentDetailPage() {
         <Tabs tabs={tabs} />
       </div>
       {editing && <EditMetadata doc={d} onClose={() => setEditing(false)} />}
+      {sharing && <ShareDialog doc={d} onClose={() => setSharing(false)} />}
     </div>
   );
 }

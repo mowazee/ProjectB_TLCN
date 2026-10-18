@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 
-import { ROLE_LABELS } from "@/shared/lib/format";
+import { ROLE_LABELS, initials as toInitials } from "@/shared/lib/format";
 import { replaceSession, useSession } from "@/shared/session";
 
 import { logout } from "./api";
@@ -21,14 +21,7 @@ export function UserMenu() {
   });
   if (!session) return null;
   const name = session.user.full_name;
-  // Chữ cái đầu của hai từ cuối (tên người Việt: "Nguyễn Văn An" -> "VA")
-  const initials = name
-    .trim()
-    .split(/\s+/)
-    .slice(-2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+  const initials = toInitials(name);
   return (
     <div className={s.user}>
       <Link to="/account" className={s.me} title="Tài khoản của tôi">

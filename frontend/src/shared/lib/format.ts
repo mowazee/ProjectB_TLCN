@@ -53,3 +53,14 @@ export function formatConfidence(v: number | string | null | undefined): string 
   if (v === null || v === undefined || v === "") return "—";
   return `${Number(v).toFixed(1)}`;
 }
+
+/** Chữ cái đầu của hai từ cuối (tên người Việt: "Nguyễn Văn An" -> "VA") cho avatar. */
+export function initials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(-2)
+    .map((w) => w[0] ?? "")
+    .join("")
+    .toUpperCase();
+}

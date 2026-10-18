@@ -18,6 +18,7 @@ const DOC = {
   needs_review_pages: 0,
   job_status: "completed",
   approval_status: "pending_review",
+  share_mode: "internal",
   created_at: "2026-10-18T00:00:00Z",
 };
 const page = { items: [DOC], total: 1, page: 1, page_size: 20 };
@@ -88,5 +89,25 @@ describe("Danh sách tài liệu (FR-07 v0.7)", () => {
       "href",
       expect.stringMatching(/^\/documents/),
     );
+  });
+
+  it('nút "Được chia sẻ với tôi" lọc qua server và đổi thông báo khi rỗng (FR-13)', async () => {
+    const calls = mockFetch({
+      "GET /api/auth/me": { body: { ...SESSION, features: ["workflow"] } },
+      "GET /api/categories": { body: [] },
+      "GET /api/documents": ({ url }) => ({
+        body: url.includes("shared=with_me")
+          ? { items: [], total: 0, page: 1, page_size: 20 }
+          : { ...page, items: [{ ...DOC, approval_status: "published" }] }, // chỉ tài liệu đã xuất bản có biểu tượng
+      }),
+    });
+    renderWithProviders(<DocumentsListPage />, { route: "/documents" });
+    expect(await screen.findByRole("img", { name: "Chia sẻ: Nội bộ" })).toBeInTheDocument(); // biểu tượng chế độ
+    const toggle = screen.getByRole("button", { name: "Được chia sẻ với tôi" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await userEvent.setup().click(toggle);
+    expect(await screen.findByText("Chưa có tài liệu nào được người khác chia sẻ với bạn.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Được chia sẻ với tôi" })).toHaveAttribute("aria-pressed", "true");
+    expect(calls.some((c) => c.url.includes("shared=with_me"))).toBe(true);
   });
 });

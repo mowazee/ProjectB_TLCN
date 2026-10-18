@@ -17,6 +17,7 @@ BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8080").rstrip("/")
 ADMIN = ("admin", os.environ.get("DEMO_ADMIN_PASSWORD", "Admin@12345"))
 OFFICER = ("nhanvien", "Demo@12345")
 APPROVER = ("kiemduyet", "Demo@12345")
+OTHER_DEPT_OFFICER = ("ketoan", "Demo@12345")  # Phòng Kế toán (FR-13: người phòng khác)
 FONT = next(
     (f for f in ("C:/Windows/Fonts/arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf") if os.path.exists(f)),
     None,
