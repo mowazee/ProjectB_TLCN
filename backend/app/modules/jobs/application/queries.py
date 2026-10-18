@@ -5,7 +5,7 @@ import uuid
 from datetime import timedelta
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.modules.audit.application.recorder import record
@@ -17,6 +17,7 @@ from app.shared.context import Principal, RequestContext
 from app.shared.db import SessionLocal, aware, utcnow
 from app.shared.errors import ConflictError, NotFoundError
 from app.shared.events import after_commit
+from app.shared.pagination import PageParams
 
 
 def get_job(db: Session, job_id: uuid.UUID) -> ProcessingJob:
@@ -24,6 +25,50 @@ def get_job(db: Session, job_id: uuid.UUID) -> ProcessingJob:
     if job is None:
         raise NotFoundError("Không tìm thấy job")
     return job
+
+
+REQUEUE_COUNT = "requeue_count"  # payload: số lần beat phải gửi lại job queued (FR-11 đánh dấu job chờ quá lâu)
+
+
+def is_stale(job: ProcessingJob) -> bool:
+    """FR-11: job queued quá JOB_REQUEUE_AFTER_SECONDS hoặc đã bị beat gửi lại mà vẫn chưa chạy (vd. chưa bật worker
+    chữ viết tay); job processing quá JOB_STALE_SECONDS (worker chết). Beat đặt lại queued_at mỗi lần gửi lại nên
+    phải dựa thêm vào requeue_count."""
+    now = utcnow()
+    if job.status == JobStatus.QUEUED:
+        queued = aware(job.queued_at)
+        waited = (now - queued).total_seconds() if queued else 0
+        return waited > settings.JOB_REQUEUE_AFTER_SECONDS or int((job.payload or {}).get(REQUEUE_COUNT, 0)) > 0
+    if job.status == JobStatus.PROCESSING:
+        started = aware(job.started_at)
+        return started is not None and (now - started).total_seconds() > settings.JOB_STALE_SECONDS
+    return False
+
+
+def list_jobs(
+    db: Session,
+    *,
+    document_ids_select: Any,
+    batch_owner: str | None,
+    params: PageParams,
+    status: JobStatus | None = None,
+    kind: str | None = None,
+) -> tuple[list[ProcessingJob], int]:
+    """FR-11: job của tài liệu trong document_ids_select + job cấp lô (không gắn tài liệu) do batch_owner tạo
+    (batch_owner=None: mọi job cấp lô - chỉ Admin). Phạm vi do presentation tính (documents.visible_document_ids)."""
+    batch: ColumnElement[bool] = ProcessingJob.document_id.is_(None)
+    if batch_owner is not None:
+        batch = and_(batch, ProcessingJob.payload["user_id"].as_string() == batch_owner)
+    stmt = select(ProcessingJob).where(or_(ProcessingJob.document_id.in_(document_ids_select), batch))
+    if status is not None:
+        stmt = stmt.where(ProcessingJob.status == status)
+    if kind:
+        stmt = stmt.where(ProcessingJob.kind == kind)
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows = db.scalars(
+        stmt.order_by(ProcessingJob.queued_at.desc(), ProcessingJob.id).offset(params.offset).limit(params.page_size)
+    ).all()
+    return list(rows), total
 
 
 def latest_job(db: Session, document_id: uuid.UUID, kind: str | None = None) -> ProcessingJob | None:
@@ -112,6 +157,8 @@ def retry_job(db: Session, actor: Principal, job_id: uuid.UUID, ctx: RequestCont
     job.status = JobStatus.QUEUED
     job.attempt = 0
     job.progress = 0
+    if job.payload and REQUEUE_COUNT in job.payload:
+        job.payload = {k: v for k, v in job.payload.items() if k != REQUEUE_COUNT}
     job.error_code = job.error_detail = None
     job.started_at = job.finished_at = None
     job.queued_at = utcnow()
@@ -163,6 +210,9 @@ def requeue_stuck_jobs() -> int:
                 if queued is None or queued >= queued_limit:
                     continue
                 job.queued_at = now
+                payload = dict(job.payload or {})  # gán dict mới: cột JSON không theo dõi sửa tại chỗ
+                payload[REQUEUE_COUNT] = int(payload.get(REQUEUE_COUNT, 0)) + 1
+                job.payload = payload
             else:
                 started = aware(job.started_at)
                 if started is None or started >= stale_limit:

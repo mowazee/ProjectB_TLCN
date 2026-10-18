@@ -13,5 +13,5 @@ export const importsManifest: FeatureManifest = {
     { path: "imports", element: <ImportPage /> },
     { path: "imports/:jobId", element: <ImportReportPage /> },
   ],
-  nav: [{ to: "/imports", label: "Nhập hàng loạt", roles: ["OFFICER"], order: 15, icon: FolderUp }],
+  nav: [{ to: "/imports", label: "Nhập hàng loạt", roles: ["OFFICER"], group: "documents", order: 15, icon: FolderUp }],
 };

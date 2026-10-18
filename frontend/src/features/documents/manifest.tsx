@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { FileText, Trash2 } from "lucide-react";
 import type { FeatureManifest } from "@/shared/types/feature";
 
 import { DocumentDetailPage } from "./DocumentDetailPage";
@@ -14,5 +14,8 @@ export const documentsManifest: FeatureManifest = {
     { path: "documents/trash", element: <TrashPage /> },
     { path: "documents/:id", element: <DocumentDetailPage /> },
   ],
-  nav: [{ to: "/documents", label: "Tài liệu", order: 10, icon: FileText }],
+  nav: [
+    { to: "/documents", label: "Tài liệu", group: "documents", order: 10, icon: FileText },
+    { to: "/documents/trash", label: "Thùng rác", roles: ["OFFICER"], group: "documents", order: 26, icon: Trash2 },
+  ],
 };

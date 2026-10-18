@@ -1,8 +1,19 @@
+/* flex: số bộ lọc thay đổi (v0.7 thêm trạng thái duyệt khi workflow bật); ô tìm rộng, select chia đều, nút ở cuối */
 .filters {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
+}
+.filters > :global(.input) {
+  flex: 2 1 240px;
+}
+.filters > :global(.select) {
+  flex: 1 1 160px;
+  width: auto;
+}
+.filters > :global(.btn) {
+  flex: 0 0 auto;
 }
 .title {
   font-weight: 600;
@@ -67,7 +78,8 @@
   align-items: center;
 }
 @media (max-width: 760px) {
-  .filters {
-    grid-template-columns: 1fr;
+  .filters > :global(.select),
+  .filters > :global(.btn) {
+    flex-basis: 100%;
   }
 }

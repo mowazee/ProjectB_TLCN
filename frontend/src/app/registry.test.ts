@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { collectSlots, enabledManifests, manifests, navItems } from "./registry";
+import { activeNavTo, collectSlots, enabledManifests, manifests, navItems } from "./registry";
 
 const ids = (features: string[]) => enabledManifests(features).map((m) => m.id);
 
 describe("UI registry (NFR-09)", () => {
   it("chỉ bật manifest P2 khi cờ có trong session.features", () => {
-    expect(ids([])).toEqual(["dashboard", "documents", "ocr", "search", "admin", "account"]);
+    expect(ids([])).toEqual(["dashboard", "documents", "ocr", "search", "admin", "account", "jobs"]);
     expect(ids(["workflow"])).toContain("workflow");
     expect(ids(["workflow"])).not.toContain("borrowing");
     expect(ids(manifests.flatMap((m) => (m.feature ? [m.feature] : []))).length).toBe(manifests.length);
@@ -34,5 +34,18 @@ describe("UI registry (NFR-09)", () => {
     expect(officer).not.toContain("/admin/users");
     expect(approver).toContain("/reviews");
     expect(officer[0]).toBe("/");
+  });
+
+  it("menu gom nhóm và sáng đúng một mục theo tiền tố dài nhất (v0.7)", () => {
+    const nav = navItems(enabledManifests(["workflow", "imports"]), () => true);
+    expect(nav.find((n) => n.to === "/jobs")?.group).toBe("documents");
+    expect(nav.find((n) => n.to === "/reviews")?.group).toBe("workflow");
+    expect(nav.every((n) => !n.group || ["main", "documents", "workflow", "admin", "personal"].includes(n.group))).toBe(
+      true,
+    );
+    expect(activeNavTo(nav, "/documents/trash")).toBe("/documents/trash");
+    expect(activeNavTo(nav, "/documents/abc/pages/1")).toBe("/documents");
+    expect(activeNavTo(nav, "/")).toBe("/");
+    expect(activeNavTo(nav, "/documentsx")).toBeUndefined();
   });
 });

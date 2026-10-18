@@ -372,6 +372,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Jobs
+         * @description FR-11: job của tài liệu trong phạm vi xem (kể cả thùng rác) + job nhập hàng loạt do mình tạo (Admin: tất cả).
+         */
+        get: operations["list_jobs_api_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/documents/{document_id}/pages/{page_number}": {
         parameters: {
             query?: never;
@@ -989,6 +1009,11 @@ export interface components {
             /** Allowed Actions */
             allowed_actions: string[];
         };
+        /**
+         * ApprovalStatus
+         * @enum {string}
+         */
+        ApprovalStatus: "draft" | "pending_review" | "approved" | "rejected" | "published" | "unpublished";
         /** AuditLogOut */
         AuditLogOut: {
             /** Id */
@@ -1559,6 +1584,58 @@ export interface components {
             /** Status */
             status: string;
         };
+        /**
+         * JobListItem
+         * @description FR-11: thêm tên tài liệu, hàng đợi và cờ chờ quá lâu cho trang Hàng đợi xử lý.
+         */
+        JobListItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Document Id */
+            document_id: string | null;
+            /** Kind */
+            kind: string;
+            /** Status */
+            status: string;
+            /** Progress */
+            progress: number;
+            /** Attempt */
+            attempt: number;
+            /** Max Attempts */
+            max_attempts: number;
+            /** Error Code */
+            error_code: string | null;
+            /**
+             * Error Message
+             * @description Thông điệp an toàn theo error_code
+             */
+            error_message: string | null;
+            /** Result */
+            result: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Queued At
+             * Format: date-time
+             */
+            queued_at: string;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /** Queue Name */
+            queue_name: string;
+            /** Document Title */
+            document_title: string | null;
+            /**
+             * Stale
+             * @description queued/processing quá ngưỡng: worker có thể chưa chạy
+             */
+            stale: boolean;
+        };
         /** JobOut */
         JobOut: {
             /**
@@ -1599,6 +1676,11 @@ export interface components {
             /** Finished At */
             finished_at: string | null;
         };
+        /**
+         * JobStatus
+         * @enum {string}
+         */
+        JobStatus: "queued" | "processing" | "completed" | "failed";
         /**
          * LifecycleStatus
          * @enum {string}
@@ -1775,6 +1857,17 @@ export interface components {
         Page_DocumentOut_: {
             /** Items */
             items: components["schemas"]["DocumentOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[JobListItem] */
+        Page_JobListItem_: {
+            /** Items */
+            items: components["schemas"]["JobListItem"][];
             /** Total */
             total: number;
             /** Page */
@@ -2645,6 +2738,7 @@ export interface operations {
                 category_id?: number | null;
                 status?: string | null;
                 lifecycle_status?: components["schemas"]["LifecycleStatus"];
+                approval_status?: components["schemas"]["ApprovalStatus"] | null;
                 page?: number;
                 page_size?: number;
             };
@@ -2972,6 +3066,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_jobs_api_jobs_get: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["JobStatus"] | null;
+                kind?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_JobListItem_"];
                 };
             };
             /** @description Validation Error */

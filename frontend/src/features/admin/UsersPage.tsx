@@ -1,5 +1,6 @@
 import { LogOut, Users } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router";
 
 import type { User } from "@/shared/api/types";
 import {
@@ -290,9 +291,15 @@ export function UsersPage() {
                   <td>{u.is_active ? <Badge tone="ok">Hoạt động</Badge> : <Badge tone="danger">Đã khóa</Badge>}</td>
                   <td>{formatDateTime(u.last_login_at)}</td>
                   <td>
-                    <button className="btn btn-sm" onClick={() => setEditing(u)}>
-                      Sửa
-                    </button>
+                    <div className="row" style={{ flexWrap: "nowrap" }}>
+                      <button className="btn btn-sm" onClick={() => setEditing(u)}>
+                        Sửa
+                      </button>
+                      {/* FR-01 (v0.7): mở nhanh nhật ký thao tác của người này */}
+                      <Link className="btn btn-sm" to={`/admin/audit?user_id=${u.id}`}>
+                        Nhật ký
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

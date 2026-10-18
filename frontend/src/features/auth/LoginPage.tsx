@@ -24,7 +24,7 @@ export function LoginPage() {
   const { session } = useSession();
   const client = useQueryClient();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? "/";
+  const back = location.state as { from?: string; uid?: string | null } | null;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +36,13 @@ export function LoginPage() {
     onSuccess: (data) => replaceSession(client, data),
   });
 
-  if (session) return <Navigate to={from} replace />;
+  if (session) {
+    // Quay lại trang đang mở khi phiên hết hạn / mở link sâu; nhưng sau khi người A đăng xuất (hoặc hết phiên),
+    // người B đăng nhập trên cùng tab thì về Tổng quan, không mở trang của A.
+    const sameUser = !back?.uid || back.uid === session.user.id;
+    const from = back?.from?.startsWith("/") && !back.from.startsWith("//") ? back.from : "/";
+    return <Navigate to={sameUser ? from : "/"} replace />;
+  }
 
   const submit = (e: FormEvent) => {
     e.preventDefault();

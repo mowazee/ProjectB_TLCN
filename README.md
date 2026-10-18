@@ -4,7 +4,7 @@ Tiểu luận chuyên ngành — UTE, Nhóm 3. Mọi yêu cầu, tên dữ liệ
 **SDD v0.7** (`document/0 -Dac_ta_SDD_v0.7.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
 
 ProjectB được dựng mới hoàn toàn từ baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng);
-đặc tả nâng lên v0.6 (16/10/2026) sau khi hiện thực xong để khớp với code; v0.7 (18/10/2026) thêm phân hệ quản trị và tài khoản (FR-09…FR-12, đang hiện thực). **Trạng thái:** MVP + P2 chạy end to end,
+đặc tả nâng lên v0.6 (16/10/2026) sau khi hiện thực xong để khớp với code; v0.7 (18/10/2026) thêm phân hệ quản trị và tài khoản (FR-09…FR-12, đã hiện thực). **Trạng thái:** MVP + P2 chạy end to end,
 CI xanh; việc còn lại cần dữ liệu thật để đo chất lượng OCR — xem [SUMMARY.md](SUMMARY.md) mục 4.
 ProjectA (`D:\ProjectA_TLCN`) giữ lại làm tham chiếu bản MVP cũ (Jinja2).
 
@@ -61,10 +61,10 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin trong
 
 | Bộ | Lệnh | Kết quả hiện tại |
 |---|---|---|
-| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 122 passed, 1 skipped |
-| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 122 passed, 1 skipped |
+| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 127 passed, 1 skipped |
+| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 127 passed, 1 skipped |
 | Backend trên PostgreSQL 18 + Redis | CI `backend.yml` (6 tổ hợp cờ) | xanh mỗi PR |
-| Frontend | `cd frontend; npm test` | 21 passed |
+| Frontend | `cd frontend; npm test` | 30 passed |
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |
 | E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | 9 passed, 1 skipped (mọi cờ bật) |
 | Docker + sao lưu/khôi phục | CI `compose.yml` | xanh |

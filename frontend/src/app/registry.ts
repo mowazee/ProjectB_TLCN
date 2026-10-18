@@ -12,6 +12,7 @@ import { extractionManifest } from "@/features/extraction";
 import { handwritingManifest } from "@/features/handwriting";
 import { highlightManifest } from "@/features/highlight";
 import { importsManifest } from "@/features/imports";
+import { jobsManifest } from "@/features/jobs";
 import { notificationsManifest } from "@/features/notifications";
 import { ocrManifest } from "@/features/ocr";
 import { rollbackManifest } from "@/features/rollback";
@@ -30,6 +31,7 @@ export const manifests: FeatureManifest[] = [
   searchManifest,
   adminManifest, // lõi MVP
   accountManifest, // FR-09 (v0.7)
+  jobsManifest, // FR-11 (v0.7)
   workflowManifest, // P2-01
   highlightManifest, // P2-02
   handwritingManifest, // P2-03
@@ -71,4 +73,12 @@ export function navItems(enabled: FeatureManifest[], hasRole: (...roles: string[
     .flatMap((m) => m.nav ?? [])
     .filter((n) => !n.roles || hasRole(...n.roles))
     .sort((a, b) => (a.order ?? 50) - (b.order ?? 50));
+}
+
+/** Mục menu đang mở: tiền tố dài nhất của đường dẫn (/documents/trash sáng "Thùng rác", không sáng cả "Tài liệu"). */
+export function activeNavTo(nav: NavItem[], pathname: string): string | undefined {
+  return nav
+    .map((n) => n.to)
+    .filter((to) => (to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`)))
+    .sort((a, b) => b.length - a.length)[0];
 }

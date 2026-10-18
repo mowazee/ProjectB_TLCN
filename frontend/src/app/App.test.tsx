@@ -1,11 +1,17 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useLocation } from "react-router";
 import { describe, expect, it } from "vitest";
 
 import { Snippet } from "@/features/search";
 import { mockFetch, renderWithProviders, SESSION } from "@/test/utils";
 
 import { AppRoutes } from "./App";
+
+function PathProbe() {
+  const { pathname } = useLocation();
+  return <output data-testid="path">{pathname}</output>;
+}
 
 describe("Router + session (SDD mục 13, 15)", () => {
   it("chưa đăng nhập: chuyển về /login; đăng nhập xong quay lại route dự định", async () => {
@@ -39,6 +45,50 @@ describe("Router + session (SDD mục 13, 15)", () => {
     observer.disconnect();
     expect(heading).toBeInTheDocument();
     expect(mounts).toBe(1);
+  });
+
+  // Lỗi cũ: đăng xuất làm RequireAuth gắn state.from = trang đang mở trước khi chuyển sang /login, người đăng nhập
+  // tiếp theo bị đưa vào trang đó. Thứ tự render này chỉ xảy ra ở trình duyệt thật (đã tái hiện bằng Playwright),
+  // nên test kiểm trực tiếp quyết định của LoginPage với state mà RequireAuth để lại.
+  it.each([
+    ["u2", "/"], // người khác đăng nhập -> Tổng quan
+    ["u1", "/search"], // chính người đó (hết phiên) -> quay lại trang đang mở
+  ])("sau khi đăng xuất/hết phiên của u1, %s đăng nhập thì tới %s", async (uid, expected) => {
+    let current: typeof SESSION | null = null;
+    mockFetch({
+      "GET /api/auth/me": () =>
+        current ? { body: current } : { status: 401, body: { error: { code: "UNAUTHENTICATED", message: "x" } } },
+      "POST /api/auth/login": () => {
+        current = { ...SESSION, user: { ...SESSION.user, id: uid } };
+        return { body: current };
+      },
+      "GET /api/search": { body: { items: [], total: 0, page: 1, page_size: 10 } },
+      "GET /api/categories": { body: [] },
+      "GET /api/dashboard": { body: {} },
+    });
+    const user = userEvent.setup();
+    renderWithProviders(
+      <>
+        <AppRoutes />
+        <PathProbe />
+      </>,
+      { route: { pathname: "/login", state: { from: "/search", uid: "u1" } } },
+    );
+    await user.type(await screen.findByLabelText("Tên đăng nhập hoặc email"), "x");
+    await user.type(screen.getByLabelText("Mật khẩu"), "secret");
+    await user.click(screen.getByRole("button", { name: "Đăng nhập" }));
+    await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent(new RegExp(`^${expected}$`)));
+  });
+
+  it("menu chỉ sáng một mục: ở Thùng rác không sáng cả Tài liệu (v0.7)", async () => {
+    mockFetch({
+      "GET /api/auth/me": { body: SESSION },
+      "GET /api/documents": { body: { items: [], total: 0, page: 1, page_size: 20 } },
+    });
+    renderWithProviders(<AppRoutes />, { route: "/documents/trash" });
+    expect(await screen.findByRole("link", { name: "Thùng rác" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Tài liệu" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("group", { name: "Tài liệu" })).toBeInTheDocument();
   });
 
   it("đăng nhập sai: hiển thị lỗi từ envelope", async () => {
