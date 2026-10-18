@@ -1,3 +1,5 @@
+import { UserRound } from "lucide-react";
+
 import type { FeatureManifest } from "@/shared/types/feature";
 
 import { AccountPage } from "./AccountPage";
@@ -6,4 +8,5 @@ import { AccountPage } from "./AccountPage";
 export const accountManifest: FeatureManifest = {
   id: "account",
   routes: [{ path: "account", element: <AccountPage /> }],
+  nav: [{ to: "/account", label: "Tài khoản của tôi", group: "personal", order: 100, icon: UserRound }],
 };

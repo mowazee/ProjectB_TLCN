@@ -54,7 +54,10 @@ export const SESSION: Session = {
 
 export function renderWithProviders(
   ui: ReactElement,
-  { route = "/", slots = EMPTY_SLOTS }: { route?: string; slots?: Slots } = {},
+  {
+    route = "/",
+    slots = EMPTY_SLOTS,
+  }: { route?: string | { pathname: string; search?: string; state?: unknown }; slots?: Slots } = {},
 ) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(

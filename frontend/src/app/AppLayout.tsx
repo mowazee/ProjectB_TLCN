@@ -1,13 +1,14 @@
 import { Circle, FileQuestion, Menu, ScanText, Search } from "lucide-react";
 import { Suspense, useState, type FormEvent } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 
 import { UserMenu } from "@/features/auth";
 import { ThemeToggle } from "@/shared/components/ThemeToggle";
 import { Loading } from "@/shared/components/ui";
 import { SlotList, useSlots } from "@/shared/slots";
-import type { NavItem } from "@/shared/types/feature";
+import type { NavGroup, NavItem } from "@/shared/types/feature";
 
+import { activeNavTo } from "./registry";
 import s from "./layout.module.css";
 
 /** Ô tìm nhanh trên thanh tiêu đề: chuyển sang /search?q=… (FR-06). */
@@ -35,24 +36,33 @@ function QuickSearch() {
   );
 }
 
+/** Thứ tự và tiêu đề nhóm menu (v0.7); nhóm không có mục nào được người dùng thấy thì ẩn cả tiêu đề. */
+const NAV_GROUPS: { id: NavGroup; label: string | null }[] = [
+  { id: "main", label: null },
+  { id: "documents", label: "Tài liệu" },
+  { id: "workflow", label: "Quy trình" },
+  { id: "admin", label: "Quản trị" },
+  { id: "personal", label: "Cá nhân" },
+];
+
 export function AppLayout({ nav }: { nav: NavItem[] }) {
   const { headerItems } = useSlots();
   const [open, setOpen] = useState(false);
-  const main = nav.filter((n) => n.group !== "admin");
-  const admin = nav.filter((n) => n.group === "admin");
+  const active = activeNavTo(nav, useLocation().pathname);
   const link = (n: NavItem) => {
     const Icon = n.icon ?? Circle;
     return (
-      <NavLink
+      // Link thay NavLink: NavLink tự gắn aria-current khi khớp tiền tố, sáng cả "Tài liệu" lẫn "Thùng rác"
+      <Link
         key={n.to}
         to={n.to}
-        end={n.to === "/"}
-        className={({ isActive }) => `${s.link} ${isActive ? s.active : ""}`}
+        aria-current={n.to === active ? "page" : undefined}
+        className={`${s.link} ${n.to === active ? s.active : ""}`}
         onClick={() => setOpen(false)}
       >
         <Icon size={18} aria-hidden />
         <span>{n.label}</span>
-      </NavLink>
+      </Link>
     );
   };
   return (
@@ -68,10 +78,16 @@ export function AppLayout({ nav }: { nav: NavItem[] }) {
           </span>
         </Link>
         <nav className={s.nav}>
-          <div className={s.section}>Chức năng</div>
-          {main.map(link)}
-          {admin.length > 0 && <div className={s.section}>Quản trị</div>}
-          {admin.map(link)}
+          {NAV_GROUPS.map((g) => {
+            const items = nav.filter((n) => (n.group ?? "main") === g.id);
+            if (!items.length) return null;
+            return (
+              <div key={g.id} role="group" aria-label={g.label ?? "Tổng quan"}>
+                {g.label && <div className={s.section}>{g.label}</div>}
+                {items.map(link)}
+              </div>
+            );
+          })}
         </nav>
         <div className={s.sideFoot}>Tiểu luận chuyên ngành · Nhóm 3</div>
       </aside>

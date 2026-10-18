@@ -61,6 +61,13 @@ thoại, đổi mật khẩu (đổi xong các thiết bị khác bị đăng xu
 **Phòng ban** (FR-10, chỉ xóa được phòng ban không còn người dùng và tài liệu) và có nút "Đăng xuất khỏi mọi thiết bị"
 trong form sửa người dùng. Đổi mật khẩu tài khoản demo xong muốn trả về mặc định: `.\demo-start.cmd -Reset`.
 
+Menu bên trái gom theo nhóm **Tài liệu / Quy trình / Quản trị / Cá nhân** (chỉ hiện mục vai trò đó dùng được).
+**Hàng đợi xử lý** (`/jobs`, Nghiệp vụ và Admin, FR-11) liệt kê job OCR, trích xuất, phân loại, nhập hàng loạt; job lỗi
+có nút "Chạy lại". Nhãn **"Chờ quá lâu"** nghĩa là job đang chờ quá `JOB_REQUEUE_AFTER_SECONDS` (mặc định 10 phút) hoặc
+đã bị beat gửi lại mà vẫn chưa chạy — thường do worker của hàng đợi đó chưa bật (vd. OCR chữ viết tay cần worker
+`-Q ocr_hw`, GUIDE 4.3). Danh sách tài liệu có cột và bộ lọc **trạng thái duyệt** khi bật cờ `workflow`; trang chi tiết
+có nút **Quay lại** giữ nguyên bộ lọc đang dùng.
+
 Gợi ý kịch bản demo: đăng nhập `nhanvien` → Tài liệu → mở hợp đồng mẫu → xem trang/sửa OCR (thử mở 2 tab để thấy 409) →
 Tìm kiếm "nghiem thu" → mở kết quả (khung highlight) → gửi duyệt → đăng nhập `kiemduyet` (tab ẩn danh) → Duyệt tài liệu →
 xuất bản; Mượn hồ sơ; Nhập hàng loạt (ZIP); `admin` → Nhật ký → Khôi phục.

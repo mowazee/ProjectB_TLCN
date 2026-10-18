@@ -19,7 +19,13 @@ from app.modules.documents.application.queries import (
 )
 from app.modules.documents.domain import policies
 from app.modules.documents.domain.events import DocumentDeleted, DocumentRestored
-from app.modules.documents.domain.lifecycle import LifecycleStatus, PageOcrStatus, can_restore_at, restore_deadline
+from app.modules.documents.domain.lifecycle import (
+    ApprovalStatus,
+    LifecycleStatus,
+    PageOcrStatus,
+    can_restore_at,
+    restore_deadline,
+)
 from app.modules.documents.infrastructure.models import Document, DocumentPage
 from app.modules.jobs.application import queries as jobs
 from app.modules.users.application.queries import display_names
@@ -106,14 +112,17 @@ def list_documents(
     category_id: int | None = None,
     status: str | None = None,
     lifecycle_status: LifecycleStatus = LifecycleStatus.ACTIVE,
+    approval_status: ApprovalStatus | None = None,
 ) -> tuple[list[DocumentView], int]:
     """status: trạng thái job OCR mới nhất (queued/processing/completed/failed) hoặc
-    'needs_review' (có trang cần xem lại). lifecycle_status=deleted là thùng rác."""
+    'needs_review' (có trang cần xem lại). lifecycle_status=deleted là thùng rác. approval_status: FR-07 (v0.7)."""
     stmt = select(Document).where(_scope_clause(principal), Document.lifecycle_status == lifecycle_status)
     if q:
         stmt = stmt.where(func.lower(Document.title).contains(q.strip().lower(), autoescape=True))
     if category_id is not None:
         stmt = stmt.where(Document.category_id == category_id)
+    if approval_status is not None:
+        stmt = stmt.where(Document.approval_status == approval_status)
     if status == PageOcrStatus.NEEDS_REVIEW.value:
         stmt = stmt.where(
             select(DocumentPage.id)

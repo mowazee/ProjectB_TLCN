@@ -9,6 +9,7 @@ export interface DocumentFilters {
   q?: string;
   category_id?: number;
   status?: string;
+  approval_status?: string;
   lifecycle_status?: "active" | "deleted";
 }
 

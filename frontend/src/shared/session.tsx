@@ -3,7 +3,7 @@
  * features = danh sách cờ P2 đang bật -> UI registry quyết định route/menu hiển thị (SDD mục 13).
  */
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { api, ApiError, onUnauthorized, setCsrfToken } from "./api/client";
 import type { Session } from "./api/types";
@@ -31,6 +31,8 @@ export function replaceSession(client: QueryClient, session: Session | null): vo
 
 interface SessionValue {
   session: Session | null;
+  /** Id người dùng của phiên gần nhất trong tab này (giữ lại sau logout/hết phiên) - xem RequireAuth/LoginPage. */
+  lastUserId: string | null;
   loading: boolean;
   roles: string[];
   features: string[];
@@ -44,6 +46,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const client = useQueryClient();
   const query = useQuery({ queryKey: SESSION_KEY, queryFn: fetchSession, staleTime: 5 * 60_000, retry: 1 });
   const session = query.data ?? null;
+  const [lastUserId, setLastUserId] = useState<string | null>(null);
+  if (session && session.user.id !== lastUserId) setLastUserId(session.user.id); // cập nhật state khi render (mẫu React)
 
   useEffect(() => {
     setCsrfToken(session?.csrf_token ?? null);
@@ -63,13 +67,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const features = session?.features ?? [];
     return {
       session,
+      lastUserId,
       loading: query.isPending,
       roles,
       features,
       hasRole: (...r) => roles.includes("ADMIN") || r.some((x) => roles.includes(x)),
       hasFeature: (f) => features.includes(f),
     };
-  }, [session, query.isPending]);
+  }, [session, lastUserId, query.isPending]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

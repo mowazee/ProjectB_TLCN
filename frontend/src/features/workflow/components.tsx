@@ -148,7 +148,9 @@ export function ReviewsPage() {
               {reviews.data.items.map((r) => (
                 <tr key={r.document_id}>
                   <td>
-                    <Link to={`/documents/${r.document_id}`}>{r.title}</Link>
+                    <Link to={`/documents/${r.document_id}`} state={{ from: "/reviews", fromLabel: "hàng chờ duyệt" }}>
+                      {r.title}
+                    </Link>
                   </td>
                   <td>{r.submitted_by ?? "—"}</td>
                   <td>{formatDateTime(r.submitted_at)}</td>

@@ -27,6 +27,7 @@ export type OcrBox = S["BoxOut"];
 export type CorrectionIn = S["CorrectionIn"];
 export type CorrectionOut = S["CorrectionOut"];
 export type Job = S["JobOut"];
+export type JobListItem = S["JobListItem"];
 export type SearchHit = S["SearchHitOut"];
 export type PageHit = S["PageHitOut"];
 export type Dashboard = S["DashboardOut"];

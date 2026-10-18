@@ -9,7 +9,16 @@ export const workflowManifest: FeatureManifest = {
   id: "workflow",
   feature: "workflow",
   routes: [{ path: "reviews", element: <ReviewsPage /> }],
-  nav: [{ to: "/reviews", label: "Duyệt tài liệu", roles: ["APPROVER"], order: 30, icon: ClipboardCheck }],
+  nav: [
+    {
+      to: "/reviews",
+      label: "Duyệt tài liệu",
+      roles: ["APPROVER"],
+      group: "workflow",
+      order: 30,
+      icon: ClipboardCheck,
+    },
+  ],
   documentActions: [lazyNamed(load, "ApprovalActions")],
   documentTabs: [{ id: "approvals", label: "Lịch sử duyệt", element: lazyNamed(load, "ApprovalHistoryTab") }],
   dashboardCards: [

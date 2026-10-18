@@ -60,7 +60,7 @@
   letter-spacing: 0.08em;
   color: var(--c-side-muted);
 }
-.section:first-child {
+.nav > :first-child > .section:first-child {
   margin-top: 0;
 }
 .link {

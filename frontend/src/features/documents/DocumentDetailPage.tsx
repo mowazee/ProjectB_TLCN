@@ -31,6 +31,7 @@ import {
   usePages,
   useUpdateDocument,
 } from "./api";
+import { BackToList } from "./BackToList";
 import s from "./documents.module.css";
 
 function EditMetadata({ doc, onClose }: { doc: DocumentOut; onClose: () => void }) {
@@ -119,7 +120,14 @@ export function DocumentDetailPage() {
   const [editing, setEditing] = useState(false);
 
   if (doc.isPending) return <Loading />;
-  if (doc.error || !doc.data) return <ErrorBox error={doc.error} />;
+  if (doc.error || !doc.data) {
+    return (
+      <div className="stack">
+        <BackToList />
+        <ErrorBox error={doc.error} />
+      </div>
+    );
+  }
   const d = doc.data;
 
   const remove = () => {
@@ -143,6 +151,7 @@ export function DocumentDetailPage() {
 
   return (
     <div className="stack">
+      <BackToList />
       <PageHeader
         title={d.title}
         subtitle={

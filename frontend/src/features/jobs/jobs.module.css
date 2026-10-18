@@ -1,0 +1,20 @@
+.warn {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--c-warn);
+  border-radius: var(--radius);
+  background: var(--c-warn-soft);
+  color: var(--c-text);
+}
+.progress {
+  margin-top: 6px;
+  max-width: 180px;
+}
+.error {
+  margin-top: 4px;
+  color: var(--c-danger);
+  font-size: 13px;
+}

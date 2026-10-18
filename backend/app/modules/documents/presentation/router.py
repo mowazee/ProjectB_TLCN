@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse
 from app.modules.auth.presentation.deps import Ctx, CurrentPrincipal, DbSession
 from app.modules.documents.application import files, manage, upload
 from app.modules.documents.application.queries import ensure_can_view, list_pages
-from app.modules.documents.domain.lifecycle import LifecycleStatus
+from app.modules.documents.domain.lifecycle import ApprovalStatus, LifecycleStatus
 from app.modules.documents.presentation.schemas import (
     DocumentOut,
     DocumentPatch,
@@ -67,9 +67,17 @@ def list_documents(
     category_id: int | None = None,
     status: Annotated[str | None, Query(pattern="^(queued|processing|completed|failed|needs_review)$")] = None,
     lifecycle_status: LifecycleStatus = LifecycleStatus.ACTIVE,
+    approval_status: ApprovalStatus | None = None,
 ) -> Page[DocumentOut]:
     views, total = manage.list_documents(
-        db, principal, params, q=q, category_id=category_id, status=status, lifecycle_status=lifecycle_status
+        db,
+        principal,
+        params,
+        q=q,
+        category_id=category_id,
+        status=status,
+        lifecycle_status=lifecycle_status,
+        approval_status=approval_status,
     )
     return Page(items=[document_out(v) for v in views], total=total, page=params.page, page_size=params.page_size)
 

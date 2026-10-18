@@ -1,14 +1,24 @@
 import { FileText, Trash2, Upload } from "lucide-react";
-import { useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useSearchParams } from "react-router";
 
-import { EmptyState, ErrorBox, JobBadge, Loading, PageHeader, Pagination, Badge } from "@/shared/components/ui";
+import {
+  ApprovalBadge,
+  Badge,
+  EmptyState,
+  ErrorBox,
+  JobBadge,
+  Loading,
+  PageHeader,
+  Pagination,
+} from "@/shared/components/ui";
 import { useCategories } from "@/shared/hooks/useCategories";
 import { useDebounce } from "@/shared/hooks/useDebounce";
-import { formatDateTime } from "@/shared/lib/format";
+import { APPROVAL_LABELS, formatDateTime } from "@/shared/lib/format";
 import { useSession } from "@/shared/session";
 
 import { useDocuments } from "./api";
+import { useRememberListSearch } from "./backLink";
 import s from "./documents.module.css";
 
 const STATUS_OPTIONS = [
@@ -25,16 +35,30 @@ export function DocumentsListPage() {
   const page = Number(params.get("page") ?? 1);
   const [q, setQ] = useState(params.get("q") ?? "");
   const debouncedQ = useDebounce(q);
+  const urlQ = params.get("q") ?? "";
+  // Từ khóa (đã debounce) nằm trên URL như các bộ lọc khác: nút quay lại ở trang chi tiết giữ được nó
+  useEffect(() => {
+    if (debouncedQ === urlQ) return;
+    const next = new URLSearchParams(params);
+    if (debouncedQ) next.set("q", debouncedQ);
+    else next.delete("q");
+    next.delete("page");
+    setParams(next, { replace: true });
+  }, [debouncedQ, urlQ, params, setParams]);
   const categoryId = params.get("category_id");
   const status = params.get("status") ?? "";
-  const { hasRole } = useSession();
+  const approval = params.get("approval_status") ?? "";
+  const { hasRole, hasFeature } = useSession();
+  const workflow = hasFeature("workflow"); // FR-07 (v0.7): cột + bộ lọc trạng thái duyệt khi quy trình duyệt bật
+  useRememberListSearch(useLocation().search);
   const categories = useCategories();
   const list = useDocuments({
     page,
     page_size: 20,
-    q: debouncedQ || undefined,
+    q: urlQ || undefined,
     category_id: categoryId ? Number(categoryId) : undefined,
     status: status || undefined,
+    approval_status: (workflow && approval) || undefined,
   });
 
   const update = (key: string, value: string) => {
@@ -71,10 +95,7 @@ export function DocumentsListPage() {
           className="input"
           placeholder="Tìm theo tên tài liệu..."
           value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            update("page", "");
-          }}
+          onChange={(e) => setQ(e.target.value)}
           aria-label="Tìm theo tên"
         />
         <select
@@ -103,6 +124,21 @@ export function DocumentsListPage() {
             </option>
           ))}
         </select>
+        {workflow && (
+          <select
+            className="select"
+            value={approval}
+            onChange={(e) => update("approval_status", e.target.value)}
+            aria-label="Trạng thái duyệt"
+          >
+            <option value="">Mọi trạng thái duyệt</option>
+            {Object.entries(APPROVAL_LABELS).map(([v, label]) => (
+              <option key={v} value={v}>
+                {label}
+              </option>
+            ))}
+          </select>
+        )}
         <Link className="btn" to="/search">
           Tìm trong nội dung
         </Link>
@@ -123,6 +159,7 @@ export function DocumentsListPage() {
                   <th>Người tải</th>
                   <th>Trang</th>
                   <th>OCR</th>
+                  {workflow && <th>Duyệt</th>}
                   <th>Ngày tạo</th>
                 </tr>
               </thead>
@@ -151,6 +188,11 @@ export function DocumentsListPage() {
                     <td>
                       <JobBadge status={d.job_status} />
                     </td>
+                    {workflow && (
+                      <td>
+                        <ApprovalBadge status={d.approval_status} />
+                      </td>
+                    )}
                     <td>{formatDateTime(d.created_at)}</td>
                   </tr>
                 ))}

@@ -11,13 +11,16 @@ import type { AuditLog, DocumentOut } from "@/shared/api/types";
 
 type Slot<P> = ComponentType<P> | LazyExoticComponent<ComponentType<P>>;
 
+export type NavGroup = "main" | "documents" | "workflow" | "admin" | "personal";
+
 export interface NavItem {
   to: string;
   label: string;
   /** Vai trò được thấy mục menu (không có = mọi người dùng đã đăng nhập). Server vẫn kiểm quyền. */
   roles?: string[];
   order?: number;
-  group?: "main" | "admin";
+  /** Nhóm trên sidebar (v0.7): main = Tổng quan (không tiêu đề), mặc định main. */
+  group?: NavGroup;
   /** Icon lucide-react hiển thị cạnh nhãn menu. */
   icon?: LucideIcon;
 }
