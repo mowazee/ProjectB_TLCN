@@ -23,7 +23,26 @@ export function useUsers(page: number, q: string) {
 }
 
 export function useRoles() {
-  return useQuery({ queryKey: ["roles"], queryFn: () => api<Role[]>("/api/roles"), staleTime: Infinity });
+  // member_count thay đổi khi gán/gỡ vai trò: useSaveUser làm mới khóa này
+  return useQuery({ queryKey: ["roles"], queryFn: () => api<Role[]>("/api/roles"), staleTime: 30_000 });
+}
+
+/** FR-12: thành viên của một vai trò (lọc phía server, tối đa 100 người/trang). */
+export function useRoleMembers(role: string | null) {
+  return useQuery({
+    queryKey: ["users", "role", role],
+    enabled: role !== null,
+    queryFn: () => api<Paged<User>>("/api/users", { query: { role: role ?? undefined, page_size: 100 } }),
+  });
+}
+
+/** Người dùng đang hoạt động để chọn thêm vào vai trò (tìm theo tên/email). */
+export function useUserPicker(q: string) {
+  return useQuery({
+    queryKey: ["users", "picker", q],
+    queryFn: () => api<Paged<User>>("/api/users", { query: { q: q || undefined, is_active: true, page_size: 20 } }),
+    placeholderData: (prev) => prev,
+  });
 }
 
 export function useDepartments() {
@@ -39,7 +58,10 @@ export function useSaveUser() {
   return useMutation({
     mutationFn: ({ id, data }: { id?: string; data: UserIn | UserPatch }) =>
       id ? api<User>(`/api/users/${id}`, { method: "PATCH", json: data }) : api<User>("/api/users", { json: data }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["users"] }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["users"] });
+      client.invalidateQueries({ queryKey: ["roles"] });
+    },
   });
 }
 

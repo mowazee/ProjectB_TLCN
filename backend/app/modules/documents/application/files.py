@@ -7,7 +7,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from app.modules.audit.application.recorder import record
-from app.modules.documents.application.queries import ensure_can_manage, ensure_can_view, get_page
+from app.modules.documents.application.queries import ensure_can_view, get_page
 from app.shared.context import Principal, RequestContext
 from app.shared.errors import NotFoundError
 from app.shared.storage import get_storage
@@ -16,7 +16,7 @@ from app.shared.storage import get_storage
 def open_original(
     db: Session, principal: Principal, document_id: uuid.UUID, ctx: RequestContext
 ) -> tuple[Path, str, str]:
-    doc = ensure_can_manage(db, principal, document_id)
+    doc = ensure_can_view(db, principal, document_id)  # D-08: mọi vai trò trong phạm vi xem; mỗi lượt tải ghi audit
     path = get_storage().path(doc.storage_key)
     record(
         db,

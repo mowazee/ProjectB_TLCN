@@ -1,6 +1,6 @@
 import { ScrollText } from "lucide-react";
 import { Fragment, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 
 import { Badge, EmptyState, ErrorBox, Loading, PageHeader, Pagination } from "@/shared/components/ui";
 import { formatDateTime } from "@/shared/lib/format";
@@ -10,7 +10,15 @@ import { useAudit } from "./api";
 
 /** UC-08 (FR-08): chỉ Admin; lọc theo ngày/người/tài liệu/hành động; log chỉ đọc (P2-09 rollback cắm vào slot). */
 export function AuditPage() {
-  const [filters, setFilters] = useState({ date_from: "", date_to: "", user_id: "", document_id: "", action: "" });
+  // Bộ lọc ban đầu lấy từ URL: vd. /admin/audit?user_id=… từ trang Người dùng/Nhóm quyền (FR-01)
+  const [params] = useSearchParams();
+  const [filters, setFilters] = useState({
+    date_from: "",
+    date_to: "",
+    user_id: params.get("user_id") ?? "",
+    document_id: params.get("document_id") ?? "",
+    action: params.get("action") ?? "",
+  });
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState<number | null>(null);
   const audit = useAudit({ ...filters, page });

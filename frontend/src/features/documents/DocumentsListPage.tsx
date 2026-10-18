@@ -53,9 +53,11 @@ export function DocumentsListPage() {
         subtitle="Tài liệu trong phạm vi quyền của bạn"
         actions={
           <>
-            <Link className="btn" to="/documents/trash">
-              <Trash2 size={16} aria-hidden /> Thùng rác
-            </Link>
+            {hasRole("OFFICER") && (
+              <Link className="btn" to="/documents/trash">
+                <Trash2 size={16} aria-hidden /> Thùng rác
+              </Link>
+            )}
             {hasRole("OFFICER") && (
               <Link className="btn btn-primary" to="/documents/new">
                 <Upload size={16} aria-hidden /> Tải lên

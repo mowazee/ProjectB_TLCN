@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.audit.application.recorder import record
 from app.modules.users.domain.roles import DEFAULT_DEPARTMENT, ROLE_DESCRIPTIONS, RoleCode
-from app.modules.users.infrastructure.models import Department, Role, User
+from app.modules.users.infrastructure.models import Department, Role, User, UserRole
 from app.shared.context import Principal, RequestContext
 from app.shared.errors import ConflictError, NotFoundError, PermissionDeniedError, UnprocessableError
 from app.shared.pagination import PageParams
@@ -70,12 +70,34 @@ def get_user(db: Session, actor: Principal, user_id: uuid.UUID) -> User:
     return user
 
 
-def list_users(db: Session, actor: Principal, params: PageParams, q: str | None = None) -> tuple[list[User], int]:
+def list_users(
+    db: Session,
+    actor: Principal,
+    params: PageParams,
+    q: str | None = None,
+    *,
+    role: str | None = None,
+    department_id: int | None = None,
+    is_active: bool | None = None,
+) -> tuple[list[User], int]:
+    """FR-01 (v0.7): lọc theo từ khóa, vai trò, phòng ban, trạng thái."""
     require_admin(actor)
     stmt = select(User)
     if q:
         like = f"%{q.strip().lower()}%"
-        stmt = stmt.where(or_(func.lower(User.username).like(like), func.lower(User.full_name).like(like)))
+        stmt = stmt.where(
+            or_(
+                func.lower(User.username).like(like),
+                func.lower(User.full_name).like(like),
+                func.lower(User.email).like(like),
+            )
+        )
+    if role:
+        stmt = stmt.where(User.roles.any(Role.name == role))
+    if department_id is not None:
+        stmt = stmt.where(User.department_id == department_id)
+    if is_active is not None:
+        stmt = stmt.where(User.is_active.is_(is_active))
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = db.scalars(stmt.order_by(User.created_at).offset(params.offset).limit(params.page_size)).all()
     return list(rows), total
@@ -83,6 +105,14 @@ def list_users(db: Session, actor: Principal, params: PageParams, q: str | None 
 
 def list_roles(db: Session) -> list[Role]:
     return list(db.scalars(select(Role).order_by(Role.id)).all())
+
+
+def role_member_counts(db: Session) -> dict[int, int]:
+    """FR-12: số người dùng (kể cả đang khóa) của từng vai trò."""
+    rows = db.execute(
+        select(Role.id, func.count(UserRole.user_id)).outerjoin(UserRole, UserRole.role_id == Role.id).group_by(Role.id)
+    ).all()
+    return {role_id: int(n) for role_id, n in rows}
 
 
 def list_departments(db: Session) -> list[Department]:

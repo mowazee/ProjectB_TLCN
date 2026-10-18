@@ -108,6 +108,54 @@
             }
           },
           {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RoleCode"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "name": "department_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department Id"
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "required": false,
@@ -5356,6 +5404,16 @@
         ],
         "title": "ReviewItemOut"
       },
+      "RoleCode": {
+        "type": "string",
+        "enum": [
+          "ADMIN",
+          "OFFICER",
+          "APPROVER",
+          "VIEWER"
+        ],
+        "title": "RoleCode"
+      },
       "RoleOut": {
         "properties": {
           "id": {
@@ -5376,6 +5434,24 @@
               }
             ],
             "title": "Description"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "default": ""
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions",
+            "default": []
+          },
+          "member_count": {
+            "type": "integer",
+            "title": "Member Count",
+            "default": 0
           }
         },
         "type": "object",
@@ -5384,7 +5460,8 @@
           "name",
           "description"
         ],
-        "title": "RoleOut"
+        "title": "RoleOut",
+        "description": "FR-12: vai trò hệ thống cố định kèm ma trận quyền chỉ đọc (users/domain/roles.py)."
       },
       "RollbackIn": {
         "properties": {

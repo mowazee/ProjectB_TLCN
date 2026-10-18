@@ -154,11 +154,12 @@ export function DocumentDetailPage() {
         actions={
           <div className={s.actions}>
             <SlotList items={documentActions} props={{ document: d }} />
+            {/* D-08: ai xem được tài liệu thì tải được file gốc (server ghi nhật ký mỗi lượt tải) */}
+            <a className="btn" href={fileUrl(d.id)}>
+              <Download size={16} aria-hidden /> Tải file gốc
+            </a>
             {d.can_edit && (
               <>
-                <a className="btn" href={fileUrl(d.id)}>
-                  <Download size={16} aria-hidden /> Tải file gốc
-                </a>
                 <button className="btn" onClick={() => setEditing(true)}>
                   <PencilLine size={16} aria-hidden /> Sửa thông tin
                 </button>

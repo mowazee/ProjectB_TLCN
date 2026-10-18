@@ -6,7 +6,7 @@ Principal là dataclass thuần để domain/application không phụ thuộc OR
 import uuid
 from dataclasses import dataclass, field
 
-ADMIN, OFFICER, APPROVER = "ADMIN", "OFFICER", "APPROVER"
+ADMIN, OFFICER, APPROVER, VIEWER = "ADMIN", "OFFICER", "APPROVER", "VIEWER"
 
 
 @dataclass(frozen=True)
