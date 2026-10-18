@@ -66,7 +66,8 @@ tiết và chọn: **Riêng tư** (chỉ mình, quản trị viên, kiểm duy�
 phòng ban của tài liệu + các phòng ban tích chọn) hoặc **Toàn hệ thống**; có thể thêm từng người (gõ ≥ 2 ký tự để tìm,
 người được thêm nhận thông báo). Người được chia sẻ chỉ xem, tìm kiếm, tải và yêu cầu mượn (Người dùng thông thường không
 mượn); không sửa, xóa hay duyệt. Hủy xuất bản thì chia sẻ tạm ngưng, xuất bản lại thì áp dụng lại. Ở danh sách tài liệu,
-nút **Được chia sẻ với tôi** lọc tài liệu người phòng khác chia sẻ tới bạn. Thử nhanh: `nhanvien` chia sẻ một tài liệu đã
+nút **Được chia sẻ với tôi** lọc tài liệu người khác chia sẻ tới bạn: bạn được thêm đích danh (kể cả cùng phòng ban),
+phòng ban của bạn được chọn ở chế độ Nội bộ, hoặc tài liệu Toàn hệ thống của phòng ban khác. Thử nhanh: `nhanvien` chia sẻ một tài liệu đã
 xuất bản cho Phòng Kế toán → đăng nhập `ketoan` (tab ẩn danh) → Tài liệu → Được chia sẻ với tôi.
 
 Menu bên trái gom theo nhóm **Tài liệu / Quy trình / Quản trị / Cá nhân** (chỉ hiện mục vai trò đó dùng được).

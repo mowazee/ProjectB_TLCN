@@ -198,6 +198,14 @@ def test_shared_with_me_filter(world):
     assert shared("officer_c") == []
     assert w["c"]["owner"].get("/api/documents", params={"shared": "all"}).status_code == 422
 
+    # Chia sẻ đích danh cho người CÙNG phòng ban (Riêng tư): vẫn là "được chia sẻ với tôi"
+    _share(w, "private", users=["viewer", "officer_b"])
+    assert shared("viewer") == [w["doc"]] and shared("officer_b") == [w["doc"]]
+    assert shared("viewer_b") == [] and shared("approver") == []  # phòng B hết quyền; KDV phòng A chỉ thấy để duyệt
+    # Toàn hệ thống: người phòng khác thấy ở đây, người cùng phòng không (tài liệu của phòng mình)
+    _share(w, "public")
+    assert shared("officer_c") == [w["doc"]] and shared("officer_a2") == []
+
 
 def test_borrowing_by_shared_users_decided_by_document_department(world):
     w = world
