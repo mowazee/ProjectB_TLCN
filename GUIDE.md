@@ -18,6 +18,10 @@ cd D:\ProjectB_TLCN\backend
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt
 .\.venv\Scripts\python.exe -m pip install -r requirements-ocr.txt -c constraints.txt   # PaddleOCR (worker OCR); scikit-learn (P2-05) đã có trong requirements.txt
+# VietOCR - đọc đúng dấu tiếng Việt cho chữ in và chữ viết tay (mục 4.3, 9). Nên cài: không có thì chữ in lùi về
+# PaddleOCR, bỏ mất chữ có dấu chồng ("Việt" -> "Vit")
+.\.venv\Scripts\python.exe -m pip install -r requirements-hw.txt -c constraints.txt
+.\.venv\Scripts\python.exe -m pip install vietocr==0.3.13 --no-deps
 Copy-Item .env.example .env   # rồi sửa DATABASE_URL, REDIS_URL, mật khẩu
 
 # Frontend
@@ -133,7 +137,7 @@ Khi đổi API: `python scripts/export_openapi.py` rồi `npm run gen:api` và c
 - Giao diện sáng/tối được đặt trước khi React chạy bởi `public/theme-init.js` (file tĩnh, vì CSP của Nginx chặn
   script inline). Đổi khóa lưu (`theme`) thì sửa cả file này lẫn `src/shared/theme.ts`.
 
-### 4.3 OCR chữ viết tay (P2-03, VietOCR)
+### 4.3 VietOCR: chữ viết tay (P2-03) và chữ in (mục 9)
 
 Tài liệu tick **"Chữ viết tay"** khi upload (hoặc "Chạy lại OCR – chữ viết tay" ở trang chi tiết) được OCR bằng
 engine riêng trên hàng đợi `ocr_hw`. `OCR_HW_ENGINE=auto` (mặc định) chọn **VietOCR** nếu đã cài, không thì lùi về
@@ -150,8 +154,10 @@ cd backend
 ```
 
 Model lưu ở `VIETOCR_CACHE_DIR` (mặc định `%USERPROFILE%\.cache\vietocr`), tải một lần, sau đó chạy không cần mạng.
-Demo (mục 3) tự kiểm tra và in "Engine chữ viết tay: VietOCR" khi khởi động. Docker: `.\docker-start.cmd -Hw`
-build image riêng `docso-backend-hw` (PyTorch CPU) cho `worker-hw`; image chung của api/worker không mang thêm.
+Demo (mục 3) tự kiểm tra và in "Engine chữ viết tay: VietOCR" và "Engine chữ in: VietOCR" khi khởi động. Docker:
+`worker` (chữ in) và `worker-hw` (`.\docker-start.cmd -Hw`) dùng image `docso-backend-hw` (PyTorch CPU); image của
+api/beat không mang thêm. Chữ in dùng model `OCR_VIETOCR_CONFIG` (mặc định `vgg_seq2seq`), chữ viết tay dùng
+`VIETOCR_CONFIG` (mặc định `vgg_transformer`); cả hai tải một lần vào cache.
 
 **Đo độ chính xác (mục tiêu > 70%, D-06) ngay trên dữ liệu trong ứng dụng:** upload ảnh chữ viết tay → OCR tự chạy →
 mở OCR Editor, sửa text cho **đúng hoàn toàn** với bản gốc (cả dấu, xuống dòng) → Lưu → chạy
@@ -356,41 +362,62 @@ sửa phiên bản trong file, chạy test, để CI xác nhận.
 | Một phần giao diện vẫn sáng khi bật nền tối | Màu bị viết cứng trong CSS/TSX: đổi sang biến (mục 4.2). Tìm nhanh: `grep -rnE "#[0-9a-fA-F]{3,6}" frontend/src --include=*.css`. |
 | npm báo xung đột TypeScript | Giữ `typescript ~5.9` (typescript-eslint và openapi-typescript chưa hỗ trợ TS 6/7). |
 
-## 9. Cải thiện OCR tiếng Việt có dấu (việc để làm sau)
+## 9. Cải thiện OCR tiếng Việt có dấu (đã làm 21/10/2026, phương án 1 + 2 + 3)
 
-Ghi nhận 18/10/2026: kết quả OCR còn sai khá nhiều chữ có dấu. Mục này lưu chẩn đoán và các phương án để làm sau;
-**chưa có thay đổi code nào** cho các phương án dưới đây.
+Chữ in (scan) giờ đọc bằng **VietOCR**: PaddleOCR chỉ dò dòng, VietOCR (huấn luyện riêng tiếng Việt) đọc chữ. Đi kèm
+có lọc ký tự lạ và sửa một lỗi chống nghiêng có từ trước. Chữ viết tay chưa đo lại (mục 4.3).
 
-### 9.1 Chẩn đoán
+### 9.1 Kết quả đo (`eval/ocr_eval.py`, CPU laptop, 200 DPI)
 
-1. **Model chữ in không chuyên tiếng Việt.** Với `lang="vi"`, PaddleOCR 3.x dùng `PP-OCRv6_medium_rec` — model
-   **đa ngôn ngữ chung** cho tiếng Trung/Nhật/Anh và mọi ngôn ngữ chữ Latin (xem `_get_ocr_model_names` trong
-   `paddleocr/_pipelines/ocr.py`). Bộ ký tự có hàng nghìn chữ Hán, chữ hai dấu chồng ("ệ", "ổ", "ẫ") chiếm phần
-   nhỏ khi huấn luyện → đã thấy chèn chữ Hán (`图`), mất dấu ("nǎm") mà độ tin cậy vẫn 0,95 (không rơi vào
-   `needs_review`).
-2. **Độ phân giải thấp so với kích thước dấu:** PDF render ở `OCR_RENDER_DPI=200`; dấu chỉ cao vài pixel.
-3. **Khung dòng cắt sát chữ:** dấu trên chữ hoa ("Ể", "Ố") hay dấu nặng dễ nằm ngoài khung detection. Adapter
-   VietOCR đã nới khung 4 px (`VietOcrHandwritingEngine.PAD`), PaddleOCR chưa.
-
-### 9.2 Phương án (xếp theo hiệu quả / công sức)
-
-| # | Phương án | Công sức | Kỳ vọng | Lưu ý |
+| Cấu hình | Scan thật (3 trang Quyết định 02/2025/QĐ-TTg) | Trang tổng hợp rõ / khó / độ phân giải thấp | WER scan thật | Giây/trang |
 |---|---|---|---|---|
-| 1 | **VietOCR cho cả chữ in**: PaddleOCR chỉ dò dòng, VietOCR (huấn luyện riêng tiếng Việt) đọc chữ. Adapter có sẵn (`engines/handwriting.py`); thêm lựa chọn engine cho profile `print` (vd. `OCR_ENGINE=vietocr`) | nhỏ (~½ ngày) | **lớn nhất** — bộ ký tự chỉ có chữ Việt, hết chèn chữ Hán, dấu tốt hơn | chậm hơn Paddle trên CPU; worker in cần cài `requirements-hw.txt` (mục 4.3) |
-| 2 | **Tăng `OCR_RENDER_DPI` lên 300**; phóng to ảnh khi dòng chữ cao < ~32 px | rất nhỏ | vừa — dấu rõ nét hơn | ~2× thời gian/trang; đo trước khi chốt |
-| 3 | **Lọc ký tự lạ**: bỏ/đánh dấu ký tự ngoài bảng chữ tiếng Việt (chữ Hán…) và hạ độ tin cậy dòng đó để trang vào "cần xem lại" | nhỏ | vừa — hết "tự tin sai" | chỉ che triệu chứng, không sửa dấu |
-| 4 | **Sửa lỗi sau OCR bằng mô hình ngôn ngữ tiếng Việt** (khôi phục/sửa dấu theo ngữ cảnh), chỉ áp lên từ độ tin cậy thấp | vừa | vừa–lớn với văn bản hành chính | dễ sửa nhầm tên riêng, số hiệu; giữ nguyên `raw_text`, lưu kết quả như một phiên bản `ocr_corrections` |
-| 5 | **Fine-tune VietOCR bằng dữ liệu của nhóm**: mỗi lần sửa trong OCR Editor đã tạo cặp (ảnh dòng, text đúng); vài nghìn dòng là thấy cải thiện | lớn | **lớn**, nhất là chữ viết tay và mẫu văn bản riêng | cần GPU để huấn luyện (Google Colab đủ); hợp với đồ án học kỳ sau |
-| 6 | **Model thế hệ mới**: VLM (PaddleOCR-VL, Vintern — VLM tiếng Việt) hoặc **dịch vụ OCR đám mây** tiếng Việt (FPT.AI, Viettel AI, Google Vision); cắm qua port `OcrEngine` có sẵn | vừa | thường cao nhất | VLM cần GPU; đám mây gửi hồ sơ ra ngoài (bảo mật), tốn phí, cần internet |
-| 7 | **Chất lượng đầu vào**: scan ≥ 300 DPI, ảnh chụp không bóng/không nghiêng — ghi vào hướng dẫn người dùng | không code | lớn với ảnh chụp điện thoại | — |
+| PaddleOCR `latin_PP-OCRv5_mobile_rec` (trước đây) | 87,7% | 88,1% / 87,7% / 88,1% | 0,53 | ~4 |
+| **VietOCR `vgg_seq2seq`** (mặc định mới) | **98,2%** | 99,5% / 99,2% / 99,7% | 0,08 | ~8–9 |
+| VietOCR `vgg_transformer` (`OCR_VIETOCR_CONFIG`) | 99,1% | 99,7% / 98,7% / 99,6% | 0,04 | ~21–25 |
 
-### 9.3 Cách làm đề xuất
+Mục tiêu NFR-08 (scan in > 90%) **đạt** trên cả mẫu thật và mẫu tổng hợp. Trên demo, file scan 17 trang của nhóm OCR
+xong trong 226 s (trước đây 67 s với PaddleOCR nhưng mất gần hết chữ có dấu chồng). Ground truth mẫu thật chép tay
+từ ảnh; trang tổng hợp sinh bằng `eval/make_pages.py` (eval/README.md). Dữ liệu không commit (`eval/data`).
 
-1. Làm **phương án 1 + 2 + 3** trước (nhỏ, đúng nguyên nhân gốc, không đổi kiến trúc).
-2. **Đo trước/sau trên cùng một bộ ảnh**: chữ in `eval/ocr_eval.py`, chữ viết tay `eval/handwriting_from_app.py`.
-   Thêm chỉ số **"lỗi dấu"**: so độ chính xác *có dấu* với *bỏ dấu* (vd. bỏ dấu 98% mà có dấu 85% → vấn đề nằm ở
-   dấu chứ không phải nhận sai chữ cái).
-3. Chỉ cân nhắc phương án 4–6 nếu số liệu sau bước 1–3 vẫn chưa đạt mục tiêu NFR-08 (> 90% scan, > 70% chữ viết tay).
+### 9.2 Đã thay đổi gì và vì sao
 
-Trước khi bắt đầu, cần: biết ảnh sai dấu là chữ in hay viết tay (cột "Nguồn text"/`engine_version` cho biết engine
-đã dùng), và 2–3 ảnh mẫu kèm text đúng để chạy thử từng phương án.
+1. **Phương án 1 — VietOCR cho chữ in** (`OCR_ENGINE=auto`: VietOCR nếu đã cài, không thì PaddleOCR).
+   - Chẩn đoán lại: model PaddleOCR `latin_PP-OCRv5_mobile_rec` (đổi sang ở v0.10 để tăng tốc) **không có chữ có dấu
+     chồng** trong bảng ký tự: "CỘNG HÒA XÃ HỘI" thành "CNG HOÀ X HI" mà độ tin cậy vẫn ~97%. Chỉ số "bỏ dấu" của eval
+     (88%) cho thấy lỗi là *mất cả chữ cái*, không chỉ sai dấu.
+   - VietOCR được huấn luyện trên đoạn chữ ngắn: dòng A4 (~25:1) bị **cụt đuôi** khi giải mã. Engine chia dòng dài tại
+     khoảng trắng giữa từ (`OCR_VIETOCR_MAX_RATIO=12`, đo 8/12/16 → 12 tốt nhất) rồi ghép lại: 80% → 92%.
+   - Bảng ký tự VietOCR không có ngoặc kép cong: "?" ở vị trí mở/đóng ngoặc được đổi thành `"`.
+   - Đã thử nới khung dòng trên/dưới (chẩn đoán cũ 9.1.3): **kém đi** (lấn nét dòng kề), nên không dùng.
+2. **Phương án 2 — độ phân giải.** 300 DPI **không** tốt hơn 200 DPI với bản scan gốc ~200 DPI (phóng nội suy không
+   thêm chi tiết): giữ `OCR_RENDER_DPI=200`. Ảnh trang hẹp hơn `OCR_UPSCALE_MIN_WIDTH=1600` px (ảnh chụp, scan nén)
+   được phóng to tối đa 2 lần: tác dụng nhỏ (+0,25 điểm trên ảnh ~120 DPI).
+3. **Phương án 3 — lọc ký tự lạ** (`ocr/domain/charset.py`): bỏ ký tự ngoài bảng chữ tiếng Việt + số + dấu câu (chữ
+   Hán, Kirin, Latin mở rộng "ǎ"…), hạ độ tin cậy dòng đó và đưa trang vào **Cần xem lại**. Áp cho mọi engine.
+4. **Sửa lỗi chống nghiêng (phát hiện khi đo):** bước tiền xử lý xoay *cùng chiều* độ nghiêng nên trang nghiêng 1°
+   thành 2°, và ước lượng góc sai vài độ trên ảnh nhiễu. Nay dùng phương pháp hình chiếu ngang và xoay ngược đúng
+   góc. Riêng sửa này đưa VietOCR trên scan thật từ 92% lên 98%.
+
+### 9.3 Cấu hình
+
+- `OCR_VIETOCR_CONFIG=vgg_seq2seq` (mặc định, ~8 s/trang) hoặc `vgg_transformer` (thêm ~1 điểm, chậm ~3 lần).
+- Docker: `worker` dùng image `docso-backend-hw` (mục 4.3). Máy chưa cài VietOCR → chữ in lùi về PaddleOCR; demo in
+  cảnh báo khi khởi động.
+- `ocr_results.engine_version` ghi engine/model của từng trang (vd. `vietocr 0.3.13 vgg_seq2seq`). Tài liệu OCR trước
+  đây giữ kết quả cũ: bấm **Chạy lại OCR** để đọc lại bằng VietOCR.
+- Độ tin cậy của VietOCR thấp hơn PaddleOCR trên cùng trang (~86 so với ~97) dù đúng hơn nhiều; nên hiệu chỉnh lại
+  `NEEDS_REVIEW_THRESHOLD` bằng `eval/calibrate_threshold.py` trên tập dev khi đã có ≥ 30 trang thật.
+
+### 9.4 Lỗi còn lại và bước tiếp theo
+
+Lỗi còn lại chủ yếu là nhầm dấu hỏi/ngã/huyền ("rủi" → "rúi", "tổn" → "tồn") và rơi dấu câu cuối dòng. Chỉ làm tiếp
+nếu số liệu trên tập thật lớn hơn chưa đạt:
+
+| # | Phương án | Công sức | Ghi chú |
+|---|---|---|---|
+| 4 | Sửa lỗi sau OCR bằng mô hình ngôn ngữ tiếng Việt, chỉ trên từ độ tin cậy thấp | vừa | dễ sửa nhầm tên riêng, số hiệu; lưu như một phiên bản `ocr_corrections` |
+| 5 | Fine-tune VietOCR bằng các dòng đã sửa trong OCR Editor | lớn | cần GPU (Colab); hợp học kỳ sau, nhất là chữ viết tay |
+| 6 | VLM (PaddleOCR-VL, Vintern) hoặc OCR đám mây tiếng Việt | vừa | cần GPU hoặc gửi hồ sơ ra ngoài |
+| 7 | Hướng dẫn người dùng scan ≥ 200 DPI, không bóng/nghiêng | không code | — |
+
+Đo lại sau mỗi thay đổi: `python eval/ocr_eval.py --split test` (đổi cấu hình bằng biến môi trường, eval/README.md).

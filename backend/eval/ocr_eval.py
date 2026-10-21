@@ -7,7 +7,8 @@ Cấu trúc dữ liệu (KHÔNG commit dữ liệu thật, eval/data nằm trong
     eval/data/<split>/<loại>/<tên>.(png|jpg|pdf)  +  <tên>.gt.txt (text đúng, UTF-8)
     split: dev (hiệu chỉnh ngưỡng) | test (báo cáo); loại: digital_pdf | scan_clear | scan_hard | handwriting
 
-Báo cáo: độ chính xác ký tự (1 - CER gộp), WER, số mẫu, số trang, giây/trang, cấu hình máy, theo từng loại;
+Báo cáo: độ chính xác ký tự (1 - CER gộp), độ chính xác khi bỏ dấu (GUIDE 9.3: tách lỗi dấu khỏi lỗi chữ cái),
+số ký tự lạ, WER, số mẫu, số trang, giây/trang, cấu hình máy, theo từng loại;
 ghi thêm từng trang (confidence, CER) vào JSON để hiệu chỉnh ngưỡng (calibrate_threshold.py).
 Mục tiêu D-06: scan in > 90%, chữ viết tay > 70%. PDF có lớp chữ báo cáo riêng (không qua OCR).
 """
@@ -26,9 +27,16 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 os.environ.setdefault("SESSION_BACKEND", "memory")
 
-from metrics import cer, corpus_cer, corpus_wer  # noqa: E402
+from metrics import cer, corpus_cer, corpus_cer_no_diacritics, corpus_wer, foreign_chars  # noqa: E402
 
-TARGETS = {"scan_clear": 0.90, "scan_hard": 0.90, "handwriting": 0.70}
+TARGETS = {
+    "scan_clear": 0.90,
+    "scan_hard": 0.90,
+    "synth_page_clear": 0.90,
+    "synth_page_hard": 0.90,
+    "synth_page_lowres": 0.90,
+    "handwriting": 0.70,
+}
 IMAGE_EXT = {".png", ".jpg", ".jpeg"}
 
 
@@ -122,6 +130,8 @@ def main() -> int:
             "samples": len(prs),
             "pages": len(tp),
             "char_accuracy": round(acc, 4),
+            "char_accuracy_no_diacritics": round(1 - corpus_cer_no_diacritics(prs), 4),
+            "foreign_chars": sum(foreign_chars(h) for _, h in prs),
             "cer": round(corpus_cer(prs), 4),
             "wer": round(corpus_wer(prs), 4),
             "seconds_per_page": round(sum(p.seconds for p in tp) / max(len(tp), 1), 3),
@@ -150,11 +160,13 @@ def main() -> int:
     out = args.out or Path(__file__).parent / "reports" / f"ocr_{args.split}_{args.profile}_{stamp}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"{'loại':<14}{'mẫu':>5}{'trang':>7}{'acc(1-CER)':>12}{'WER':>8}{'s/trang':>9}  mục tiêu")
+    head = f"{'loại':<14}{'mẫu':>5}{'trang':>7}{'acc(1-CER)':>12}{'bỏ dấu':>9}{'k.tự lạ':>9}{'WER':>8}{'s/trang':>9}"
+    print(f"{head}  mục tiêu")
     for t, s in summary.items():
         flag = "" if s["target"] is None else (" ĐẠT" if s["pass"] else " CHƯA ĐẠT")
         print(
-            f"{t:<14}{s['samples']:>5}{s['pages']:>7}{s['char_accuracy']:>12.2%}{s['wer']:>8.3f}"
+            f"{t:<14}{s['samples']:>5}{s['pages']:>7}{s['char_accuracy']:>12.2%}"
+            f"{s['char_accuracy_no_diacritics']:>9.2%}{s['foreign_chars']:>9}{s['wer']:>8.3f}"
             f"{s['seconds_per_page']:>9.2f}  {s['target'] or '-'}{flag}"
         )
     print(f"Báo cáo: {out}")

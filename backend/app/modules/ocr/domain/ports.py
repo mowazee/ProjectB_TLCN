@@ -20,6 +20,7 @@ class OcrOutput:
     engine: str
     engine_version: str | None
     lines: list[OcrLine] = field(default_factory=list)
+    flagged_chars: int = 0  # số ký tự lạ đã bị lọc (domain/charset.py) -> trang cần xem lại
 
     @property
     def text(self) -> str:
@@ -55,8 +56,8 @@ class OcrEngine(Protocol):
 
 
 def needs_review(output: OcrOutput, threshold: float) -> bool:
-    """UC-02 bước 6: trang OCR có confidence dưới ngưỡng (hoặc rỗng) -> needs_review."""
+    """UC-02 bước 6: trang OCR có confidence dưới ngưỡng (hoặc rỗng, hoặc có ký tự lạ đã bị lọc) -> needs_review."""
     if output.is_text_layer:
         return False
     conf = output.confidence
-    return conf is None or float(conf) < threshold or not output.text.strip()
+    return conf is None or float(conf) < threshold or not output.text.strip() or output.flagged_chars > 0
