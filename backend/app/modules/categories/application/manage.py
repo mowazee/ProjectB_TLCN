@@ -1,4 +1,9 @@
-"""UC-09 Quản lý danh mục (FR-02) + API truy vấn công khai cho module khác."""
+"""UC-09 Quản lý danh mục (FR-02) + API truy vấn công khai cho module khác.
+
+D-10 (v0.9): danh mục hệ thống "Chưa phân loại" (UNCLASSIFIED_CODE) chứa tài liệu tải lên ở chế độ Danh mục gợi ý
+trong lúc chờ tự phân loại. Không chọn được khi tải lên/sửa (CATEGORY_SYSTEM), không được gợi ý, không đổi mã hay ngừng
+dùng được; tạo bởi migration 0109 (hoặc lần đầu cần tới).
+"""
 
 from dataclasses import dataclass
 from typing import Any
@@ -7,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.modules.audit.application.recorder import record
+from app.modules.categories.domain.system import UNCLASSIFIED_CODE, UNCLASSIFIED_NAME
 from app.modules.categories.infrastructure.models import Category
 from app.shared.context import Principal, RequestContext
 from app.shared.errors import ConflictError, NotFoundError, PermissionDeniedError, UnprocessableError
@@ -20,9 +26,31 @@ class CategoryInfo:
     is_active: bool
     description: str | None
 
+    @property
+    def is_system(self) -> bool:
+        return self.code == UNCLASSIFIED_CODE
+
 
 def _info(c: Category) -> CategoryInfo:
     return CategoryInfo(c.id, c.name, c.code, c.is_active, c.description)
+
+
+def is_system(c: Category) -> bool:
+    return c.is_system
+
+
+def unclassified_id(db: Session) -> int:
+    """Id danh mục "Chưa phân loại" (tạo nếu CSDL chưa có, vd. cài mới không qua migration)."""
+    cat = db.scalar(select(Category).where(Category.code == UNCLASSIFIED_CODE))
+    if cat is None:
+        cat = Category(
+            name=UNCLASSIFIED_NAME,
+            code=UNCLASSIFIED_CODE,
+            description="Danh mục hệ thống: tài liệu chờ tự phân loại sau OCR (D-10)",
+        )
+        db.add(cat)
+        db.flush()
+    return cat.id
 
 
 def _snapshot(c: Category) -> dict[str, Any]:
@@ -54,11 +82,17 @@ def active_categories(db: Session) -> list[CategoryInfo]:
 
 
 def require_active(db: Session, category_id: int) -> CategoryInfo:
-    """Dùng khi upload/đổi danh mục: phải tồn tại và đang dùng (422 nếu không)."""
+    """Dùng khi upload/đổi danh mục: phải tồn tại, đang dùng và không phải danh mục hệ thống (422 nếu không)."""
     cat = db.get(Category, category_id)
     if cat is None:
         raise UnprocessableError(
             "Danh mục không tồn tại", code="CATEGORY_NOT_FOUND", fields={"category_id": "not_found"}
+        )
+    if is_system(cat):
+        raise UnprocessableError(
+            'Không chọn được danh mục hệ thống "Chưa phân loại"; hãy chọn danh mục cụ thể hoặc dùng Danh mục gợi ý',
+            code="CATEGORY_SYSTEM",
+            fields={"category_id": "system"},
         )
     if not cat.is_active:
         raise UnprocessableError(
@@ -131,6 +165,8 @@ def update_category(
     cat = db.get(Category, category_id)
     if cat is None:
         raise NotFoundError("Không tìm thấy danh mục")
+    if is_system(cat) and (changes.get("is_active") is False or changes.get("parent_id") is not None):
+        raise ConflictError("Không ngừng dùng hay đặt danh mục cha cho danh mục hệ thống", code="CATEGORY_SYSTEM")
     before = _snapshot(cat)
     if changes.get("name"):
         cat.name = str(changes["name"]).strip()

@@ -1141,8 +1141,18 @@ export interface components {
              * @description PDF, PNG hoặc JPG
              */
             file: string;
-            /** Category Id */
-            category_id: number;
+            /**
+             * Category Id
+             * @description Bắt buộc khi category_mode = user
+             */
+            category_id?: number | null;
+            /**
+             * Category Mode
+             * @description D-10 (v0.9): user = người dùng chọn; auto = Danh mục gợi ý (tự phân loại sau OCR, cần P2-05)
+             * @default user
+             * @enum {string}
+             */
+            category_mode: "user" | "auto";
             /** Title */
             title?: string | null;
             /**
@@ -1272,6 +1282,11 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Is System
+             * @default false
+             */
+            is_system: boolean;
         };
         /** CategoryPatch */
         CategoryPatch: {
@@ -1491,6 +1506,11 @@ export interface components {
             job_id?: string | null;
             /** Can Edit */
             can_edit: boolean;
+            /**
+             * Category Source
+             * @description D-10: user | auto | pending (nguồn danh mục)
+             */
+            category_source: string;
             /**
              * Share Mode
              * @description FR-13: private | internal | public; chỉ có hiệu lực khi đã xuất bản

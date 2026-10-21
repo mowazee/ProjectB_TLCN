@@ -38,11 +38,12 @@ import { ShareDialog } from "./sharing/ShareDialog";
 import { ShareModeBadge } from "./sharing/ShareModeBadge";
 
 function EditMetadata({ doc, onClose }: { doc: DocumentOut; onClose: () => void }) {
-  const categories = useCategories(true);
+  const categories = useCategories(true, { selectable: true });
   const update = useUpdateDocument(doc.id);
+  const pending = doc.category_source === "pending"; // đang ở "Chưa phân loại": phải chọn danh mục thật
   const errors = fieldErrors(update.error);
   const [title, setTitle] = useState(doc.title);
-  const [categoryId, setCategoryId] = useState(String(doc.category.id));
+  const [categoryId, setCategoryId] = useState(pending ? "" : String(doc.category.id));
   const [code, setCode] = useState(doc.document_code ?? "");
 
   const submit = (e: FormEvent) => {
@@ -52,7 +53,7 @@ function EditMetadata({ doc, onClose }: { doc: DocumentOut; onClose: () => void 
       { onSuccess: onClose },
     );
   };
-  const currentInactive = categories.data && !categories.data.some((c) => c.id === doc.category.id);
+  const currentInactive = !pending && categories.data && !categories.data.some((c) => c.id === doc.category.id);
   return (
     <Modal
       title="Sửa thông tin tài liệu"
@@ -76,7 +77,12 @@ function EditMetadata({ doc, onClose }: { doc: DocumentOut; onClose: () => void 
           />
         </Field>
         <Field label="Danh mục" htmlFor="c" error={errors.category_id}>
-          <select id="c" className="select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+          <select id="c" className="select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
+            {pending && (
+              <option value="" disabled>
+                — Chọn danh mục —
+              </option>
+            )}
             {currentInactive && <option value={doc.category.id}>{doc.category.name} (ngừng dùng)</option>}
             {categories.data?.map((c) => (
               <option key={c.id} value={c.id}>

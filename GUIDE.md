@@ -70,6 +70,15 @@ nút **Được chia sẻ với tôi** lọc tài liệu người khác chia s�
 phòng ban của bạn được chọn ở chế độ Nội bộ, hoặc tài liệu Toàn hệ thống của phòng ban khác. Thử nhanh: `nhanvien` chia sẻ một tài liệu đã
 xuất bản cho Phòng Kế toán → đăng nhập `ketoan` (tab ẩn danh) → Tài liệu → Được chia sẻ với tôi.
 
+**Chọn danh mục khi tải lên** (D-10, SDD v0.9; cần cờ `classification`): mặc định **Danh mục gợi ý** — tài liệu tạm ở
+danh mục hệ thống **"Chưa phân loại"**, OCR xong job phân loại tự áp dụng gợi ý cao nhất nếu đạt `CLASSIFY_MIN_SCORE`
+(mặc định 0,3) và báo cho người tải lên; dưới ngưỡng thì giữ "Chưa phân loại" và báo để tự chọn (Sửa thông tin hoặc
+Áp dụng một gợi ý). Chọn **Tôi chọn danh mục** để chọn ngay như trước. Tab **Gợi ý danh mục** ở trang chi tiết hiện
+**Danh mục đang áp dụng** kèm nguồn (Người dùng chọn / Tự động phân loại / Chờ phân loại); bấm **Áp dụng** ở một gợi ý
+thì khối này và danh sách cùng đổi, mỗi lúc chỉ một danh mục đang áp dụng. Mô hình chỉ học từ tài liệu có danh mục do
+người dùng chọn/xác nhận; "Chưa phân loại" không ngừng dùng được, không chọn tay được và không bao giờ được gợi ý. Bật cờ
+khi đã có một ít tài liệu được người dùng gán danh mục — chưa có dữ liệu mẫu, mô hình chỉ dựa vào tên/mô tả danh mục.
+
 Menu bên trái gom theo nhóm **Tài liệu / Quy trình / Quản trị / Cá nhân** (chỉ hiện mục vai trò đó dùng được).
 **Hàng đợi xử lý** (`/jobs`, Nghiệp vụ và Admin, FR-11) liệt kê job OCR, trích xuất, phân loại, nhập hàng loạt; job lỗi
 có nút "Chạy lại". Nhãn **"Chờ quá lâu"** nghĩa là job đang chờ quá `JOB_REQUEUE_AFTER_SECONDS` (mặc định 10 phút) hoặc

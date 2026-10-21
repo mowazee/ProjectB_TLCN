@@ -24,7 +24,13 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.modules.documents.domain.lifecycle import ApprovalStatus, LifecycleStatus, PageOcrStatus, ShareMode
+from app.modules.documents.domain.lifecycle import (
+    ApprovalStatus,
+    CategorySource,
+    LifecycleStatus,
+    PageOcrStatus,
+    ShareMode,
+)
 from app.shared.db import Base, BigIntPK, str_enum, utcnow
 
 FILE_TYPES = {"application/pdf": "PDF", "image/png": "PNG", "image/jpeg": "JPG"}
@@ -55,6 +61,11 @@ class Document(Base):
         server_default=ApprovalStatus.DRAFT.value,
     )
     is_handwritten: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    category_source: Mapped[CategorySource] = mapped_column(
+        str_enum(CategorySource, "ck_documents_category_source"),
+        default=CategorySource.USER,
+        server_default=CategorySource.USER.value,
+    )
     share_mode: Mapped[ShareMode] = mapped_column(
         str_enum(ShareMode, "ck_documents_share_mode"),
         default=ShareMode.INTERNAL,

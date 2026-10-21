@@ -11,7 +11,7 @@ GET    /api/documents/{id}/pages/{p}/image  ảnh trang (người xem được t
 """
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Form, Path, Query, Response, UploadFile, status
 from fastapi.responses import FileResponse
@@ -42,7 +42,13 @@ def upload_document(
     principal: CurrentPrincipal,
     ctx: Ctx,
     file: Annotated[UploadFile, File(description="PDF, PNG hoặc JPG")],
-    category_id: Annotated[int, Form()],
+    category_id: Annotated[int | None, Form(description="Bắt buộc khi category_mode = user")] = None,
+    category_mode: Annotated[
+        Literal["user", "auto"],
+        Form(
+            description="D-10 (v0.9): user = người dùng chọn; auto = Danh mục gợi ý (tự phân loại sau OCR, cần P2-05)"
+        ),
+    ] = "user",
     title: Annotated[str | None, Form(max_length=255)] = None,
     is_handwritten: Annotated[bool, Form(description="P2-03 (khi cờ handwriting bật)")] = False,
 ) -> UploadOut:
@@ -55,6 +61,7 @@ def upload_document(
         category_id=category_id,
         is_handwritten=is_handwritten,
         ctx=ctx,
+        category_mode=category_mode,
     )
     return UploadOut(
         document_id=doc.id, job_id=job.id, lifecycle_status=str(doc.lifecycle_status), job_status=str(job.status)

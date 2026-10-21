@@ -1,6 +1,7 @@
 """Luồng P2 end to end; mỗi test tự bỏ qua khi cờ tương ứng đang tắt (NFR-09, e2e.yml matrix)."""
 
 import io
+import re
 import zipfile
 
 import pytest
@@ -141,3 +142,41 @@ def test_rollback_from_audit(page: Page, tmp_path, uniq):
     expect(dialog).to_be_hidden()  # hộp thoại đóng khi POST rollback thành công; goto sớm hơn có thể hủy request
     page.goto(f"{BASE_URL}/admin/categories")
     expect(page.get_by_role("row", name=f"Tạm {uniq}").get_by_text("Đang dùng")).to_be_visible()
+
+
+def test_auto_category_on_upload(officer_page: Page, tmp_path, uniq):
+    """D-10: tải lên với Danh mục gợi ý -> OCR -> tự áp dụng; Áp dụng gợi ý khác thì khối đang áp dụng đổi theo."""
+    need(officer_page, "classification")
+    page = officer_page
+    page.goto(f"{BASE_URL}/documents/new")
+    expect(page.get_by_role("radio", name=re.compile("Danh mục gợi ý"))).to_have_attribute("aria-checked", "true")
+    lines = [
+        "HỢP ĐỒNG KINH TẾ MUA BÁN HÀNG HÓA",
+        f"Số: {uniq}/2026/HĐKT",
+        "Bên A (bên bán) và Bên B (bên mua) thỏa thuận ký kết hợp đồng mua bán",
+        "Giá trị hợp đồng: 150.000.000 đồng; thanh toán bằng chuyển khoản",
+        "Hợp đồng kinh tế có hiệu lực kể từ ngày ký; dịch vụ bảo hành 12 tháng",
+    ]
+    page.locator("input[name=file]").set_input_files(make_pdf(tmp_path / "auto.pdf", lines))
+    page.get_by_label("Tiêu đề").fill(f"HĐ tự phân loại {uniq}")
+    page.get_by_role("button", name="Tải lên").click()
+    page.get_by_role("link", name="Mở tài liệu").click()
+    page.get_by_role("tab", name="Gợi ý danh mục").click()
+    summary = page.get_by_role("region", name="Danh mục đang áp dụng")
+    expect(summary.get_by_text("Tự động phân loại")).to_be_visible(timeout=120_000)
+    rows = page.get_by_role("listitem")
+    auto_name = rows.filter(has_text="Đang áp dụng").locator("strong").inner_text()
+    expect(summary.get_by_text(auto_name, exact=True)).to_be_visible()  # khối trên và dòng đang áp dụng khớp nhau
+
+    other = rows.filter(has=page.get_by_role("button", name="Áp dụng")).first
+    name = other.locator("strong").inner_text()
+    other.get_by_role("button", name="Áp dụng").click()
+    expect(summary.get_by_text(name, exact=True)).to_be_visible()
+    expect(summary.get_by_text("Người dùng chọn")).to_be_visible()
+    expect(page.get_by_text("Đang áp dụng", exact=True)).to_have_count(1)
+    expect(rows.filter(has_text=name)).to_contain_text("Đang áp dụng")
+
+    # trả về nhãn đúng: tài liệu E2E thành mẫu huấn luyện (nguồn user) cho lần chạy sau trên cùng dữ liệu demo
+    if name != "Hợp đồng":
+        rows.filter(has_text="Hợp đồng").get_by_role("button", name="Áp dụng").click()
+        expect(summary.get_by_text("Hợp đồng", exact=True)).to_be_visible()

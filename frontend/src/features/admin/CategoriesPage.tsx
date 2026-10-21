@@ -47,18 +47,20 @@ function CategoryForm({ category, all, onClose }: { category: Category | null; a
             <input id="c" className="input" value={code} onChange={(e) => setCode(e.target.value)} required />
           </Field>
         )}
-        <Field label="Danh mục cha" htmlFor="p" error={errors.parent_id}>
-          <select id="p" className="select" value={parent} onChange={(e) => setParent(e.target.value)}>
-            <option value="">— Không —</option>
-            {all
-              .filter((c) => c.id !== category?.id)
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-          </select>
-        </Field>
+        {!category?.is_system && (
+          <Field label="Danh mục cha" htmlFor="p" error={errors.parent_id}>
+            <select id="p" className="select" value={parent} onChange={(e) => setParent(e.target.value)}>
+              <option value="">— Không —</option>
+              {all
+                .filter((c) => c.id !== category?.id && !c.is_system)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+            </select>
+          </Field>
+        )}
         <Field label="Thời hạn lưu trữ (năm)" htmlFor="y" error={errors.retention_period_years}>
           <input
             id="y"
@@ -120,7 +122,14 @@ export function CategoriesPage() {
             {all.map((c) => (
               <tr key={c.id}>
                 <td>{c.code}</td>
-                <td>{c.name}</td>
+                <td>
+                  {c.name}{" "}
+                  {c.is_system && (
+                    <span title="Danh mục hệ thống (D-10): tài liệu chờ tự phân loại sau OCR; không ngừng dùng được">
+                      <Badge tone="info">Hệ thống</Badge>
+                    </span>
+                  )}
+                </td>
                 <td>{all.find((p) => p.id === c.parent_id)?.name ?? "—"}</td>
                 <td>{c.retention_period_years ? `${c.retention_period_years} năm` : "—"}</td>
                 <td>{c.is_active ? <Badge tone="ok">Đang dùng</Badge> : <Badge>Ngừng dùng</Badge>}</td>
@@ -129,13 +138,15 @@ export function CategoriesPage() {
                     <button className="btn btn-sm" onClick={() => setEditing(c)}>
                       Sửa
                     </button>
-                    <button
-                      className="btn btn-sm"
-                      disabled={save.isPending}
-                      onClick={() => save.mutate({ id: c.id, data: { is_active: !c.is_active } })}
-                    >
-                      {c.is_active ? "Ngừng dùng" : "Dùng lại"}
-                    </button>
+                    {!c.is_system && (
+                      <button
+                        className="btn btn-sm"
+                        disabled={save.isPending}
+                        onClick={() => save.mutate({ id: c.id, data: { is_active: !c.is_active } })}
+                      >
+                        {c.is_active ? "Ngừng dùng" : "Dùng lại"}
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

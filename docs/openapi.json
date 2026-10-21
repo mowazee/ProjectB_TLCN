@@ -3909,8 +3909,26 @@
             "description": "PDF, PNG hoặc JPG"
           },
           "category_id": {
-            "type": "integer",
-            "title": "Category Id"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id",
+            "description": "Bắt buộc khi category_mode = user"
+          },
+          "category_mode": {
+            "type": "string",
+            "enum": [
+              "user",
+              "auto"
+            ],
+            "title": "Category Mode",
+            "description": "D-10 (v0.9): user = người dùng chọn; auto = Danh mục gợi ý (tự phân loại sau OCR, cần P2-05)",
+            "default": "user"
           },
           "title": {
             "anyOf": [
@@ -3933,8 +3951,7 @@
         },
         "type": "object",
         "required": [
-          "file",
-          "category_id"
+          "file"
         ],
         "title": "Body_upload_document_api_documents_post"
       },
@@ -4265,6 +4282,11 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "is_system": {
+            "type": "boolean",
+            "title": "Is System",
+            "default": false
           }
         },
         "type": "object",
@@ -4898,6 +4920,11 @@
             "type": "boolean",
             "title": "Can Edit"
           },
+          "category_source": {
+            "type": "string",
+            "title": "Category Source",
+            "description": "D-10: user | auto | pending (nguồn danh mục)"
+          },
           "share_mode": {
             "type": "string",
             "title": "Share Mode",
@@ -4932,6 +4959,7 @@
           "needs_review_pages",
           "job_status",
           "can_edit",
+          "category_source",
           "share_mode",
           "can_share"
         ],

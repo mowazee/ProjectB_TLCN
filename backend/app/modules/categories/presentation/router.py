@@ -21,6 +21,7 @@ class CategoryOut(BaseModel):
     description: str | None
     is_active: bool
     created_at: datetime
+    is_system: bool = False  # D-10: "Chưa phân loại" - không chọn được khi tải lên/sửa
 
 
 class CategoryIn(BaseModel):
