@@ -118,15 +118,23 @@ def test_import_zip_report(officer_page: Page, tmp_path, uniq):
     expect(page.get_by_text("UNSAFE_PATH")).to_be_visible()
 
 
-def test_rollback_from_audit(page: Page, tmp_path, uniq):
+TAM = ("TAM", "Tạm")  # danh mục dùng lại mọi lần chạy: không sinh thêm danh mục trên dữ liệu demo
+
+
+def test_rollback_from_audit(page: Page):
     login(page, ADMIN)
     need(page, "rollback")
     page.goto(f"{BASE_URL}/admin/categories")
-    page.get_by_role("button", name="Tạo danh mục").click()
-    page.get_by_label("Tên").fill(f"Tạm {uniq}")
-    page.get_by_label("Mã").fill(f"TAM-{uniq}".upper())
-    page.get_by_role("button", name="Lưu").click()
-    row = page.get_by_role("row", name=f"Tạm {uniq}")
+    expect(page.get_by_role("button", name="Tạo danh mục")).to_be_visible()
+    row = page.get_by_role("row").filter(has=page.get_by_role("cell", name=TAM[0], exact=True))
+    page.locator("tbody tr").first.wait_for()
+    if not row.count():  # CSDL mới (CI): tạo lần đầu
+        page.get_by_role("button", name="Tạo danh mục").click()
+        page.get_by_label("Tên").fill(TAM[1])
+        page.get_by_label("Mã").fill(TAM[0])
+        page.get_by_role("button", name="Lưu").click()
+    elif row.get_by_role("button", name="Dùng lại").count():  # lần chạy trước dừng giữa chừng
+        row.get_by_role("button", name="Dùng lại").click()
     row.get_by_role("button", name="Ngừng dùng").click()
     # Chờ nút đổi thành "Dùng lại" (= PATCH xong). Chờ chữ "Ngừng dùng" thì khớp ngay chính cái nút vừa bấm.
     expect(row.get_by_role("button", name="Dùng lại")).to_be_visible()
@@ -141,7 +149,7 @@ def test_rollback_from_audit(page: Page, tmp_path, uniq):
     dialog.get_by_role("button", name="Khôi phục").click()
     expect(dialog).to_be_hidden()  # hộp thoại đóng khi POST rollback thành công; goto sớm hơn có thể hủy request
     page.goto(f"{BASE_URL}/admin/categories")
-    expect(page.get_by_role("row", name=f"Tạm {uniq}").get_by_text("Đang dùng")).to_be_visible()
+    expect(row.get_by_text("Đang dùng")).to_be_visible()
 
 
 def test_auto_category_on_upload(officer_page: Page, tmp_path, uniq):
