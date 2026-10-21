@@ -70,7 +70,15 @@ class Settings(BaseSettings):
     REQUEUE_INTERVAL_SECONDS: int = 300
 
     # OCR
-    OCR_ENGINE: str = "paddleocr"
+    # Chữ in (GUIDE 9): auto (vietocr nếu đã cài, không thì paddleocr) | vietocr (PaddleOCR dò dòng + VietOCR đọc,
+    # cần requirements-hw.txt) | paddleocr. Đo 21/10/2026: vietocr đọc đúng dấu tiếng Việt, paddleocr (latin) bỏ mất
+    # chữ có dấu chồng ("Việt" -> "Vit").
+    OCR_ENGINE: str = "auto"
+    # Model VietOCR cho chữ in: vgg_seq2seq (~8 s/trang CPU) | vgg_transformer (chính xác hơn ~1 điểm, ~25 s/trang)
+    OCR_VIETOCR_CONFIG: str = "vgg_seq2seq"
+    # vietocr chữ in: chia dòng dài hơn tỷ lệ rộng/cao này tại khoảng trắng giữa từ (0 = không chia). Model huấn luyện
+    # trên đoạn chữ ngắn: dòng A4 (~25:1) không chia sẽ bị cụt đuôi.
+    OCR_VIETOCR_MAX_RATIO: float = 12.0
     # P2-03: auto (vietocr nếu đã cài, không thì paddleocr-hw) | vietocr | paddleocr-hw (baseline)
     OCR_HW_ENGINE: str = "auto"
     OCR_HW_REC_MODEL: str = ""  # P2-03 paddleocr-hw: tên model nhận dạng (trống = mặc định theo ngôn ngữ)
@@ -79,6 +87,8 @@ class Settings(BaseSettings):
     OCR_LANG: str = "vi"
     OCR_DEVICE: str = "cpu"
     OCR_RENDER_DPI: int = 200
+    # GUIDE 9 PA 2: ảnh trang hẹp hơn mức này (px) được phóng to tối đa 2 lần trước OCR (0 = tắt); 1600 ~ A4 200 DPI
+    OCR_UPSCALE_MIN_WIDTH: int = 1600
     # Model PaddleOCR cho chữ in. Mặc định bản mobile: trên CPU nhanh hơn ~13 lần bản PP-OCRv6 medium (đo 21/10/2026
     # trên văn bản scan thật: ~3,5 s/trang so với ~50 s/trang) với nội dung tương đương. Để trống cả hai = dùng
     # model mặc định của PaddleOCR theo OCR_LANG (PP-OCRv6 medium).

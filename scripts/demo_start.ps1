@@ -146,6 +146,21 @@ try {
         }
     }
 
+    # GUIDE 9: chữ in đọc bằng VietOCR khi đã cài (OCR_ENGINE=auto). Tải trước weights model chữ in (một lần) để worker
+    # không phải chờ tải lúc khởi động.
+    Step 'Chuẩn bị OCR chữ in'
+    $ErrorActionPreference = 'Continue'
+    $printEngine = & $Py -c "from app.modules.ocr.application.engines import resolved_print_engine as r; from app.shared.config import settings as s; n = r(); n == 'vietocr' and __import__('app.modules.ocr.infrastructure.engines.vietocr', fromlist=['x']).prepare_vietocr(s.OCR_VIETOCR_CONFIG); print(n)" 2>> "$Logs\handwriting.log"
+    $code = $LASTEXITCODE
+    $ErrorActionPreference = 'Stop'
+    if ($code -ne 0) {
+        Write-Host "    Không chuẩn bị được VietOCR (xem $Logs\handwriting.log)" -ForegroundColor Yellow
+    } elseif ($printEngine -eq 'vietocr') {
+        Write-Host '    Engine chữ in: VietOCR (đọc đúng dấu tiếng Việt)'
+    } else {
+        Write-Host "    Engine chữ in: $printEngine - chưa cài VietOCR nên dấu tiếng Việt kém (GUIDE mục 4.3, 9)" -ForegroundColor Yellow
+    }
+
     Step 'Khởi động worker OCR (nạp model ~10-30 giây; hàng đợi default, ocr, ocr_hw)'
     $celery = Join-Path $Backend '.venv\Scripts\celery.exe'
     $worker = Start-Process -PassThru -WindowStyle Hidden -WorkingDirectory $Backend -FilePath $celery `

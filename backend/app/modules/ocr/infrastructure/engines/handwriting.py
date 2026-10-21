@@ -6,32 +6,30 @@ OCR_HW_ENGINE:
   (để trống = model mặc định của ngôn ngữ). Chạy được ngay trên máy hiện có.
 - "vietocr": dò dòng bằng PaddleOCR (chỉ detection) + nhận dạng từng dòng bằng VietOCR
   (ứng viên chính cho chữ viết tay tiếng Việt, file 2 mục 2). Cài: backend/requirements-hw.txt.
+  Lõi engine dùng chung với chữ in: engines/vietocr.py.
 Model chọn qua benchmark CER trên tập chữ viết tay (NFR-08, mục tiêu > 70%): eval/README.md.
 """
 
 import importlib.util
-import os
-import tempfile
-from pathlib import Path
 from typing import Any
-
-import numpy as np
 
 from app.modules.ocr.domain.ports import OcrLine, OcrOutput
 from app.modules.ocr.infrastructure.engines.paddle import _box
+from app.modules.ocr.infrastructure.engines.vietocr import (  # noqa: F401 - prepare_vietocr, vietocr_cache_dir: API cũ
+    LineCrop,
+    VietOcrEngine,
+    paddle_env,
+    prepare_vietocr,
+    vietocr_cache_dir,
+)
 from app.shared.config import settings
-
-
-def _paddle_env() -> None:
-    if not settings.OCR_MODEL_SOURCE_CHECK:
-        os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
 
 
 class PaddleHandwritingEngine:
     name = "paddleocr-hw"
 
     def __init__(self) -> None:
-        _paddle_env()
+        paddle_env()
         import paddleocr
         from paddleocr import PaddleOCR
 
@@ -57,84 +55,14 @@ class PaddleHandwritingEngine:
         return out
 
 
-def vietocr_cache_dir() -> Path:
-    return Path(settings.VIETOCR_CACHE_DIR) if settings.VIETOCR_CACHE_DIR else Path.home() / ".cache" / "vietocr"
+class VietOcrHandwritingEngine(VietOcrEngine):
+    """VietOCR cho chữ viết tay: nới khung dòng vài pixel (nét chữ viết tay hay tràn ra ngoài khung detection),
+    model dò dòng mặc định của PaddleOCR."""
 
-
-def prepare_vietocr(name: str | None = None) -> dict[str, Any]:
-    """Cấu hình VietOCR dùng file trên đĩa: tải cấu hình + weights MỘT lần vào cache.
-
-    vietocr gốc tải cấu hình từ internet mỗi lần khởi tạo (mất mạng -> worker không lên được) và để
-    cnn.pretrained=True làm torchvision tải thêm ~550 MB weights ImageNet vô ích (sau đó bị weights
-    VietOCR ghi đè). Ở đây: cấu hình lưu thành <tên>.yml, weights lưu cạnh đó, pretrained=False.
-    """
-    import requests
-    import yaml
-    from vietocr.tool.config import Cfg
-
-    name = name or settings.VIETOCR_CONFIG
-    cache = vietocr_cache_dir()
-    cache.mkdir(parents=True, exist_ok=True)
-    cfg_path = cache / f"{name}.yml"
-    if cfg_path.is_file():
-        cfg = Cfg(yaml.safe_load(cfg_path.read_text(encoding="utf-8")))
-    else:
-        cfg = Cfg.load_config_from_name(name)
-        cfg_path.write_text(yaml.safe_dump(dict(cfg), allow_unicode=True), encoding="utf-8")
-    url = str(cfg["weights"])
-    weights = cache / url.rsplit("/", 1)[-1] if url.startswith("http") else Path(url)
-    if not weights.is_file():
-        fd, tmp = tempfile.mkstemp(dir=cache, prefix=".tmp-")
-        try:
-            with os.fdopen(fd, "wb") as f, requests.get(url, stream=True, timeout=60) as r:
-                r.raise_for_status()
-                for chunk in r.iter_content(1 << 20):
-                    f.write(chunk)
-            os.replace(tmp, weights)  # chỉ xuất hiện khi tải xong, không để file dở dang
-        finally:
-            if os.path.exists(tmp):
-                os.remove(tmp)
-    cfg["weights"] = str(weights)
-    cfg["cnn"]["pretrained"] = False
-    cfg["device"] = "cuda" if settings.OCR_DEVICE.startswith("gpu") else "cpu"
-    return dict(cfg)
-
-
-class VietOcrHandwritingEngine:
-    name = "vietocr"
-    PAD = 4  # nới khung dòng vài pixel: nét chữ viết tay hay tràn ra ngoài khung detection
+    PAD = 4
 
     def __init__(self) -> None:
-        _paddle_env()
-        from importlib.metadata import version
-
-        from paddleocr import TextDetection
-        from vietocr.tool.config import Cfg
-        from vietocr.tool.predictor import Predictor
-
-        self._det = TextDetection()
-        self._rec = Predictor(Cfg(prepare_vietocr()))
-        self.version: str | None = f"{version('vietocr')} {settings.VIETOCR_CONFIG}"  # ghi vào engine_version
-
-    def recognize(self, image_bgr: Any) -> OcrOutput:
-        from PIL import Image
-
-        out = OcrOutput(self.name, self.version)
-        rgb = image_bgr[:, :, ::-1]
-        height, width = rgb.shape[:2]
-        polys: list[Any] = []
-        for res in self._det.predict(image_bgr):
-            polys.extend(res.get("dt_polys", []))
-        boxes = sorted((_box(None, polys, i) for i in range(len(polys))), key=lambda b: (b[1] // 20, b[0]))
-        p = self.PAD
-        for x, y, w, h in boxes:
-            if w <= 2 or h <= 2:
-                continue
-            x0, y0, x1, y1 = max(0, x - p), max(0, y - p), min(width, x + w + p), min(height, y + h + p)
-            crop = Image.fromarray(np.ascontiguousarray(rgb[y0:y1, x0:x1]))
-            text, prob = self._rec.predict(crop, return_prob=True)
-            out.lines.append(OcrLine(str(text), float(prob), (x, y, w, h)))
-        return out
+        super().__init__(LineCrop(pad=self.PAD))
 
 
 def resolved_engine_name() -> str:

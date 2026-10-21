@@ -78,12 +78,18 @@ services:
 
   worker:
     <<: *backend
+    # GUIDE 9: chữ in đọc bằng VietOCR (OCR_ENGINE=auto -> vietocr) nên worker dùng image có PyTorch CPU + VietOCR;
+    # api/beat giữ image nhẹ.
+    build: { context: ./backend, args: { WITH_HW: "1" } }
+    image: docso-backend-hw:0.5
     # -P solo: nạp model Paddle một lần trong chính tiến trình xử lý (prefork = fork sau khi nạp
     # Paddle/OpenMP, dễ treo). Tăng thông lượng bằng cách scale: docker compose up -d --scale worker=2
     command: ["celery", "-A", "app.workers.celery_app:celery_app", "worker", "-Q", "default,ocr", "-P", "solo", "-l", "info"]
     environment:
       <<: *backend-env
       WORKER_OCR_PROFILES: print
+      # Cấu hình + weights VietOCR tải một lần vào volume "models", khởi động lại không tải lại
+      VIETOCR_CACHE_DIR: /home/app/.paddlex/vietocr
     depends_on: *after-migrate
     # Job đang chạy dở khi dừng: acks_late -> message được giao lại, runner claim theo DB nên không trùng
     stop_grace_period: 60s
