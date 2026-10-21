@@ -79,10 +79,19 @@ class Settings(BaseSettings):
     OCR_LANG: str = "vi"
     OCR_DEVICE: str = "cpu"
     OCR_RENDER_DPI: int = 200
+    # Model PaddleOCR cho chữ in. Mặc định bản mobile: trên CPU nhanh hơn ~13 lần bản PP-OCRv6 medium (đo 21/10/2026
+    # trên văn bản scan thật: ~3,5 s/trang so với ~50 s/trang) với nội dung tương đương. Để trống cả hai = dùng
+    # model mặc định của PaddleOCR theo OCR_LANG (PP-OCRv6 medium).
+    OCR_DET_MODEL: str = "PP-OCRv5_mobile_det"
+    OCR_REC_MODEL: str = "latin_PP-OCRv5_mobile_rec"
     OCR_PRELOAD_ON_START: bool = True
     OCR_MODEL_SOURCE_CHECK: bool = False
     OCR_PREPROCESS_DENOISE: bool = False
     TEXT_LAYER_MIN_CHARS: int = 20
+    # FR-04 (v0.9): trang PDF có lớp chữ vẫn OCR ảnh nhúng chiếm ít nhất tỷ lệ diện tích trang này và bên trong chưa
+    # có chữ; tối đa OCR_IMAGE_MAX_REGIONS vùng mỗi trang (giới hạn thời gian xử lý)
+    OCR_IMAGE_MIN_AREA: float = 0.02
+    OCR_IMAGE_MAX_REGIONS: int = 8
     # Trang có confidence (0-100) dưới ngưỡng -> needs_review. Hiệu chỉnh theo NFR-08 (D-06)
     NEEDS_REVIEW_THRESHOLD: float = 85.0
 

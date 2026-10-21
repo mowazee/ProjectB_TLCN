@@ -1,6 +1,7 @@
 import { ErrorBox, JobBadge, ProgressBar } from "@/shared/components/ui";
 import type { Job } from "@/shared/api/types";
 
+import { CancelJobButton } from "./CancelJobButton";
 import { useJob, useRetryJob } from "./useJob";
 
 /** Tiến độ một job: badge + thanh tiến độ + lỗi an toàn + nút retry (job failed, người có quyền). */
@@ -21,10 +22,13 @@ export function JobStatus({
     <div className="stack" style={{ gap: 6 }}>
       <div className="row">
         <span className="muted">Job {job.kind}</span>
-        <JobBadge status={job.status} />
+        <JobBadge status={job.status} errorCode={job.error_code} />
         <span className="muted">
           lần {job.attempt}/{job.max_attempts}
         </span>
+        {(job.status === "queued" || job.status === "processing") && canRetry && (
+          <CancelJobButton jobId={job.id} processing={job.status === "processing"} />
+        )}
         {job.status === "failed" && canRetry && (
           <button className="btn btn-sm" onClick={() => retry.mutate(job.id)} disabled={retry.isPending}>
             Chạy lại
@@ -33,7 +37,7 @@ export function JobStatus({
       </div>
       {(job.status === "processing" || job.status === "queued") && <ProgressBar value={job.progress} />}
       {job.status === "failed" && job.error_message && (
-        <span style={{ color: "var(--c-danger)" }}>
+        <span style={{ color: job.error_code === "CANCELLED" ? "var(--c-muted)" : "var(--c-danger)" }}>
           {job.error_message} ({job.error_code})
         </span>
       )}

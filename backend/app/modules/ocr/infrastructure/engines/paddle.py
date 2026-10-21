@@ -20,12 +20,19 @@ class PaddleOcrEngine:
         from paddleocr import PaddleOCR
 
         self.version: str | None = getattr(paddleocr, "__version__", None)
+        models: dict[str, str] = {}
+        if settings.OCR_DET_MODEL:
+            models["text_detection_model_name"] = settings.OCR_DET_MODEL
+        if settings.OCR_REC_MODEL:
+            models["text_recognition_model_name"] = settings.OCR_REC_MODEL
+            self.version = f"{self.version} {settings.OCR_REC_MODEL}"  # ocr_results.engine_version ghi model đã dùng
         self._ocr = PaddleOCR(
-            lang=lang,
+            lang=None if models else lang,  # PaddleOCR bỏ qua lang khi đã chỉ định model
             device=device,
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
             use_textline_orientation=False,
+            **models,
         )
 
     def recognize(self, image_bgr: Any) -> OcrOutput:

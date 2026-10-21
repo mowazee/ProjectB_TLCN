@@ -18,3 +18,8 @@
   color: var(--c-danger);
   font-size: 13px;
 }
+.note {
+  margin-top: 4px;
+  color: var(--c-muted);
+  font-size: 13px;
+}

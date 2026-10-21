@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.audit.application.recorder import record
 from app.modules.jobs.application import registry
-from app.modules.jobs.domain.model import JobError, JobOutcome, JobStatus
+from app.modules.jobs.domain.model import CANCELLED, JobCancelled, JobError, JobOutcome, JobStatus
 from app.modules.jobs.infrastructure.models import ProcessingJob
 from app.shared.config import settings
 from app.shared.context import SYSTEM_CONTEXT
@@ -45,12 +45,27 @@ class JobContext:
         return dict(self.job.payload or {})
 
     def progress(self, pct: int) -> None:
-        """Cập nhật tiến độ và commit để giao diện poll thấy ngay."""
+        """Cập nhật tiến độ và commit để giao diện poll thấy ngay; dừng nếu người dùng đã bấm Dừng (v0.10).
+
+        Gọi sau mỗi đơn vị việc (trang OCR...): phần đã xong được commit trước rồi mới kiểm tra, nên khi dừng các
+        trang đã xử lý được giữ lại."""
         self.job.progress = max(0, min(99, int(pct)))
         self.db.commit()
+        if cancel_requested(self.job.id):
+            raise JobCancelled()
 
     def set_result(self, data: dict[str, Any]) -> None:
         self.job.result = data
+
+
+def cancel_requested(job_id: uuid.UUID) -> bool:
+    """Người dùng đã bấm Dừng? Đọc bằng phiên RIÊNG: phiên của worker có thể đang giữ transaction (SQLite giữ ảnh
+    chụp dữ liệu cả transaction) và còn thay đổi chưa commit (kết quả, sự kiện) không được ghi khi đã dừng."""
+    with SessionLocal() as fresh:
+        row = fresh.execute(
+            select(ProcessingJob.status, ProcessingJob.error_code).where(ProcessingJob.id == job_id)
+        ).one_or_none()
+    return row is not None and row.status == JobStatus.FAILED and row.error_code == CANCELLED
 
 
 def claim(db: Session, job_id: uuid.UUID, worker_id: str) -> ProcessingJob | None:
@@ -130,6 +145,12 @@ def run_job(job_id: uuid.UUID, *, worker_id: str = "local") -> JobOutcome:
             return _handle_failure(db, job_id, "NO_HANDLER", f"Không có handler cho kind {job.kind}", False)
         try:
             handler(JobContext(db, job))
+            if cancel_requested(job_id):  # dừng đúng lúc trang cuối vừa xong
+                raise JobCancelled()
+        except JobCancelled:
+            db.rollback()  # không ghi đè trạng thái người dùng đặt, không phát OcrCompleted
+            logger.info("Job %s đã dừng theo yêu cầu", job_id)
+            return JobOutcome.FAILED
         except JobError as exc:
             logger.warning("Job %s lỗi %s: %s", job_id, exc.code, exc)
             return _handle_failure(db, job_id, exc.code, str(exc), exc.retryable)

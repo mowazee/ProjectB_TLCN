@@ -25,6 +25,19 @@ export function useJob(jobId: string | null | undefined, onDone?: (job: Job) => 
   });
 }
 
+/** FR-04 (v0.10): dừng job đang chờ/đang xử lý (job đang chạy dừng sau trang hiện tại). */
+export function useCancelJob() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (jobId: string) => api<Job>(`/api/jobs/${jobId}/cancel`, { method: "POST" }),
+    onSuccess: (job) => {
+      client.setQueryData(["job", job.id], job);
+      client.invalidateQueries({ queryKey: ["documents"] });
+      client.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
 export function useRetryJob() {
   const client = useQueryClient();
   return useMutation({

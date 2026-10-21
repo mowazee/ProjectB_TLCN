@@ -1,6 +1,7 @@
 """PyMuPDF: kiểm tra PDF, render từng trang thành ảnh PNG, lấy text layer nếu có.
 
-Trang có lớp chữ (digital PDF) lấy text trực tiếp, không OCR (notebook 02: CER 0.013).
+Trang có lớp chữ (digital PDF) lấy text trực tiếp, không OCR (notebook 02: CER 0.013). Từ v0.9 (FR-04) còn trả
+vị trí các ảnh nhúng trong trang để OCR riêng phần chữ nằm trong ảnh (con dấu, bảng scan, ảnh chụp văn bản).
 """
 
 from collections.abc import Iterator
@@ -25,6 +26,7 @@ class RenderedPage:
     width: int
     height: int
     lines: list[TextLine] = field(default_factory=list)
+    image_boxes: list[tuple[int, int, int, int]] = field(default_factory=list)  # x, y, w, h theo pixel, đã cắt mép
 
     @property
     def text_char_count(self) -> int:
@@ -73,4 +75,23 @@ def render_pages(path: Path, dpi: int) -> Iterator[RenderedPage]:
                         continue
                     x0, y0, x1, y1 = (v * zoom for v in line["bbox"])
                     lines.append(TextLine(text, (round(x0), round(y0), round(x1 - x0), round(y1 - y0))))
-            yield RenderedPage(index + 1, pix.tobytes("png"), pix.width, pix.height, lines)
+            yield RenderedPage(
+                index + 1,
+                pix.tobytes("png"),
+                pix.width,
+                pix.height,
+                lines,
+                _image_boxes(page, zoom, pix.width, pix.height),
+            )
+
+
+def _image_boxes(page: pymupdf.Page, zoom: float, width: int, height: int) -> list[tuple[int, int, int, int]]:
+    """Vùng hiển thị của các ảnh nhúng (pixel ảnh trang), cắt theo mép trang, bỏ trùng lặp."""
+    boxes: set[tuple[int, int, int, int]] = set()
+    for info in page.get_image_info():
+        x0, y0, x1, y1 = (v * zoom for v in info["bbox"])
+        x0, y0 = max(0, round(x0)), max(0, round(y0))
+        x1, y1 = min(width, round(x1)), min(height, round(y1))
+        if x1 > x0 and y1 > y0:
+            boxes.add((x0, y0, x1 - x0, y1 - y0))
+    return sorted(boxes, key=lambda b: (b[1], b[0]))

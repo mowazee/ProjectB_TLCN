@@ -53,8 +53,42 @@ describe("Trang Hàng đợi xử lý (FR-11)", () => {
     expect(calls.find((c) => c.url.includes("/api/jobs"))?.url).toContain("status=queued");
 
     const failed = screen.getByText("File bị hỏng").closest("tr")!;
-    expect(within(screen.getByText("OCR chữ viết tay").closest("tr")!).queryByRole("button")).toBeNull();
+    const queued = within(screen.getByText("OCR chữ viết tay").closest("tr")!);
+    expect(queued.queryByRole("button", { name: /Chạy lại/ })).toBeNull();
+    expect(queued.getByRole("button", { name: /Dừng/ })).toBeInTheDocument(); // FR-04 v0.10
     await u.click(within(failed).getByRole("button", { name: /Chạy lại/ }));
     await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url.endsWith("/j2/retry"))).toBe(true));
+  });
+
+  it("Dừng job đang xử lý: hỏi xác nhận rồi gọi API, hiển thị Đã dừng", async () => {
+    let cancelled = false;
+    const calls = mockFetch({
+      "GET /api/auth/me": { body: SESSION },
+      "GET /api/jobs": () => ({
+        body: {
+          items: [
+            cancelled
+              ? job("j1", { status: "failed", error_code: "CANCELLED", error_message: "Đã dừng theo yêu cầu." })
+              : job("j1", { status: "processing", progress: 40 }),
+          ],
+          total: 1,
+          page: 1,
+          page_size: 20,
+        },
+      }),
+      "POST /api/jobs/j1/cancel": () => {
+        cancelled = true;
+        return { body: job("j1", { status: "failed", error_code: "CANCELLED" }) };
+      },
+    });
+    const u = userEvent.setup();
+    renderWithProviders(<JobsPage />, { route: "/jobs" });
+    await u.click(await screen.findByRole("button", { name: /Dừng/ }));
+    const dialog = screen.getByRole("dialog", { name: "Dừng xử lý tài liệu?" });
+    expect(within(dialog).getByText(/dừng sau trang đang xử lý/)).toBeInTheDocument();
+    await u.click(within(dialog).getByRole("button", { name: /Dừng xử lý/ }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.url.endsWith("/j1/cancel"))).toBe(true));
+    expect(await screen.findByText("Đã dừng")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
