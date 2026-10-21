@@ -1,4 +1,4 @@
-# Tóm tắt trạng thái ProjectB (baseline SDD v0.10) — cập nhật 18/10/2026
+# Tóm tắt trạng thái ProjectB (baseline SDD v0.11) — cập nhật 21/10/2026
 
 Trạng thái chung: **MVP + toàn bộ P2 (P2-01…P2-09) + phân hệ quản trị/tài khoản SDD v0.7 (FR-09…FR-12) đã hiện thực
 và chạy được end to end**; đặc tả v0.7 khớp với code; CI xanh trên mọi PR. Việc còn lại chủ yếu cần **dữ liệu thật** của nhóm để đo chất lượng (mục 4).
@@ -93,7 +93,7 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh
 | **Hiện thực SDD v0.8 — FR-13 Chia sẻ tài liệu đã xuất bản** (D-09): Riêng tư / Nội bộ (phòng ban của tài liệu + phòng ban chọn thêm) / Toàn hệ thống + người đích danh; chia sẻ chỉ mở quyền xem; duyệt, xuất bản, duyệt mượn giới hạn ở Kiểm duyệt viên phòng ban của tài liệu | đặc tả v0.8 (UC-29, ERD 17 bảng) | xong: (1) đặc tả v0.8 (#13); (2) backend (#14); (3) giao diện: hộp thoại Chia sẻ, nhãn chế độ, bộ lọc "Được chia sẻ với tôi", E2E |
 | **Hiện thực SDD v0.9** — D-10 chọn danh mục khi tải lên (Danh mục gợi ý tự áp dụng sau OCR / Do người dùng chọn, danh mục hệ thống "Chưa phân loại", documents.category_source); FR-04 OCR vùng ảnh nhúng trong trang PDF có lớp chữ; tab Gợi ý danh mục hiển thị danh mục đang áp dụng (sửa lỗi hiển thị "Đang dùng" lệch) | đặc tả v0.9 | xong (1) đặc tả v0.9 (#16); (2) OCR vùng ảnh (thử với PaddleOCR thật: đọc được chữ trong ảnh, đúng thứ tự đọc; dấu tiếng Việt vẫn sai như GUIDE mục 9); (3) danh mục tự động khi tải lên + tab Gợi ý danh mục thiết kế lại, migration 0109, script CSDL v0.9 (GUIDE mục 3) |
 | **SDD v0.10** — dừng OCR (POST /api/jobs/{id}/cancel, nút Dừng có xác nhận), trang scan có khối chữ ký số vẫn OCR nội dung, model OCR chữ in mặc định bản mobile (văn bản scan 17 trang của nhóm: 1241 s → 67 s, nội dung tương đương; dấu tiếng Việt vẫn kém như GUIDE mục 9) | đặc tả v0.10 | cùng PR #17 |
-| **Cải thiện OCR có dấu — chữ in** (GUIDE mục 9, phương án 1+2+3) | — | **xong 21/10**: VietOCR đọc chữ in (chia dòng dài), lọc ký tự lạ, sửa lỗi chống nghiêng nhân đôi góc; scan thật 87,7% → 98,2% (`vgg_seq2seq`, ~8 s/trang) / 99,1% (`vgg_transformer`). Còn: hiệu chỉnh lại `NEEDS_REVIEW_THRESHOLD` khi có ≥ 30 trang thật; chữ viết tay chưa đo lại |
+| **Cải thiện OCR có dấu — chữ in** (GUIDE mục 9, phương án 1+2+3; đặc tả v0.11) | — | **xong 21/10** (#20, đặc tả v0.11): VietOCR đọc chữ in (chia dòng dài), lọc ký tự lạ, sửa lỗi chống nghiêng nhân đôi góc; scan thật 87,7% → 98,2% (`vgg_seq2seq`, ~8 s/trang) / 99,1% (`vgg_transformer`). Còn: hiệu chỉnh lại `NEEDS_REVIEW_THRESHOLD` khi có ≥ 30 trang thật; chữ viết tay chưa đo lại |
 | **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB`, `MAX_PAGES` |
 | Bắt buộc CI xanh trước khi merge | sửa ruleset (GUIDE 7.1) | 2 test chập chờn đã sửa (PR #4) nên có thể bật |
 | Chép bản sao lưu ra ngoài máy | tùy nơi triển khai (ổ ngoài, cloud) | `BACKUP_DIR` (GUIDE 6.4) |
