@@ -26,7 +26,7 @@ và chạy được end to end**; đặc tả v0.7 khớp với code; CI xanh tr
 | Backend pytest (SQLite), cờ tắt / mọi cờ bật | 151 passed, 1 skipped / 151 passed, 1 skipped (21/10, thêm dừng OCR, danh mục tự động D-10) |
 | CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#5) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (PR #4, `main` sau #4) |
-| Frontend Vitest | 45 passed (21/10: thêm chọn cách gán danh mục khi tải lên, tab Gợi ý danh mục) |
+| Frontend Vitest | 46 passed (21/10: thêm chọn cách gán danh mục khi tải lên, tab Gợi ý danh mục) |
 | E2E Playwright trên demo thật, mọi cờ bật (local, 21/10) | 11 passed, 1 skipped (thêm luồng tải lên với Danh mục gợi ý → tự phân loại → Áp dụng gợi ý khác; test còn lại dành cho cờ tắt) |
 | CI `e2e`: 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) | xanh trên mọi PR (#2–#5) |
 | E2E chế độ chỉ MVP (`-Mvp`, local 05/10) | 6 passed, 4 skipped (các test P2 tự bỏ qua khi cờ tắt) |

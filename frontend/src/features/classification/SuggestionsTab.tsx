@@ -48,15 +48,17 @@ export function SuggestionsTab({ document }: DocumentSlotProps) {
       ]),
   });
 
-  // job vừa xong: tài liệu có thể vừa được tự phân loại -> tải lại danh mục của tài liệu
+  // job vừa xong: tài liệu có thể vừa được tự phân loại -> tải lại danh mục của tài liệu. Không đòi phải thấy
+  // queued/processing trước: job chạy nhanh thì lần hỏi đầu đã là completed trong khi tài liệu còn "chờ" (bản cũ).
   const status = data.data?.job_status;
   const prev = useRef(status);
   useEffect(() => {
-    if (prev.current && ACTIVE.includes(prev.current) && status === "completed") {
+    const justCompleted = status === "completed" && prev.current !== "completed";
+    if (justCompleted && (pending || (prev.current && ACTIVE.includes(prev.current)))) {
       client.invalidateQueries({ queryKey: ["documents"] });
     }
     prev.current = status;
-  }, [status, client]);
+  }, [status, pending, client]);
 
   // ngược lại: trang chi tiết tải lại tài liệu trước (vd. đã tự phân loại) -> tải lại gợi ý cho khớp
   const assigned = `${document.category.id}:${document.category_source}`;

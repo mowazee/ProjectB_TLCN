@@ -28,7 +28,7 @@ function Host() {
 }
 
 function render(
-  initial: { category: number; source: string; classified?: boolean },
+  initial: { category: number; source: string; classified?: boolean; autoAfterFirstDocFetch?: boolean },
   jobStatus = "completed",
   scores = [0.87, 0.13],
 ) {
@@ -53,14 +53,18 @@ function render(
       state.source = "user";
       return { body: { category_id: state.category, name: CATS[state.category], score: 0.13, is_current: true } };
     },
-    "GET /api/documents/d1": () => ({
-      body: {
+    "GET /api/documents/d1": () => {
+      const body = {
         id: "d1",
         category: { id: state.category, name: CATS[state.category] },
         category_source: state.source,
         can_edit: true,
-      },
-    }),
+      };
+      // worker tự phân loại ngay sau lần tải tài liệu đầu: trang đang giữ bản "chờ phân loại" cũ
+      if (state.autoAfterFirstDocFetch)
+        Object.assign(state, { category: 1, source: "auto", autoAfterFirstDocFetch: false });
+      return { body };
+    },
   });
   renderWithProviders(<Host />);
   return Object.assign(calls, { state });
@@ -110,6 +114,13 @@ describe("SuggestionsTab (P2-05, D-10)", () => {
     await user.click(screen.getByRole("button", { name: "Tải lại tài liệu" }));
     expect(await within(summary()).findByText("Tự động phân loại")).toBeInTheDocument();
     expect(await screen.findByText("Đang áp dụng", {}, { timeout: 2000 })).toBeInTheDocument();
+    expect(within(row("Hợp đồng")).getByText("Đang áp dụng")).toBeInTheDocument();
+  });
+
+  it("job đã hoàn tất ngay lần hỏi đầu mà tài liệu còn chờ: tải lại tài liệu", async () => {
+    render({ category: 9, source: "pending", autoAfterFirstDocFetch: true });
+    expect(await screen.findByText("Tự động phân loại", {}, { timeout: 2000 })).toBeInTheDocument();
+    expect(within(summary()).getByText("Hợp đồng")).toBeInTheDocument();
     expect(within(row("Hợp đồng")).getByText("Đang áp dụng")).toBeInTheDocument();
   });
 });
