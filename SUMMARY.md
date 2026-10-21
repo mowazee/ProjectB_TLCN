@@ -1,4 +1,4 @@
-# Tóm tắt trạng thái ProjectB (baseline SDD v0.8) — cập nhật 18/10/2026
+# Tóm tắt trạng thái ProjectB (baseline SDD v0.9) — cập nhật 18/10/2026
 
 Trạng thái chung: **MVP + toàn bộ P2 (P2-01…P2-09) + phân hệ quản trị/tài khoản SDD v0.7 (FR-09…FR-12) đã hiện thực
 và chạy được end to end**; đặc tả v0.7 khớp với code; CI xanh trên mọi PR. Việc còn lại chủ yếu cần **dữ liệu thật** của nhóm để đo chất lượng (mục 4).
@@ -91,6 +91,7 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh
 | **P2-04, P2-05** precision/recall trích xuất, top-1 phân loại | tập mẫu có nhãn | `eval/extraction_eval.py`, `eval/classification_eval.py` |
 | **Hiện thực SDD v0.7** (FR-09…FR-12, mở rộng FR-01/FR-07): vai trò Người dùng thông thường, nhóm quyền, quản lý người dùng nâng cao, phòng ban, tài khoản của tôi, hàng đợi xử lý, cột trạng thái duyệt, nút quay lại, menu gom nhóm | đặc tả đã chốt (D-07, D-08) | xong: (2) vai trò & quyền + migration 0107 (#10); (3) quản trị & tài khoản (#11); (4) hàng đợi xử lý, cột/lọc trạng thái duyệt, nút quay lại, menu gom nhóm, sửa chuyển hướng sau đăng xuất (#12) |
 | **Hiện thực SDD v0.8 — FR-13 Chia sẻ tài liệu đã xuất bản** (D-09): Riêng tư / Nội bộ (phòng ban của tài liệu + phòng ban chọn thêm) / Toàn hệ thống + người đích danh; chia sẻ chỉ mở quyền xem; duyệt, xuất bản, duyệt mượn giới hạn ở Kiểm duyệt viên phòng ban của tài liệu | đặc tả v0.8 (UC-29, ERD 17 bảng) | xong: (1) đặc tả v0.8 (#13); (2) backend (#14); (3) giao diện: hộp thoại Chia sẻ, nhãn chế độ, bộ lọc "Được chia sẻ với tôi", E2E |
+| **Hiện thực SDD v0.9** — D-10 chọn danh mục khi tải lên (Danh mục gợi ý tự áp dụng sau OCR / Do người dùng chọn, danh mục hệ thống "Chưa phân loại", documents.category_source); FR-04 OCR vùng ảnh nhúng trong trang PDF có lớp chữ; tab Gợi ý danh mục hiển thị danh mục đang áp dụng (sửa lỗi hiển thị "Đang dùng" lệch) | đặc tả v0.9 | 3 PR: (1) đặc tả v0.9 (kèm sửa câu chữ FR-11 theo hiện thực); (2) OCR vùng ảnh; (3) danh mục tự động + tab Gợi ý danh mục, migration 0109 |
 | **Cải thiện OCR có dấu** (chữ in và viết tay còn sai dấu nhiều) | 2–3 ảnh mẫu kèm text đúng; biết là chữ in hay viết tay | chẩn đoán + 7 phương án + thứ tự làm: GUIDE mục 9 (ưu tiên VietOCR cho chữ in, DPI 300, lọc ký tự lạ) |
 | **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB`, `MAX_PAGES` |
 | Bắt buộc CI xanh trước khi merge | sửa ruleset (GUIDE 7.1) | 2 test chập chờn đã sửa (PR #4) nên có thể bật |
