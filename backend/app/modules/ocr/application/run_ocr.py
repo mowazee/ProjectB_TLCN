@@ -3,6 +3,7 @@
 Pipeline: file gốc -> PyMuPDF (text layer hoặc render) -> OpenCV tiền xử lý -> engine theo
 profile (print | handwriting) -> document_pages + ocr_results -> chỉ mục text hiệu lực
 -> OcrCompleted (phát sau commit). Lỗi một trang không làm hỏng cả tài liệu.
+Trang có lớp chữ vẫn OCR các vùng ảnh nhúng chưa có chữ (v0.9, FR-04; ocr/domain/regions.py).
 """
 
 import logging
@@ -12,6 +13,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+import cv2
 import numpy as np
 import pymupdf
 from sqlalchemy import select
@@ -23,6 +25,7 @@ from app.modules.ocr.application import engines
 from app.modules.ocr.application.queries import current_correction
 from app.modules.ocr.domain.events import OcrCompleted
 from app.modules.ocr.domain.ports import TEXT_LAYER_ENGINE, OcrLine, OcrOutput, needs_review
+from app.modules.ocr.domain.regions import Box, merge_reading_order, regions_to_ocr
 from app.modules.ocr.infrastructure import images, pdf
 from app.modules.ocr.infrastructure.models import OcrResult
 from app.modules.search.application.index import index_page
@@ -41,6 +44,7 @@ class _PageInput:
     png: bytes | None = None
     lines: list[pdf.TextLine] | None = None
     image_bgr: np.ndarray | None = None
+    image_boxes: list[Box] | None = None
 
 
 def _page_inputs(doc: Any) -> tuple[int, Iterator[_PageInput]]:
@@ -56,7 +60,8 @@ def _page_inputs(doc: Any) -> tuple[int, Iterator[_PageInput]]:
         if total > settings.MAX_PAGES:
             raise JobError("TOO_MANY_PAGES", f"{total} trang")
         return total, (
-            _PageInput(p.number, png=p.png, lines=p.lines) for p in pdf.render_pages(src, settings.OCR_RENDER_DPI)
+            _PageInput(p.number, png=p.png, lines=p.lines, image_boxes=p.image_boxes)
+            for p in pdf.render_pages(src, settings.OCR_RENDER_DPI)
         )
     try:
         image = images.load_image_bgr(src)
@@ -87,10 +92,8 @@ def _recognize(page_in: _PageInput, holder: _EngineHolder, use_text_layer: bool)
         if use_text_layer and chars >= settings.TEXT_LAYER_MIN_CHARS:
             bgr = images.png_to_bgr(page_in.png)
             h, w = bgr.shape[:2]
-            out = OcrOutput(
-                TEXT_LAYER_ENGINE, pymupdf.__version__, [OcrLine(ln.text, None, ln.box) for ln in page_in.lines or []]
-            )
-            return page_in.png, w, h, out
+            lines = [OcrLine(ln.text, None, ln.box) for ln in page_in.lines or []]
+            return page_in.png, w, h, _with_image_text(bgr, lines, page_in.image_boxes or [], holder)
         source = images.png_to_bgr(page_in.png)
     elif page_in.image_bgr is not None:
         source = page_in.image_bgr
@@ -100,6 +103,59 @@ def _recognize(page_in: _PageInput, holder: _EngineHolder, use_text_layer: bool)
     h, w = processed.shape[:2]
     out = holder.get().recognize(processed)
     return images.encode_png(processed), w, h, out
+
+
+MIN_CROP_SIDE = 200  # vùng ảnh nhỏ hơn thì phóng to 2 lần cho engine đọc chữ nhỏ
+
+
+def _ocr_region(engine: Any, page_bgr: np.ndarray, box: Box) -> list[OcrLine]:
+    """OCR một vùng ảnh; box của kết quả đổi về toạ độ ảnh trang (để highlight P2-02 vẽ đúng chỗ)."""
+    x, y, w, h = box
+    crop = page_bgr[y : y + h, x : x + w]
+    scale = 2.0 if min(w, h) < MIN_CROP_SIDE else 1.0
+    if scale != 1.0:
+        crop = cv2.resize(crop, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    # Không deskew: vùng cắt phải giữ đúng hệ toạ độ của trang
+    crop = cv2.cvtColor(cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY), cv2.COLOR_GRAY2BGR)
+    out = engine.recognize(crop)
+    return [
+        OcrLine(
+            ln.text,
+            ln.score,
+            (
+                x + round(ln.box[0] / scale),
+                y + round(ln.box[1] / scale),
+                round(ln.box[2] / scale),
+                round(ln.box[3] / scale),
+            ),
+        )
+        for ln in out.lines
+        if ln.text.strip()
+    ]
+
+
+def _with_image_text(
+    page_bgr: np.ndarray, lines: list[OcrLine], image_boxes: list[Box], holder: "_EngineHolder"
+) -> OcrOutput:
+    """Trang có lớp chữ: thêm chữ OCR từ các ảnh nhúng chưa có chữ (nếu có) vào đúng vị trí đọc."""
+    h, w = page_bgr.shape[:2]
+    regions = regions_to_ocr(
+        image_boxes,
+        lines,
+        w,
+        h,
+        min_area_ratio=settings.OCR_IMAGE_MIN_AREA,
+        max_regions=settings.OCR_IMAGE_MAX_REGIONS,
+        min_text_chars=settings.TEXT_LAYER_MIN_CHARS,
+    )
+    if not regions:  # PDF thuần chữ: không nạp engine OCR
+        return OcrOutput(TEXT_LAYER_ENGINE, pymupdf.__version__, lines)
+    engine = holder.get()
+    blocks = [(box, _ocr_region(engine, page_bgr, box)) for box in regions]
+    if not any(found for _, found in blocks):
+        return OcrOutput(TEXT_LAYER_ENGINE, pymupdf.__version__, lines)
+    version = f"{pymupdf.__version__}+{engine.version}" if engine.version else pymupdf.__version__
+    return OcrOutput(f"{TEXT_LAYER_ENGINE}+{engine.name}", version, merge_reading_order(lines, blocks))
 
 
 def handle(ctx: Any) -> None:
@@ -119,6 +175,7 @@ def handle(ctx: Any) -> None:
     review: list[int] = []
     confidences: list[Decimal] = []
     text_layer = 0
+    mixed = 0
     for page_in in pages:
         try:
             png, w, h, out = _recognize(page_in, holder, use_text_layer)
@@ -151,6 +208,10 @@ def handle(ctx: Any) -> None:
             index_page(db, page.id, correction.corrected_text if correction else out.text)
             if out.is_text_layer:
                 text_layer += 1
+            elif out.engine.startswith(f"{TEXT_LAYER_ENGINE}+"):
+                mixed += 1  # lớp chữ + OCR vùng ảnh
+                if conf is not None:
+                    confidences.append(conf)
             elif conf is not None:
                 confidences.append(conf)
             if flag:
@@ -162,6 +223,7 @@ def handle(ctx: Any) -> None:
             "pages": total,
             "profile": profile,
             "text_layer_pages": text_layer,
+            "mixed_pages": mixed,
             "needs_review_pages": review,
             "failed_pages": failed,
             "avg_confidence": round(float(sum(confidences) / len(confidences)), 2) if confidences else None,

@@ -83,6 +83,10 @@ class Settings(BaseSettings):
     OCR_MODEL_SOURCE_CHECK: bool = False
     OCR_PREPROCESS_DENOISE: bool = False
     TEXT_LAYER_MIN_CHARS: int = 20
+    # FR-04 (v0.9): trang PDF có lớp chữ vẫn OCR ảnh nhúng chiếm ít nhất tỷ lệ diện tích trang này và bên trong chưa
+    # có chữ; tối đa OCR_IMAGE_MAX_REGIONS vùng mỗi trang (giới hạn thời gian xử lý)
+    OCR_IMAGE_MIN_AREA: float = 0.02
+    OCR_IMAGE_MAX_REGIONS: int = 8
     # Trang có confidence (0-100) dưới ngưỡng -> needs_review. Hiệu chỉnh theo NFR-08 (D-06)
     NEEDS_REVIEW_THRESHOLD: float = 85.0
 
