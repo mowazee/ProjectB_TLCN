@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.audit.application.recorder import record
 from app.modules.jobs.application.create import send_or_fail
-from app.modules.jobs.domain.model import ACTIVE_STATUSES, OCR, JobStatus
+from app.modules.jobs.domain.model import ACTIVE_STATUSES, CANCELLED, OCR, JobStatus
 from app.modules.jobs.infrastructure.models import ProcessingJob
 from app.shared.config import settings
 from app.shared.context import Principal, RequestContext
@@ -176,6 +176,36 @@ def retry_job(db: Session, actor: Principal, job_id: uuid.UUID, ctx: RequestCont
     )
     jid, queue = job.id, job.queue_name
     after_commit(db, lambda: send_or_fail(jid, queue))
+    db.commit()
+    return job
+
+
+def cancel_job(db: Session, actor: Principal, job_id: uuid.UUID, ctx: RequestContext) -> ProcessingJob:
+    """FR-04 (v0.10): dừng job đang chờ/đang chạy. Job chờ: worker bỏ qua khi nhận message. Job đang chạy: worker
+    dừng sau đơn vị việc hiện tại (trang OCR). Trạng thái failed + CANCELLED nên Chạy lại (D-03) dùng được.
+    Quyền do tầng presentation kiểm (như retry)."""
+    job = db.scalar(select(ProcessingJob).where(ProcessingJob.id == job_id).with_for_update())
+    if job is None:
+        raise NotFoundError("Không tìm thấy job")
+    if job.status not in ACTIVE_STATUSES:
+        raise ConflictError("Chỉ dừng được job đang chờ hoặc đang xử lý", code="JOB_NOT_ACTIVE")
+    before = {"status": str(job.status), "progress": job.progress}
+    job.status = JobStatus.FAILED
+    job.error_code = CANCELLED
+    job.error_detail = f"Dừng bởi {actor.username}"
+    job.finished_at = utcnow()
+    record(
+        db,
+        action="cancel_job",
+        module="jobs",
+        actor_id=actor.id,
+        ctx=ctx,
+        entity_type="job",
+        entity_id=job.id,
+        document_id=job.document_id,
+        before=before,
+        after={"status": "failed", "error_code": CANCELLED},
+    )
     db.commit()
     return job
 

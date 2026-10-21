@@ -25,7 +25,7 @@ from app.modules.ocr.application import engines
 from app.modules.ocr.application.queries import current_correction
 from app.modules.ocr.domain.events import OcrCompleted
 from app.modules.ocr.domain.ports import TEXT_LAYER_ENGINE, OcrLine, OcrOutput, needs_review
-from app.modules.ocr.domain.regions import Box, merge_reading_order, regions_to_ocr
+from app.modules.ocr.domain.regions import Box, drop_duplicates, merge_reading_order, regions_to_ocr
 from app.modules.ocr.infrastructure import images, pdf
 from app.modules.ocr.infrastructure.models import OcrResult
 from app.modules.search.application.index import index_page
@@ -151,11 +151,11 @@ def _with_image_text(
     if not regions:  # PDF thuần chữ: không nạp engine OCR
         return OcrOutput(TEXT_LAYER_ENGINE, pymupdf.__version__, lines)
     engine = holder.get()
-    blocks = [(box, _ocr_region(engine, page_bgr, box)) for box in regions]
+    blocks = [(box, drop_duplicates(_ocr_region(engine, page_bgr, box), lines)) for box in regions]
     if not any(found for _, found in blocks):
         return OcrOutput(TEXT_LAYER_ENGINE, pymupdf.__version__, lines)
-    version = f"{pymupdf.__version__}+{engine.version}" if engine.version else pymupdf.__version__
-    return OcrOutput(f"{TEXT_LAYER_ENGINE}+{engine.name}", version, merge_reading_order(lines, blocks))
+    # engine_version tối đa 50 ký tự: ghi phiên bản/model của engine OCR (phần quyết định chất lượng), bỏ bản PyMuPDF
+    return OcrOutput(f"{TEXT_LAYER_ENGINE}+{engine.name}", engine.version, merge_reading_order(lines, blocks))
 
 
 def handle(ctx: Any) -> None:
@@ -171,6 +171,9 @@ def handle(ctx: Any) -> None:
 
     t0 = time.perf_counter()
     total, pages = _page_inputs(doc)
+    # Không giữ transaction mở trong lúc OCR (một trang có thể mất hàng chục giây): API/người dùng cần ghi vào job
+    # (vd. bấm Dừng) không bị chặn; các trang sau đã có commit ở ctx.progress.
+    db.commit()
     failed: list[int] = []
     review: list[int] = []
     confidences: list[Decimal] = []

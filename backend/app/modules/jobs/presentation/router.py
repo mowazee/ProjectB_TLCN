@@ -1,4 +1,5 @@
-"""API jobs (SDD mục 7.1): GET /api/jobs (v0.7, FR-11 hàng đợi xử lý); GET /api/jobs/{id}; POST /api/jobs/{id}/retry.
+"""API jobs (SDD mục 7.1): GET /api/jobs (v0.7, FR-11 hàng đợi xử lý); GET /api/jobs/{id}; POST /api/jobs/{id}/retry;
+POST /api/jobs/{id}/cancel (v0.10).
 
 Quyền theo tài liệu của job (xem để đọc, quản lý để retry). Job cấp lô (BULK_IMPORT, chưa có
 document_id) chỉ người tạo hoặc Admin được xem/retry. Danh sách: Nghiệp vụ (theo phạm vi) và Admin.
@@ -85,6 +86,14 @@ def get_job(job_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal) -> Jo
     job = jobs.get_job(db, job_id)
     authorize(db, principal, job, manage=False)
     return job_out(job)
+
+
+@router.post("/{job_id}/cancel", response_model=JobOut)
+def cancel_job(job_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal, ctx: Ctx) -> JobOut:
+    """FR-04 (v0.10): dừng job đang chờ/đang xử lý; cùng quyền với Chạy lại."""
+    job = jobs.get_job(db, job_id)
+    authorize(db, principal, job, manage=True)
+    return job_out(jobs.cancel_job(db, principal, job_id, ctx))
 
 
 @router.post("/{job_id}/retry", response_model=JobOut)

@@ -88,8 +88,10 @@ const APPROVAL_TONE: Record<string, Tone> = {
   unpublished: "warn",
 };
 
-export function JobBadge({ status }: { status: string | null | undefined }) {
+/** errorCode = "CANCELLED": job người dùng đã dừng (status failed) -> nhãn trung tính "Đã dừng" thay vì "Lỗi". */
+export function JobBadge({ status, errorCode }: { status: string | null | undefined; errorCode?: string | null }) {
   if (!status) return <span className="muted">—</span>;
+  if (status === "failed" && errorCode === "CANCELLED") return <Badge>Đã dừng</Badge>;
   return <Badge tone={JOB_TONE[status] ?? "neutral"}>{JOB_STATUS_LABELS[status] ?? status}</Badge>;
 }
 

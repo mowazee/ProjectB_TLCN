@@ -22,6 +22,13 @@ OCR = "OCR"
 ACTIVE_STATUSES = (JobStatus.QUEUED, JobStatus.PROCESSING)
 
 
+CANCELLED = "CANCELLED"  # error_code của job bị người dùng dừng (status failed, chạy lại được)
+
+
+class JobCancelled(Exception):
+    """Handler/runner phát hiện job đã bị dừng giữa chừng: thôi xử lý, giữ nguyên trạng thái người dùng đặt."""
+
+
 class JobError(Exception):
     """Handler ném lỗi này để báo mã lỗi ổn định và có nên thử lại hay không."""
 
@@ -44,6 +51,7 @@ ERROR_MESSAGES = {
     "NO_HANDLER": "Tính năng xử lý job này đang tắt.",
     "IMPORT_REJECTED": "Lô nhập bị từ chối (vượt giới hạn hoặc file nén không an toàn).",
     "INTERNAL_ERROR": "Lỗi hệ thống khi xử lý.",
+    "CANCELLED": "Đã dừng theo yêu cầu. Các trang đã xử lý được giữ lại; bấm Chạy lại để xử lý lại từ đầu.",
 }
 
 

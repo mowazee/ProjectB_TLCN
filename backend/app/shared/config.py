@@ -79,6 +79,11 @@ class Settings(BaseSettings):
     OCR_LANG: str = "vi"
     OCR_DEVICE: str = "cpu"
     OCR_RENDER_DPI: int = 200
+    # Model PaddleOCR cho chữ in. Mặc định bản mobile: trên CPU nhanh hơn ~13 lần bản PP-OCRv6 medium (đo 21/10/2026
+    # trên văn bản scan thật: ~3,5 s/trang so với ~50 s/trang) với nội dung tương đương. Để trống cả hai = dùng
+    # model mặc định của PaddleOCR theo OCR_LANG (PP-OCRv6 medium).
+    OCR_DET_MODEL: str = "PP-OCRv5_mobile_det"
+    OCR_REC_MODEL: str = "latin_PP-OCRv5_mobile_rec"
     OCR_PRELOAD_ON_START: bool = True
     OCR_MODEL_SOURCE_CHECK: bool = False
     OCR_PREPROCESS_DENOISE: bool = False

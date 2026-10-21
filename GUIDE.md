@@ -336,6 +336,7 @@ sửa phiên bản trong file, chạy test, để CI xác nhận.
 | Worker khởi động rất lâu (~2 phút) | PaddleX kiểm tra nguồn model; giữ `OCR_MODEL_SOURCE_CHECK=false`. |
 | `paddle` lỗi oneDNN | Dùng `paddlepaddle>=3.2,<3.3` (đã ghim trong requirements-ocr.txt). |
 | Job đứng ở "Đang chờ" | Worker chưa chạy hoặc không nghe đúng hàng đợi (`default,ocr`, chữ viết tay `ocr_hw`); beat gửi lại job kẹt sau `JOB_REQUEUE_AFTER_SECONDS`. |
+| OCR quá chậm (hàng chục giây/trang) | Kiểm tra `OCR_DET_MODEL`, `OCR_REC_MODEL` trong `backend/.env`: để trống = model PP-OCRv6 medium (~50 s/trang CPU); mặc định bản mobile (~3–4 s/trang). Job đang chạy có thể bấm **Dừng** ở trang chi tiết hoặc Hàng đợi xử lý (dừng sau trang hiện tại, các trang đã xong được giữ, bấm Chạy lại để làm lại). |
 | 403 `CSRF_FAILED` / `ORIGIN_REJECTED` | Truy cập khác origin cấu hình: thêm origin vào `ALLOWED_ORIGINS`; tải lại trang để lấy CSRF token mới. |
 | `Cổng 8080 đang được dùng` | Demo đang chạy → `.\demo-stop.cmd`, hoặc `.\demo-start.cmd -Port 8081`. |
 | Gõ `docker ...` báo "not recognized" | Terminal mở trước khi cài Docker nên PATH cũ: mở terminal mới (hoặc khởi động lại VS Code). `docker-start.cmd`/`docker-stop.cmd` tự xử lý được. |

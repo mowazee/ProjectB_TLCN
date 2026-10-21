@@ -18,6 +18,25 @@ from tests.conftest import FONT, make_png, upload
 ZOOM = 200 / 72  # OCR_RENDER_DPI mặc định
 
 
+SIGNATURE = [
+    "Người ký: CỔNG THÔNG TIN ĐIỆN TỬ CHÍNH PHỦ",
+    "Cơ quan: VĂN PHÒNG CHÍNH PHỦ",
+    "Thời gian ký: 10.01.2025 15:20:10 +07:00",
+]
+
+
+def _signed_scan_pdf() -> bytes:
+    """Như văn bản ký số thật: trang 1 là ảnh scan phủ cả trang + khối chữ ký số (lớp chữ) nhỏ ở góc trên."""
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_image(page.rect, stream=make_png("Nội dung bản scan", size=(1190, 1684)))  # đúng tỷ lệ A4
+    if FONT:
+        page.insert_font(fontname="vn", fontfile=FONT)
+    for i, line in enumerate(SIGNATURE):
+        page.insert_text((370, 22 + i * 8), line, fontname="vn" if FONT else "helv", fontsize=6)
+    return bytes(doc.tobytes())
+
+
 def _pdf(*, image_rect=None, invisible_scan=False) -> bytes:
     doc = pymupdf.open()
     page = doc.new_page()
@@ -27,8 +46,9 @@ def _pdf(*, image_rect=None, invisible_scan=False) -> bytes:
         font = "vn"
     if invisible_scan:
         # Bản scan đã OCR sẵn: ảnh phủ cả trang + lớp chữ ẩn (render_mode=3) nằm trên ảnh
-        page.insert_image(page.rect, stream=make_png("Ban scan", size=(1200, 1600)))
-        page.insert_text((72, 200), "Văn bản đã OCR sẵn trong bản scan, lớp chữ ẩn", fontname=font, render_mode=3)
+        page.insert_image(page.rect, stream=make_png("Ban scan", size=(1190, 1684)))
+        for y in (120, 400, 700):  # lớp chữ ẩn trải khắp trang như phần mềm scan sinh ra
+            page.insert_text((72, y), "Văn bản đã OCR sẵn trong bản scan, lớp chữ ẩn", fontname=font, render_mode=3)
         return bytes(doc.tobytes())
     page.insert_text((72, 100), "Dòng đầu trang của lớp chữ số 1", fontname=font, fontsize=12)
     page.insert_text((72, 700), "Dòng cuối trang của lớp chữ số 2", fontname=font, fontsize=12)
@@ -76,6 +96,21 @@ def test_text_layer_page_also_reads_text_inside_embedded_image(seed, login, db, 
     assert hits["total"] == 1
 
 
+def test_signed_scan_page_ocrs_scan_content_not_only_signature(seed, login, db, fake_engine):
+    sig_y = round(22 * ZOOM)  # dòng chữ ký đầu tiên (pixel)
+    fake_engine.lines = [
+        OcrLine("Điều 1. Phạm vi điều chỉnh", 0.95, (100, 600, 900, 40)),
+        OcrLine("Người ký: CỔNG THÔNG TIN", 0.9, (round(370 * ZOOM) + 5, sig_y - 12, 400, 18)),  # OCR đọc lại chữ ký
+    ]
+    _, page, result = _run(seed, login, db, _signed_scan_pdf())
+    assert fake_engine.calls == 1  # nội dung bản scan được OCR (trước đây chỉ lấy khối chữ ký)
+    text = result.raw_text.splitlines()
+    assert "Điều 1. Phạm vi điều chỉnh" in text
+    assert text.count("Người ký: CỔNG THÔNG TIN ĐIỆN TỬ CHÍNH PHỦ") == 1  # chữ ký giữ từ lớp chữ, không lặp
+    assert "Người ký: CỔNG THÔNG TIN" not in text  # dòng OCR trùng vị trí lớp chữ bị bỏ
+    assert result.engine_version.startswith("pymupdf+fake")
+
+
 def test_scan_with_hidden_text_layer_is_not_ocred_again(seed, login, db, fake_engine, monkeypatch):
     loads = []
     real = engines.get_engine
@@ -95,7 +130,10 @@ def test_regions_and_reading_order_rules():
     page = (1700, 2200)
     common = {"min_area_ratio": 0.02, "max_regions": 8, "min_text_chars": 20}
     stamp, background, logo = (100, 600, 600, 400), (0, 0, 1700, 2200), (1500, 50, 60, 30)
-    assert regions_to_ocr([stamp, background, logo], text, *page, **common) == [stamp]
+    body = [OcrLine("Nội dung văn bản trải khắp trang " * 2, None, (100, y, 1400, 40)) for y in (100, 1000, 2000)]
+    assert regions_to_ocr([stamp, background, logo], body, *page, **common) == [stamp]  # ảnh nền dưới văn bản: bỏ
+    # Chỉ một khối chữ nhỏ (chữ ký số) trên ảnh phủ cả trang: vẫn OCR ảnh
+    assert regions_to_ocr([background], text, *page, **common) == [background]
     many = [(0, i * 180, 600, 170) for i in range(12)]  # mỗi vùng ~2,7% trang
     assert len(regions_to_ocr(many, [], *page, **common | {"max_regions": 3})) == 3
 

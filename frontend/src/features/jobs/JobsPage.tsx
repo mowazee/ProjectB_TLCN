@@ -16,6 +16,7 @@ import {
 } from "@/shared/components/ui";
 import { JOB_STATUS_LABELS, formatDateTime } from "@/shared/lib/format";
 
+import { CancelJobButton } from "./CancelJobButton";
 import { useRetryJob } from "./useJob";
 import s from "./jobs.module.css";
 
@@ -150,7 +151,7 @@ export function JobsPage() {
                   </td>
                   <td>
                     <div className="row">
-                      <JobBadge status={j.status} />
+                      <JobBadge status={j.status} errorCode={j.error_code} />
                       {j.stale && <Badge tone="warn">Chờ quá lâu</Badge>}
                     </div>
                     {(j.status === "processing" || j.status === "queued") && (
@@ -159,7 +160,7 @@ export function JobsPage() {
                       </div>
                     )}
                     {j.status === "failed" && j.error_message && (
-                      <div className={s.error}>
+                      <div className={j.error_code === "CANCELLED" ? s.note : s.error}>
                         {j.error_message} <span className="muted">({j.error_code})</span>
                       </div>
                     )}
@@ -172,6 +173,9 @@ export function JobsPage() {
                     {j.finished_at && <div className="muted">xong {formatDateTime(j.finished_at)}</div>}
                   </td>
                   <td>
+                    {(j.status === "queued" || j.status === "processing") && (
+                      <CancelJobButton jobId={j.id} processing={j.status === "processing"} />
+                    )}
                     {j.status === "failed" && (
                       <button
                         className="btn btn-sm"
