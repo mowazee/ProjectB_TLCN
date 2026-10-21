@@ -24,6 +24,7 @@ from app.modules.documents.domain import policies
 from app.modules.documents.domain.events import DocumentDeleted, DocumentRestored
 from app.modules.documents.domain.lifecycle import (
     ApprovalStatus,
+    CategorySource,
     LifecycleStatus,
     PageOcrStatus,
     can_restore_at,
@@ -33,7 +34,7 @@ from app.modules.documents.infrastructure.models import Document, DocumentPage
 from app.modules.jobs.application import queries as jobs
 from app.modules.users.application.queries import display_names
 from app.shared.config import settings
-from app.shared.context import Principal, RequestContext
+from app.shared.context import SYSTEM_CONTEXT, Principal, RequestContext
 from app.shared.db import aware, utcnow
 from app.shared.errors import GoneError, NotFoundError, PermissionDeniedError
 from app.shared.events import publish
@@ -55,6 +56,10 @@ class DocumentView:
     can_share: bool = False  # FR-13: chủ sở hữu/Admin, tài liệu đã xuất bản
 
     @property
+    def category_source(self) -> str:
+        return str(self.doc.category_source)
+
+    @property
     def share_mode(self) -> str:
         return str(self.doc.share_mode)
 
@@ -67,6 +72,7 @@ def _snapshot(doc: Document) -> dict[str, Any]:
     return {
         "title": doc.title,
         "category_id": doc.category_id,
+        "category_source": str(doc.category_source),
         "document_code": doc.document_code,
         "is_handwritten": doc.is_handwritten,
         "lifecycle_status": str(doc.lifecycle_status),
@@ -183,6 +189,7 @@ def update_document(
     if changes.get("category_id") is not None and changes["category_id"] != doc.category_id:
         categories.require_active(db, int(changes["category_id"]))
         doc.category_id = int(changes["category_id"])
+        doc.category_source = CategorySource.USER  # D-10: người dùng chọn/áp dụng -> không tự ghi đè nữa
     if "document_code" in changes:
         doc.document_code = (changes["document_code"] or "").strip() or None
     if changes.get("is_handwritten") is not None:
@@ -204,6 +211,34 @@ def update_document(
         db.commit()
         db.refresh(doc)
     return doc
+
+
+def apply_auto_category(
+    db: Session, document_id: uuid.UUID, category_id: int, *, extra: dict[str, Any] | None = None
+) -> bool:
+    """D-10 (v0.9): job CLASSIFY tự áp dụng gợi ý cho tài liệu đang chờ phân loại (category_source = pending).
+
+    Không commit (job runner commit khi xong). Trả False nếu tài liệu không còn chờ (người dùng đã tự chọn danh mục
+    trong lúc chờ OCR) hoặc đã xóa - không bao giờ ghi đè danh mục người dùng chọn (P2-05)."""
+    doc = db.get(Document, document_id)
+    if doc is None or doc.lifecycle_status != LifecycleStatus.ACTIVE or doc.category_source != CategorySource.PENDING:
+        return False
+    before = _snapshot(doc)
+    doc.category_id = category_id
+    doc.category_source = CategorySource.AUTO
+    record(
+        db,
+        action="auto_classify",
+        module="documents",
+        actor_id=None,
+        ctx=SYSTEM_CONTEXT,
+        entity_type="document",
+        entity_id=doc.id,
+        document_id=doc.id,
+        before=before,
+        after={**_snapshot(doc), **(extra or {})},
+    )
+    return True
 
 
 def soft_delete(db: Session, principal: Principal, document_id: uuid.UUID, ctx: RequestContext) -> None:

@@ -39,7 +39,7 @@ function remember(jobId: string) {
 
 /** UC-23 (P2-08): tải nhiều file hoặc ZIP + danh mục (+ metadata.csv) -> job BULK_IMPORT. */
 export function ImportPage() {
-  const categories = useCategories(true);
+  const categories = useCategories(true, { selectable: true });
   const navigate = useNavigate();
   const [count, setCount] = useState(0);
   const start = useMutation({

@@ -9,6 +9,14 @@ class LifecycleStatus(StrEnum):
     DELETED = "deleted"
 
 
+class CategorySource(StrEnum):
+    """D-10 (SDD v0.9): nguồn của documents.category_id."""
+
+    USER = "user"  # người dùng chọn (khi tải lên, sửa thông tin) hoặc đã bấm Áp dụng gợi ý
+    AUTO = "auto"  # job CLASSIFY tự áp dụng gợi ý cao nhất
+    PENDING = "pending"  # tải lên ở chế độ Danh mục gợi ý, đang "Chưa phân loại" chờ tự phân loại
+
+
 class ShareMode(StrEnum):
     """D-09 (SDD v0.8): chế độ chia sẻ, chỉ có hiệu lực khi tài liệu đã xuất bản."""
 

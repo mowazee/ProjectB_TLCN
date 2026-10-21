@@ -264,6 +264,7 @@ def document_brief(db: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, dict[str
             Document.department_id,
             Document.approval_status,
             Document.category_id,
+            Document.category_source,
             Document.created_at,
         ).where(Document.id.in_(ids))
     ).all()
@@ -274,6 +275,7 @@ def document_brief(db: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, dict[str
             "department_id": r.department_id,
             "approval_status": str(r.approval_status),
             "category_id": r.category_id,
+            "category_source": str(r.category_source),
             "created_at": r.created_at.isoformat() if r.created_at else "",
         }
         for r in rows

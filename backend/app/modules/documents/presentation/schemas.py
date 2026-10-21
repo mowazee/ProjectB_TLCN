@@ -43,6 +43,7 @@ class DocumentOut(BaseModel):
     job_status: str | None = Field(description="Trạng thái job OCR mới nhất")
     job_id: uuid.UUID | None = Field(default=None, description="Job OCR mới nhất (poll tiến độ / retry)")
     can_edit: bool
+    category_source: str = Field(description="D-10: user | auto | pending (nguồn danh mục)")
     share_mode: str = Field(description="FR-13: private | internal | public; chỉ có hiệu lực khi đã xuất bản")
     can_share: bool = Field(description="FR-13: người dùng hiện tại đổi được cấu hình chia sẻ")
 
@@ -92,6 +93,7 @@ def document_out(v: DocumentView) -> DocumentOut:
         needs_review_pages=v.needs_review_pages,
         job_status=v.job_status,
         job_id=v.job_id,
+        category_source=v.category_source,
         share_mode=v.share_mode,
         can_share=v.can_share,
         can_edit=v.can_edit,

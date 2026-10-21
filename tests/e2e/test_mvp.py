@@ -2,7 +2,7 @@
 
 from playwright.sync_api import Page, expect
 
-from conftest import BASE_URL, OFFICER, login, make_pdf, upload_and_wait
+from conftest import BASE_URL, OFFICER, choose_category, login, make_pdf, upload_and_wait
 
 
 def test_login_reload_and_logout(page: Page):
@@ -50,7 +50,7 @@ def test_upload_rejects_fake_pdf(officer_page: Page, tmp_path):
     page = officer_page
     page.goto(f"{BASE_URL}/documents/new")
     page.locator("input[name=file]").set_input_files(str(fake))
-    page.get_by_label("Danh mục").select_option(label="Hợp đồng")
+    choose_category(page, "Hợp đồng")
     page.get_by_role("button", name="Tải lên").click()
     expect(page.get_by_role("alert")).to_contain_text("Loại file không được hỗ trợ")
 

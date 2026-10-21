@@ -49,12 +49,21 @@ def features(page: Page) -> list[str]:
     return page.evaluate("fetch('/api/auth/me').then(r => r.json()).then(b => b.features)")
 
 
+def choose_category(page: Page, category: str) -> None:
+    """D-10: khi bật phân loại tự động, mặc định Danh mục gợi ý - chuyển sang tự chọn để có ô chọn danh mục."""
+    page.locator("select[name=category_id], [role=radio]").first.wait_for()
+    mine = page.get_by_role("radio", name="Tôi chọn danh mục")
+    if mine.count():
+        mine.click()
+    page.locator("select[name=category_id]").select_option(label=category)
+
+
 def upload_and_wait(page: Page, pdf_path: str, title: str, category: str = "Hợp đồng") -> str:
     """Upload qua giao diện, chờ job OCR hoàn tất; trả document_id."""
     page.goto(f"{BASE_URL}/documents/new")
     page.locator("input[name=file]").set_input_files(pdf_path)
     page.get_by_label("Tiêu đề").fill(title)
-    page.get_by_label("Danh mục").select_option(label=category)
+    choose_category(page, category)
     page.get_by_role("button", name="Tải lên").click()
     page.get_by_role("link", name="Mở tài liệu").click()
     expect(page.get_by_text("Hoàn tất").first).to_be_visible(timeout=90_000)

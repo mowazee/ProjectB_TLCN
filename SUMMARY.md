@@ -23,10 +23,10 @@ và chạy được end to end**; đặc tả v0.7 khớp với code; CI xanh tr
 
 | Bộ | Kết quả |
 |---|---|
-| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 139 passed, 1 skipped / 139 passed, 1 skipped (21/10, thêm OCR vùng ảnh) |
+| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 151 passed, 1 skipped / 151 passed, 1 skipped (21/10, thêm dừng OCR, danh mục tự động D-10) |
 | CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#5) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (PR #4, `main` sau #4) |
-| Frontend Vitest | 37 passed (19/10: thêm hộp thoại Chia sẻ, nút chia sẻ ở trang chi tiết, bộ lọc Được chia sẻ với tôi) |
+| Frontend Vitest | 44 passed (21/10: thêm chọn cách gán danh mục khi tải lên, tab Gợi ý danh mục) |
 | E2E Playwright trên demo thật, mọi cờ bật (local, 19/10) | 10 passed, 1 skipped (thêm luồng chia sẻ giữa hai phòng ban; test còn lại dành cho cờ tắt) |
 | CI `e2e`: 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) | xanh trên mọi PR (#2–#5) |
 | E2E chế độ chỉ MVP (`-Mvp`, local 05/10) | 6 passed, 4 skipped (các test P2 tự bỏ qua khi cờ tắt) |
@@ -53,7 +53,7 @@ và chạy được end to end**; đặc tả v0.7 khớp với code; CI xanh tr
 | P2-02 | search/highlight_module | highlight (pageOverlays) | test_p2_versions_highlight.py; HighlightOverlay.test.tsx; e2e |
 | P2-03 | ocr/handwriting_module (queue ocr_hw); engine VietOCR (auto) | handwriting (uploadFields, reprocess) | test_p2_handwriting.py; test_eval_handwriting.py (đo từ bản sửa trong app) |
 | P2-04 | extraction (job EXTRACT, UNIQUE) | extraction (tab) | test_p2_extraction_classification.py |
-| P2-05 | classification (job CLASSIFY, scikit-learn TF-IDF + Logistic Regression) | classification (tab) | test_p2_extraction_classification.py |
+| P2-05 | classification (job CLASSIFY, scikit-learn TF-IDF + Logistic Regression) | classification (tab) | test_p2_extraction_classification.py, test_v09_auto_category.py (D-10), SuggestionsTab.test.tsx |
 | P2-06 | ocr/versions_module (difflib) | versions (editorTools) | test_p2_versions_highlight.py; e2e |
 | P2-07 | borrowing + notifications (beat nhắc quá hạn) | borrowing, notifications (chuông) | test_p2_borrowing.py, test_p2_workflow.py |
 | P2-08 | imports (job BULK_IMPORT, ZIP an toàn) | imports | test_p2_imports.py; e2e |
@@ -91,7 +91,7 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh
 | **P2-04, P2-05** precision/recall trích xuất, top-1 phân loại | tập mẫu có nhãn | `eval/extraction_eval.py`, `eval/classification_eval.py` |
 | **Hiện thực SDD v0.7** (FR-09…FR-12, mở rộng FR-01/FR-07): vai trò Người dùng thông thường, nhóm quyền, quản lý người dùng nâng cao, phòng ban, tài khoản của tôi, hàng đợi xử lý, cột trạng thái duyệt, nút quay lại, menu gom nhóm | đặc tả đã chốt (D-07, D-08) | xong: (2) vai trò & quyền + migration 0107 (#10); (3) quản trị & tài khoản (#11); (4) hàng đợi xử lý, cột/lọc trạng thái duyệt, nút quay lại, menu gom nhóm, sửa chuyển hướng sau đăng xuất (#12) |
 | **Hiện thực SDD v0.8 — FR-13 Chia sẻ tài liệu đã xuất bản** (D-09): Riêng tư / Nội bộ (phòng ban của tài liệu + phòng ban chọn thêm) / Toàn hệ thống + người đích danh; chia sẻ chỉ mở quyền xem; duyệt, xuất bản, duyệt mượn giới hạn ở Kiểm duyệt viên phòng ban của tài liệu | đặc tả v0.8 (UC-29, ERD 17 bảng) | xong: (1) đặc tả v0.8 (#13); (2) backend (#14); (3) giao diện: hộp thoại Chia sẻ, nhãn chế độ, bộ lọc "Được chia sẻ với tôi", E2E |
-| **Hiện thực SDD v0.9** — D-10 chọn danh mục khi tải lên (Danh mục gợi ý tự áp dụng sau OCR / Do người dùng chọn, danh mục hệ thống "Chưa phân loại", documents.category_source); FR-04 OCR vùng ảnh nhúng trong trang PDF có lớp chữ; tab Gợi ý danh mục hiển thị danh mục đang áp dụng (sửa lỗi hiển thị "Đang dùng" lệch) | đặc tả v0.9 | xong (1) đặc tả v0.9 (#16); (2) OCR vùng ảnh (thử với PaddleOCR thật: đọc được chữ trong ảnh, đúng thứ tự đọc; dấu tiếng Việt vẫn sai như GUIDE mục 9). Còn (3) danh mục tự động + tab Gợi ý danh mục, migration 0109 |
+| **Hiện thực SDD v0.9** — D-10 chọn danh mục khi tải lên (Danh mục gợi ý tự áp dụng sau OCR / Do người dùng chọn, danh mục hệ thống "Chưa phân loại", documents.category_source); FR-04 OCR vùng ảnh nhúng trong trang PDF có lớp chữ; tab Gợi ý danh mục hiển thị danh mục đang áp dụng (sửa lỗi hiển thị "Đang dùng" lệch) | đặc tả v0.9 | xong (1) đặc tả v0.9 (#16); (2) OCR vùng ảnh (thử với PaddleOCR thật: đọc được chữ trong ảnh, đúng thứ tự đọc; dấu tiếng Việt vẫn sai như GUIDE mục 9); (3) danh mục tự động khi tải lên + tab Gợi ý danh mục thiết kế lại, migration 0109, script CSDL v0.9 (GUIDE mục 3) |
 | **SDD v0.10** — dừng OCR (POST /api/jobs/{id}/cancel, nút Dừng có xác nhận), trang scan có khối chữ ký số vẫn OCR nội dung, model OCR chữ in mặc định bản mobile (văn bản scan 17 trang của nhóm: 1241 s → 67 s, nội dung tương đương; dấu tiếng Việt vẫn kém như GUIDE mục 9) | đặc tả v0.10 | cùng PR #17 |
 | **Cải thiện OCR có dấu** (chữ in và viết tay còn sai dấu nhiều) | 2–3 ảnh mẫu kèm text đúng; biết là chữ in hay viết tay | chẩn đoán + 7 phương án + thứ tự làm: GUIDE mục 9 (ưu tiên VietOCR cho chữ in, DPI 300, lọc ký tự lạ) |
 | **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB`, `MAX_PAGES` |
