@@ -83,6 +83,23 @@ thì khối này và danh sách cùng đổi, mỗi lúc chỉ một danh mục 
 người dùng chọn/xác nhận; "Chưa phân loại" không ngừng dùng được, không chọn tay được và không bao giờ được gợi ý. Bật cờ
 khi đã có một ít tài liệu được người dùng gán danh mục — chưa có dữ liệu mẫu, mô hình chỉ dựa vào tên/mô tả danh mục.
 
+**Nhập hàng loạt** (`/imports`, P2-08): chọn nhiều file PDF/PNG/JPG hoặc một file ZIP. Danh mục chọn cho **cả lô** giống
+khi tải lên: **Danh mục gợi ý** (mặc định khi bật `classification`, mỗi file tự phân loại sau OCR) hoặc một danh mục
+cụ thể. **metadata.csv** (tùy chọn, chọn riêng hoặc đặt trong ZIP) ghi thông tin riêng từng file để khỏi sửa tay sau
+khi nhập — nút **Tải file mẫu** tạo sẵn file với mã danh mục thật:
+
+```
+file_name,title,category,document_code
+hop-dong-45.pdf,Hợp đồng mua bán số 45/2026,HOP-DONG,45/2026/HĐMB
+cong-van-12.pdf,Công văn số 12 về số hóa hồ sơ,,12/CV-HCTH
+```
+
+`file_name` bắt buộc (khớp tên file, không phân biệt hoa/thường); `title` trống thì lấy tên file; `category` là **mã**
+danh mục (xem Quản trị → Danh mục), ưu tiên hơn lựa chọn của cả lô — mã sai hoặc danh mục ngừng dùng chỉ làm lỗi file
+đó; `document_code` là số hiệu. Lưu CSV dạng UTF-8 (Excel: *CSV UTF-8*). Báo cáo lô có cột **Danh mục** cho từng file
+(kèm nguồn Người dùng chọn / Tự động / Chờ phân loại, tự cập nhật khi phân loại xong). Lô không gửi thông báo phân loại
+cho từng tài liệu, chỉ một thông báo "Nhập hàng loạt xong" dẫn tới báo cáo.
+
 Menu bên trái gom theo nhóm **Tài liệu / Quy trình / Quản trị / Cá nhân** (chỉ hiện mục vai trò đó dùng được).
 **Hàng đợi xử lý** (`/jobs`, Nghiệp vụ và Admin, FR-11) liệt kê job OCR, trích xuất, phân loại, nhập hàng loạt; job lỗi
 có nút "Chạy lại". Nhãn **"Chờ quá lâu"** nghĩa là job đang chờ quá `JOB_REQUEUE_AFTER_SECONDS` (mặc định 10 phút) hoặc

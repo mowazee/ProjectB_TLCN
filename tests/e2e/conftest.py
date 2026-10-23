@@ -58,12 +58,17 @@ def choose_category(page: Page, category: str) -> None:
     page.locator("select[name=category_id]").select_option(label=category)
 
 
-def upload_and_wait(page: Page, pdf_path: str, title: str, category: str = "Hợp đồng") -> str:
-    """Upload qua giao diện, chờ job OCR hoàn tất; trả document_id."""
+def upload_and_wait(page: Page, pdf_path: str, title: str, category: str | None = None) -> str:
+    """Upload qua giao diện, chờ job OCR hoàn tất; trả document_id.
+
+    category=None: giữ "Danh mục gợi ý" khi phân loại tự động bật - tài liệu nguồn auto/pending không bao giờ thành
+    mẫu huấn luyện (D-10), nên văn bản thử nghiệm không dạy sai mô hình trên dữ liệu demo; cờ tắt thì chọn Hợp đồng."""
     page.goto(f"{BASE_URL}/documents/new")
     page.locator("input[name=file]").set_input_files(pdf_path)
     page.get_by_label("Tiêu đề").fill(title)
-    choose_category(page, category)
+    page.locator("select[name=category_id], [role=radio]").first.wait_for()
+    if category or not page.get_by_role("radio", name=re.compile("Danh mục gợi ý")).count():
+        choose_category(page, category or "Hợp đồng")
     page.get_by_role("button", name="Tải lên").click()
     page.get_by_role("link", name="Mở tài liệu").click()
     expect(page.get_by_text("Hoàn tất").first).to_be_visible(timeout=90_000)

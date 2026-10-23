@@ -6,6 +6,12 @@ OCR riêng) -> báo cáo từng file trong processing_jobs.result. File lỗi kh
 
 Chạy lại không tạo trùng: trạng thái từng file nằm trong job.result và được ghi CÙNG transaction
 với tài liệu tạo ra (create_document_from_bytes commit cả hai), nên file đã nhập sẽ được bỏ qua.
+
+Danh mục (D-10 mở rộng cho P2-08): cả lô chọn "Danh mục gợi ý" (category_mode = auto: mỗi tài liệu vào "Chưa phân
+loại", job CLASSIFY tự áp dụng sau OCR) hoặc một danh mục cụ thể. metadata.csv có thể ghi đè từng file: cột title,
+category (mã danh mục) và document_code (số hiệu). Mã danh mục sai/ngừng dùng chỉ làm lỗi file đó. Tài liệu từ lô
+không gửi thông báo phân loại riêng từng tài liệu (tránh hàng trăm thông báo): một thông báo khi xong lô, kết quả
+danh mục từng file xem ở báo cáo lô.
 """
 
 import logging
@@ -17,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.audit.application.recorder import record
 from app.modules.categories.application import manage as categories
+from app.modules.documents.application import queries as documents
 from app.modules.documents.application.upload import create_document_from_bytes
 from app.modules.imports.domain.archive import ArchiveError, Budget, expand_batch, parse_metadata
 from app.modules.jobs.application import queries as jobs
@@ -26,6 +33,7 @@ from app.modules.users.application.queries import get_principal
 from app.shared.config import settings
 from app.shared.context import Principal, RequestContext
 from app.shared.errors import AppError, NotFoundError, PayloadTooLargeError, PermissionDeniedError, UnprocessableError
+from app.shared.notify import get_notifier
 from app.shared.storage import get_storage
 
 logger = logging.getLogger(__name__)
@@ -49,9 +57,10 @@ def start_import(
     *,
     files: list[StagedFile],
     metadata: StagedFile | None,
-    category_id: int,
+    category_id: int | None,
     is_handwritten: bool,
     ctx: RequestContext,
+    category_mode: str = "user",
 ) -> Any:
     if not principal.has_any("OFFICER", "ADMIN"):
         raise PermissionDeniedError("Bạn không có quyền bulk import")
@@ -59,7 +68,18 @@ def start_import(
         raise UnprocessableError("Chưa chọn file", fields={"files": "required"})
     if len(files) > settings.IMPORT_MAX_FILES:
         raise PayloadTooLargeError(f"Lô vượt quá {settings.IMPORT_MAX_FILES} file", code="TOO_MANY_FILES")
-    categories.require_active(db, category_id)
+    if category_mode == "auto":
+        if "classification" not in settings.features_enabled:
+            raise UnprocessableError(
+                "Danh mục gợi ý cần bật tính năng phân loại tự động (P2-05)",
+                code="CATEGORY_MODE_UNAVAILABLE",
+                fields={"category_mode": "unavailable"},
+            )
+        category_id = None
+    else:
+        if category_id is None:
+            raise UnprocessableError("Hãy chọn danh mục", code="CATEGORY_REQUIRED", fields={"category_id": "required"})
+        categories.require_active(db, category_id)
     batch = uuid.uuid4().hex
     storage = get_storage()
     limit = settings.IMPORT_MAX_TOTAL_MB * 1024 * 1024
@@ -84,6 +104,7 @@ def start_import(
             queue="default",
             payload={
                 "user_id": str(principal.id),
+                "category_mode": category_mode,
                 "category_id": category_id,
                 "is_handwritten": is_handwritten,
                 "batch": batch,
@@ -98,7 +119,12 @@ def start_import(
             ctx=ctx,
             entity_type="job",
             entity_id=job.id,
-            after={"files": [s["name"] for s in staged], "category_id": category_id, "bytes": total},
+            after={
+                "files": [s["name"] for s in staged],
+                "category_mode": category_mode,
+                "category_id": category_id,
+                "bytes": total,
+            },
         )
         db.commit()
     except Exception:
@@ -115,6 +141,21 @@ def _unique_keys(names: list[str]) -> list[str]:
         seen[n] = seen.get(n, 0) + 1
         out.append(n if seen[n] == 1 else f"{n}#{seen[n]}")
     return out
+
+
+def _file_category(db: Session, row: dict[str, str], p: dict[str, Any]) -> tuple[str, int | None]:
+    """(category_mode, category_id) cho một file: cột category của metadata.csv ưu tiên hơn cấu hình cả lô."""
+    code = row.get("category", "").strip()
+    if code:
+        cid = categories.id_by_code(db, code)
+        if cid is None:
+            raise UnprocessableError(
+                f"Không có danh mục mã '{code}' (cột category của metadata.csv)", code="CATEGORY_NOT_FOUND"
+            )
+        return "user", cid  # ngừng dùng / danh mục hệ thống: create_document_from_bytes báo lỗi riêng file này
+    if p.get("category_mode") == "auto":
+        return "auto", None
+    return "user", int(p["category_id"])
 
 
 def run_import(ctx: Any) -> None:
@@ -151,17 +192,22 @@ def run_import(ctx: Any) -> None:
         else:
             # Đánh dấu "importing" trong cùng transaction tạo tài liệu: lỗi thì rollback cả hai
             save(key, {"status": "importing"})
+            row = meta.get(entry.filename.lower(), {})
             try:
+                mode, category_id = _file_category(db, row, p)
                 doc, ocr_job = create_document_from_bytes(
                     db,
                     principal,
                     data=entry.data or b"",
                     filename=entry.filename,
-                    title=meta.get(entry.filename.lower(), {}).get("title") or None,
-                    category_id=int(p["category_id"]),
+                    title=row.get("title") or None,
+                    category_id=category_id,
+                    category_mode=mode,
+                    document_code=row.get("document_code") or None,
                     is_handwritten=bool(p.get("is_handwritten")),
                     ctx=job_ctx,
                     audit_action="import_document",
+                    origin={"import_job_id": str(ctx.job_id)},
                 )
             except AppError as exc:
                 state.pop(key, None)  # đã bị rollback cùng transaction
@@ -171,14 +217,18 @@ def run_import(ctx: Any) -> None:
         ctx.progress(round(n * 100 / max(total, 1)))
 
     imported = sum(1 for v in state.values() if v.get("status") in ("imported", "importing"))
-    ctx.set_result(
-        {
-            "files_state": dict(state),
-            "total": total,
-            "imported": imported,
-            "errors": sum(1 for v in state.values() if v.get("status") == "error"),
-            "order": keys,
-        }
+    errors = sum(1 for v in state.values() if v.get("status") == "error")
+    ctx.set_result({"files_state": dict(state), "total": total, "imported": imported, "errors": errors, "order": keys})
+    message = f"{imported}/{total} file đã nhập" + (f", {errors} lỗi" if errors else "")
+    if p.get("category_mode") == "auto":
+        message += ". Danh mục được tự chọn sau khi OCR xong, xem kết quả từng file ở báo cáo lô"
+    get_notifier().notify(
+        db,
+        [principal.id],
+        title="Nhập hàng loạt xong",
+        message=message,
+        type="import.done",
+        link_url=f"/imports/{ctx.job_id}",
     )
     if p.get("batch"):
         storage.delete_prefix(f"{PREFIX}/{p['batch']}")  # xong lô: xóa vùng tạm
@@ -198,6 +248,14 @@ def get_report(db: Session, principal: Principal, job_id: uuid.UUID) -> dict[str
         for k in order
         if k in state
     ]
+    # Danh mục hiện tại của từng tài liệu (đổi sau khi OCR + tự phân loại xong, D-10)
+    briefs = documents.document_brief(db, {uuid.UUID(f["document_id"]) for f in files if f.get("document_id")})
+    cat_names = categories.names(db, {b["category_id"] for b in briefs.values() if b.get("category_id")})
+    for f in files:
+        brief = briefs.get(uuid.UUID(f["document_id"])) if f.get("document_id") else None
+        if brief:
+            f["category_name"] = cat_names.get(brief["category_id"])
+            f["category_source"] = brief["category_source"]
     return {
         "job": job,
         "total": result.get("total", len((job.payload or {}).get("files", []))),

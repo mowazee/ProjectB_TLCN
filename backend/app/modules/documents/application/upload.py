@@ -38,6 +38,8 @@ def create_document_from_bytes(
     ctx: RequestContext,
     audit_action: str = "upload_document",
     category_mode: str = "user",
+    document_code: str | None = None,
+    origin: dict[str, str] | None = None,
 ) -> tuple[Document, Any]:
     """Dùng chung cho UC-01 và từng file của bulk import (UC-23 include UC-01).
 
@@ -59,6 +61,11 @@ def create_document_from_bytes(
             raise UnprocessableError("Hãy chọn danh mục", code="CATEGORY_REQUIRED", fields={"category_id": "required"})
         categories.require_active(db, category_id)
         source = CategorySource.USER
+    code = (document_code or "").strip() or None
+    if code and len(code) > 100:
+        raise UnprocessableError(
+            "Số hiệu dài quá 100 ký tự", code="DOCUMENT_CODE_TOO_LONG", fields={"document_code": "too_long"}
+        )
     name = file_inspector.safe_filename(filename)
     info = file_inspector.inspect(data, name)
 
@@ -74,6 +81,7 @@ def create_document_from_bytes(
             owner_id=principal.id,
             department_id=principal.department_id,
             title=(title or "").strip()[:255] or Path(name).stem[:255],
+            document_code=code,
             file_name=name,
             storage_key=key,
             mime_type=info.mime_type,
@@ -82,7 +90,7 @@ def create_document_from_bytes(
         )
         db.add(doc)
         db.flush()
-        job = create_ocr_job(db, doc.id, is_handwritten=is_handwritten)
+        job = create_ocr_job(db, doc.id, is_handwritten=is_handwritten, origin=origin)
         record(
             db,
             action=audit_action,
@@ -94,6 +102,7 @@ def create_document_from_bytes(
             document_id=doc.id,
             after={
                 "title": doc.title,
+                "document_code": code,
                 "category_id": category_id,
                 "category_source": str(source),
                 "file_name": name,

@@ -1121,11 +1121,21 @@ export interface components {
              * @description PDF/PNG/JPG hoặc ZIP
              */
             files: string[];
-            /** Category Id */
-            category_id: number;
+            /**
+             * Category Id
+             * @description Bắt buộc khi category_mode = user
+             */
+            category_id?: number | null;
+            /**
+             * Category Mode
+             * @description D-10: auto = Danh mục gợi ý cho cả lô (cần P2-05)
+             * @default user
+             * @enum {string}
+             */
+            category_mode: "user" | "auto";
             /**
              * Metadata
-             * @description metadata.csv: file_name,title
+             * @description metadata.csv: file_name, title, category (mã), document_code
              */
             metadata?: string | null;
             /**
@@ -1579,6 +1589,10 @@ export interface components {
             code?: string | null;
             /** Message */
             message?: string | null;
+            /** Category Name */
+            category_name?: string | null;
+            /** Category Source */
+            category_source?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {

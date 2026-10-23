@@ -8,7 +8,7 @@ dùng được; tạo bởi migration 0109 (hoặc lần đầu cần tới).
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.modules.audit.application.recorder import record
@@ -99,6 +99,11 @@ def require_active(db: Session, category_id: int) -> CategoryInfo:
             "Danh mục đã ngừng sử dụng", code="CATEGORY_INACTIVE", fields={"category_id": "inactive"}
         )
     return _info(cat)
+
+
+def id_by_code(db: Session, code: str) -> int | None:
+    """Tra danh mục theo mã (không phân biệt hoa/thường), vd. từ cột category của metadata.csv (P2-08)."""
+    return db.scalar(select(Category.id).where(func.upper(Category.code) == code.strip().upper()))
 
 
 def names(db: Session, ids: set[int]) -> dict[int, str]:

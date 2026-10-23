@@ -101,7 +101,9 @@ def _auto_apply(db: Session, doc: Any, suggestions: list[dict[str, Any]], job_id
     """D-10: chỉ với tài liệu đang chờ phân loại; trả category_id đã áp dụng (None nếu không áp dụng)."""
     if str(doc.category_source) != "pending":
         return None
-    title, owner = doc.title, doc.owner_id
+    # Tài liệu từ lô nhập hàng loạt: không thông báo từng tài liệu (lô tới hàng trăm file); xem ở báo cáo lô
+    ocr_job = jobs.latest_job(db, doc.id, "OCR")
+    title, owner = doc.title, None if (ocr_job and (ocr_job.payload or {}).get("import_job_id")) else doc.owner_id
     if not suggestions:
         if owner:
             get_notifier().notify(
