@@ -56,7 +56,9 @@ def test_upload_rejects_fake_pdf(officer_page: Page, tmp_path):
 
 
 def test_concurrent_edit_409_keeps_draft(officer_page: Page, new_context_page, tmp_path, uniq):
-    doc_id = upload_and_wait(officer_page, make_pdf(tmp_path / "c.pdf", [f"Xung đột {uniq} nội dung gốc dài"]), f"409 {uniq}")
+    doc_id = upload_and_wait(
+        officer_page, make_pdf(tmp_path / "c.pdf", [f"Xung đột {uniq} nội dung gốc dài"]), f"409 {uniq}"
+    )
     a = officer_page
     b = new_context_page(OFFICER)
     for p in (a, b):
@@ -73,7 +75,9 @@ def test_concurrent_edit_409_keeps_draft(officer_page: Page, new_context_page, t
 
 
 def test_cross_scope_403(new_context_page, officer_page: Page, tmp_path, uniq):
-    doc_id = upload_and_wait(officer_page, make_pdf(tmp_path / "s.pdf", [f"Phạm vi {uniq} tài liệu riêng"]), f"Scope {uniq}")
+    doc_id = upload_and_wait(
+        officer_page, make_pdf(tmp_path / "s.pdf", [f"Phạm vi {uniq} tài liệu riêng"]), f"Scope {uniq}"
+    )
     other = new_context_page(("ketoan", "Demo@12345"))  # phòng Kế toán
     other.goto(f"{BASE_URL}/documents/{doc_id}")
     expect(other.get_by_role("alert")).to_contain_text("không có quyền")

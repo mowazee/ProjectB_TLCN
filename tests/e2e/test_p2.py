@@ -7,7 +7,17 @@ import zipfile
 import pytest
 from playwright.sync_api import Page, expect
 
-from conftest import ADMIN, APPROVER, BASE_URL, OTHER_DEPT_OFFICER, features, login, make_pdf, upload_and_wait
+from conftest import (
+    ADMIN,
+    APPROVER,
+    BASE_URL,
+    OTHER_DEPT_OFFICER,
+    choose_category,
+    features,
+    login,
+    make_pdf,
+    upload_and_wait,
+)
 
 
 def need(page: Page, *flags: str) -> None:
@@ -26,7 +36,9 @@ def test_p2_flags_off_hide_screens(officer_page: Page):
 
 def test_workflow_submit_approve_publish(officer_page: Page, new_context_page, tmp_path, uniq):
     need(officer_page, "workflow")
-    doc_id = upload_and_wait(officer_page, make_pdf(tmp_path / "w.pdf", [f"Quyết định {uniq} ban hành"]), f"Duyệt {uniq}")
+    doc_id = upload_and_wait(
+        officer_page, make_pdf(tmp_path / "w.pdf", [f"Quyết định {uniq} ban hành"]), f"Duyệt {uniq}"
+    )
     officer_page.get_by_role("button", name="Gửi duyệt").click()
     officer_page.get_by_role("button", name="Xác nhận").click()
     expect(officer_page.get_by_text("Chờ duyệt").first).to_be_visible()
@@ -105,17 +117,50 @@ def test_import_zip_report(officer_page: Page, tmp_path, uniq):
     need(officer_page, "imports")
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as zf:
-        zf.write(make_pdf(tmp_path / "a.pdf", [f"Lô {uniq} file a"]), "a.pdf")
+        # nội dung khớp nhãn Hợp đồng: tài liệu nguồn user là mẫu huấn luyện phân loại trên dữ liệu demo
+        zf.write(make_pdf(tmp_path / "a.pdf", [f"Hợp đồng mua bán lô {uniq}, bên A và bên B"]), "a.pdf")
         zf.writestr("../evil.pdf", b"x")
     archive = tmp_path / f"lo-{uniq}.zip"
     archive.write_bytes(buf.getvalue())
     page = officer_page
     page.goto(f"{BASE_URL}/imports")
     page.locator("input[name=files]").set_input_files(str(archive))
-    page.get_by_label("Danh mục").select_option(label="Hợp đồng")
+    choose_category(page, "Hợp đồng")
     page.get_by_role("button", name="Bắt đầu nhập").click()
     expect(page.get_by_text("1/2 file đã nhập")).to_be_visible(timeout=60_000)
     expect(page.get_by_text("UNSAFE_PATH")).to_be_visible()
+
+
+def test_import_auto_category_with_metadata(officer_page: Page, tmp_path, uniq):
+    """P2-08 + D-10: lô Danh mục gợi ý; metadata.csv ghi đè danh mục (mã) và số hiệu của một file."""
+    need(officer_page, "imports", "classification")
+    contract = [  # cùng nội dung test_auto_category_on_upload: đủ tin cậy để tự áp dụng Hợp đồng
+        "HỢP ĐỒNG KINH TẾ MUA BÁN HÀNG HÓA",
+        f"Số: {uniq}/2026/HĐKT",
+        "Bên A (bên bán) và Bên B (bên mua) thỏa thuận ký kết hợp đồng mua bán",
+        "Giá trị hợp đồng: 150.000.000 đồng; thanh toán bằng chuyển khoản",
+        "Hợp đồng kinh tế có hiệu lực kể từ ngày ký; dịch vụ bảo hành 12 tháng",
+    ]
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.write(make_pdf(tmp_path / "a.pdf", contract), "a.pdf")
+        zf.write(make_pdf(tmp_path / "b.pdf", [f"Biên bản {uniq}"]), "b.pdf")
+        zf.writestr(
+            "metadata.csv", f"file_name,title,category,document_code\nb.pdf,Biên bản {uniq},BAO-CAO,{uniq}/BB\n"
+        )
+    archive = tmp_path / f"auto-{uniq}.zip"
+    archive.write_bytes(buf.getvalue())
+    page = officer_page
+    page.goto(f"{BASE_URL}/imports")
+    expect(page.get_by_role("radio", name=re.compile("Danh mục gợi ý"))).to_have_attribute("aria-checked", "true")
+    page.locator("input[name=files]").set_input_files(str(archive))
+    page.get_by_role("button", name="Bắt đầu nhập").click()
+    expect(page.get_by_text("2/2 file đã nhập")).to_be_visible(timeout=60_000)
+    row_b = page.get_by_role("row").filter(has=page.get_by_role("cell", name=re.compile(r"b\.pdf$")))
+    expect(row_b).to_contain_text("Người dùng chọn")
+    expect(row_b).to_contain_text("Báo cáo - Biên bản")
+    row_a = page.get_by_role("row").filter(has=page.get_by_role("cell", name=re.compile(r"a\.pdf$")))
+    expect(row_a).to_contain_text("Tự động", timeout=120_000)  # OCR + tự phân loại xong, báo cáo tự cập nhật
 
 
 TAM = ("TAM", "Tạm")  # danh mục dùng lại mọi lần chạy: không sinh thêm danh mục trên dữ liệu demo

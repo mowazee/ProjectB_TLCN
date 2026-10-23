@@ -1,11 +1,11 @@
 """API imports (SDD 7.2, P2-08):
-POST /api/imports            multipart nhiều file/ZIP + category_id (+ metadata.csv) -> 202 job_id
+POST /api/imports            multipart nhiều file/ZIP + category_mode/category_id (+ metadata.csv) -> 202 job_id
 GET  /api/imports/{job_id}   tiến độ + báo cáo từng file
 """
 
 import uuid
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from pydantic import BaseModel
@@ -29,6 +29,8 @@ class FileReport(BaseModel):
     job_id: uuid.UUID | None = None
     code: str | None = None
     message: str | None = None
+    category_name: str | None = None  # danh mục hiện tại của tài liệu đã nhập
+    category_source: str | None = None  # D-10: user | auto | pending
 
 
 class ImportReport(BaseModel):
@@ -50,8 +52,13 @@ def start_import(
     principal: CurrentPrincipal,
     ctx: Ctx,
     files: Annotated[list[UploadFile], File(description="PDF/PNG/JPG hoặc ZIP")],
-    category_id: Annotated[int, Form()],
-    metadata: Annotated[UploadFile | None, File(description="metadata.csv: file_name,title")] = None,
+    category_id: Annotated[int | None, Form(description="Bắt buộc khi category_mode = user")] = None,
+    category_mode: Annotated[
+        Literal["user", "auto"], Form(description="D-10: auto = Danh mục gợi ý cho cả lô (cần P2-05)")
+    ] = "user",
+    metadata: Annotated[
+        UploadFile | None, File(description="metadata.csv: file_name, title, category (mã), document_code")
+    ] = None,
     is_handwritten: Annotated[bool, Form()] = False,
 ) -> ImportAccepted:
     job = batch.start_import(
@@ -60,6 +67,7 @@ def start_import(
         files=[batch.StagedFile(f.filename or "", f.file) for f in files],
         metadata=batch.StagedFile(metadata.filename or "metadata.csv", metadata.file) if metadata else None,
         category_id=category_id,
+        category_mode=category_mode,
         is_handwritten=is_handwritten,
         ctx=ctx,
     )

@@ -1,11 +1,12 @@
-import { ClipboardList, FolderUp } from "lucide-react";
+import { ClipboardList, Download, FolderUp } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { POLL_MS } from "@/features/jobs";
 import { api } from "@/shared/api/client";
-import type { ImportAccepted, ImportReport } from "@/shared/api/types";
+import type { Category, ImportAccepted, ImportReport } from "@/shared/api/types";
+import { CategoryModePicker, type CategoryMode } from "@/shared/components/CategoryModePicker";
 import {
   Badge,
   ErrorBox,
@@ -18,6 +19,7 @@ import {
 } from "@/shared/components/ui";
 import { useCategories } from "@/shared/hooks/useCategories";
 import { formatDateTime } from "@/shared/lib/format";
+import { useSession } from "@/shared/session";
 
 const RECENT_KEY = "imports.recent";
 
@@ -37,9 +39,33 @@ function remember(jobId: string) {
   }
 }
 
-/** UC-23 (P2-08): tải nhiều file hoặc ZIP + danh mục (+ metadata.csv) -> job BULK_IMPORT. */
+const AUTO_HINT =
+  "Mỗi file vào “Chưa phân loại”, hệ thống tự chọn danh mục sau khi OCR xong. Kết quả từng file xem ở báo cáo lô.";
+
+/** metadata.csv mẫu: UTF-8 có BOM để Excel mở đúng tiếng Việt; mã danh mục lấy từ danh sách thật. */
+function downloadTemplate(categories: Category[]) {
+  const code = categories[0]?.code ?? "HOP-DONG";
+  const rows = [
+    "file_name,title,category,document_code",
+    `hop-dong-45.pdf,Hợp đồng mua bán số 45/2026,${code},45/2026/HĐMB`,
+    "cong-van-12.pdf,Công văn số 12 về số hóa hồ sơ,,12/CV-HCTH",
+    "scan-001.pdf,,,",
+  ];
+  const url = URL.createObjectURL(new Blob(["\uFEFF" + rows.join("\r\n") + "\r\n"], { type: "text/csv" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "metadata.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** UC-23 (P2-08): tải nhiều file hoặc ZIP + cách gán danh mục (+ metadata.csv) -> job BULK_IMPORT. */
 export function ImportPage() {
   const categories = useCategories(true, { selectable: true });
+  const { hasFeature } = useSession();
+  const canAuto = hasFeature("classification"); // Danh mục gợi ý cần P2-05
+  const [mode, setMode] = useState<CategoryMode>("auto");
+  const categoryMode: CategoryMode = canAuto ? mode : "user";
   const navigate = useNavigate();
   const [count, setCount] = useState(0);
   const start = useMutation({
@@ -53,6 +79,7 @@ export function ImportPage() {
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    form.set("category_mode", categoryMode);
     const meta = form.get("metadata");
     if (meta instanceof File && meta.size === 0) form.delete("metadata");
     start.mutate(form);
@@ -84,19 +111,48 @@ export function ImportPage() {
             onChange={(e) => setCount(e.target.files?.length ?? 0)}
           />
         </Field>
-        <Field label="Danh mục" htmlFor="cat" error={errors.category_id}>
-          <select id="cat" name="category_id" className="select" required defaultValue="">
-            <option value="" disabled>
-              — Chọn danh mục —
-            </option>
-            {categories.data?.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+        {canAuto && (
+          <Field label="Danh mục" error={errors.category_mode}>
+            <CategoryModePicker
+              value={mode}
+              onChange={setMode}
+              hints={{ auto: AUTO_HINT, user: "Một danh mục cho cả lô." }}
+            />
+          </Field>
+        )}
+        {categoryMode === "user" && (
+          <Field label={canAuto ? "Chọn danh mục" : "Danh mục"} htmlFor="cat" error={errors.category_id}>
+            <select id="cat" name="category_id" className="select" required defaultValue="">
+              <option value="" disabled>
+                — Chọn danh mục —
               </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="metadata.csv (tùy chọn)" htmlFor="meta" hint="Cột file_name, title. Có thể đặt sẵn trong ZIP.">
+              {categories.data?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+        <Field
+          label="metadata.csv (tùy chọn)"
+          htmlFor="meta"
+          hint={
+            <>
+              Thông tin riêng cho từng file, khỏi sửa tay sau khi nhập. Cột <code>file_name</code> (bắt buộc),{" "}
+              <code>title</code> (tiêu đề; trống = tên file), <code>category</code> (mã danh mục, ưu tiên hơn lựa chọn ở
+              trên), <code>document_code</code> (số hiệu). Có thể đặt sẵn trong file ZIP.{" "}
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => downloadTemplate(categories.data ?? [])}
+                style={{ marginLeft: 4 }}
+              >
+                <Download size={14} aria-hidden /> Tải file mẫu
+              </button>
+            </>
+          }
+        >
           <input id="meta" name="metadata" type="file" accept=".csv,text/csv" />
         </Field>
         <div>
@@ -122,6 +178,12 @@ export function ImportPage() {
 }
 
 const DONE = new Set(["completed", "failed"]);
+const PENDING_POLL_MS = 10_000; // chờ OCR + tự phân loại (D-10) sau khi lô đã nhập xong
+const SOURCE: Record<string, [string, "ok" | "warn" | "info" | "neutral"]> = {
+  user: ["Người dùng chọn", "neutral"],
+  auto: ["Tự động", "info"],
+  pending: ["Chờ phân loại", "warn"],
+};
 const FILE_STATUS: Record<string, [string, "ok" | "danger" | "info"]> = {
   imported: ["Đã nhập", "ok"],
   importing: ["Đã nhập", "ok"],
@@ -133,7 +195,11 @@ export function ImportReportPage() {
   const report = useQuery({
     queryKey: ["import", jobId],
     queryFn: () => api<ImportReport>(`/api/imports/${jobId}`),
-    refetchInterval: (q) => (q.state.data && DONE.has(q.state.data.status) ? false : POLL_MS),
+    refetchInterval: (q) => {
+      const data = q.state.data;
+      if (!data || !DONE.has(data.status)) return POLL_MS;
+      return data.files.some((f) => f.category_source === "pending") ? PENDING_POLL_MS : false;
+    },
   });
   if (report.isPending) return <Loading />;
   if (report.error || !report.data) return <ErrorBox error={report.error} />;
@@ -165,6 +231,7 @@ export function ImportReportPage() {
           <tr>
             <th>File</th>
             <th>Kết quả</th>
+            <th>Danh mục</th>
             <th>Chi tiết</th>
           </tr>
         </thead>
@@ -176,6 +243,18 @@ export function ImportReportPage() {
                 <td>{f.name}</td>
                 <td>
                   <Badge tone={tone}>{label}</Badge>
+                </td>
+                <td>
+                  {f.category_source ? (
+                    <span className="row" style={{ gap: 6 }}>
+                      {f.category_name}
+                      <Badge tone={SOURCE[f.category_source]?.[1] ?? "neutral"}>
+                        {SOURCE[f.category_source]?.[0] ?? f.category_source}
+                      </Badge>
+                    </span>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td>
                   {f.document_id ? (

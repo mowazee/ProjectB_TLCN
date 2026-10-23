@@ -1,9 +1,10 @@
-import { Check, FolderTree, Sparkles, Upload, type LucideIcon } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 
 import { JobStatus } from "@/features/jobs";
 import type { UploadOut } from "@/shared/api/types";
+import { CategoryModePicker, type CategoryMode } from "@/shared/components/CategoryModePicker";
 import { ErrorBox, Field, PageHeader, fieldErrors } from "@/shared/components/ui";
 import { useCategories } from "@/shared/hooks/useCategories";
 import { formatBytes } from "@/shared/lib/format";
@@ -15,59 +16,6 @@ import s from "./documents.module.css";
 
 const ACCEPT = ".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg";
 const MAX_MB = Number(import.meta.env.VITE_MAX_UPLOAD_MB ?? 25);
-
-type CategoryMode = "auto" | "user";
-const CATEGORY_MODES: { mode: CategoryMode; icon: LucideIcon; tone: string; label: string; hint: string }[] = [
-  {
-    mode: "auto",
-    icon: Sparkles,
-    tone: "violet",
-    label: "Danh mục gợi ý",
-    hint: "Hệ thống tự chọn danh mục sau khi OCR xong. Nếu chưa đủ chắc chắn, tài liệu nằm ở “Chưa phân loại” và bạn được thông báo để tự chọn.",
-  },
-  {
-    mode: "user",
-    icon: FolderTree,
-    tone: "slate",
-    label: "Tôi chọn danh mục",
-    hint: "Chọn ngay một danh mục cho tài liệu.",
-  },
-];
-
-/** D-10 (v0.9): chọn cách gán danh mục - thẻ chọn kiểu radio, mặc định Danh mục gợi ý. */
-function CategoryModePicker({ value, onChange }: { value: CategoryMode; onChange: (m: CategoryMode) => void }) {
-  return (
-    <div className={s.catModes} role="radiogroup" aria-label="Cách chọn danh mục">
-      {CATEGORY_MODES.map(({ mode, icon: Icon, tone, label, hint }) => {
-        const selected = mode === value;
-        return (
-          <button
-            key={mode}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            className={`${s.catMode} ${selected ? s.catModeSelected : ""}`}
-            onClick={() => onChange(mode)}
-          >
-            <span className={`${s.catModeTile} ${s[tone]}`}>
-              <Icon size={18} aria-hidden />
-            </span>
-            <span className={s.catModeText}>
-              <strong>
-                {label}
-                {mode === "auto" && <span className={s.catModeTag}>Mặc định</span>}
-              </strong>
-              <small>{hint}</small>
-            </span>
-            <span className={s.catModeCheck} aria-hidden>
-              {selected && <Check size={14} />}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 /** UC-01 (FR-03): FormData; server xác minh nội dung file và giới hạn; lỗi 400/413/415/422 hiển thị rõ. */
 export function UploadPage() {

@@ -139,7 +139,8 @@ def expand_batch(files: list[tuple[str, bytes]], budget: Budget) -> Expanded:
 
 
 def parse_metadata(data: bytes | None) -> dict[str, dict[str, str]]:
-    """metadata.csv: cột file_name (bắt buộc), title (tùy chọn). Khóa = tên file chữ thường."""
+    """metadata.csv: cột file_name (bắt buộc); title, category (mã danh mục), document_code (số hiệu) tùy chọn.
+    Khóa = tên file chữ thường; tên cột chữ thường."""
     if not data:
         return {}
     try:

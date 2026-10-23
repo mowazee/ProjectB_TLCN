@@ -71,12 +71,20 @@ def create_job(
 
 
 def create_ocr_job(
-    db: Session, document_id: uuid.UUID, *, is_handwritten: bool = False, profile: str | None = None
+    db: Session,
+    document_id: uuid.UUID,
+    *,
+    is_handwritten: bool = False,
+    profile: str | None = None,
+    origin: dict[str, str] | None = None,
 ) -> ProcessingJob:
-    """Job OCR: profile 'print' (MVP) hoặc profile do module P2-03 đăng ký."""
+    """Job OCR: profile 'print' (MVP) hoặc profile do module P2-03 đăng ký. origin: nguồn tạo tài liệu ghi vào
+    payload (vd. {"import_job_id": ...} khi nhập hàng loạt) để module sau OCR biết ngữ cảnh."""
     profile = profile or registry.resolve_ocr_profile(is_handwritten)
     queue = registry.ocr_profiles().get(profile, "ocr")
-    return create_job(db, kind=OCR, document_id=document_id, queue=queue, payload={"profile": profile})
+    return create_job(
+        db, kind=OCR, document_id=document_id, queue=queue, payload={"profile": profile, **(origin or {})}
+    )
 
 
 def enqueue_after_commit(db: Session, job: ProcessingJob) -> None:

@@ -3871,8 +3871,26 @@
             "description": "PDF/PNG/JPG hoặc ZIP"
           },
           "category_id": {
-            "type": "integer",
-            "title": "Category Id"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id",
+            "description": "Bắt buộc khi category_mode = user"
+          },
+          "category_mode": {
+            "type": "string",
+            "enum": [
+              "user",
+              "auto"
+            ],
+            "title": "Category Mode",
+            "description": "D-10: auto = Danh mục gợi ý cho cả lô (cần P2-05)",
+            "default": "user"
           },
           "metadata": {
             "anyOf": [
@@ -3885,7 +3903,7 @@
               }
             ],
             "title": "Metadata",
-            "description": "metadata.csv: file_name,title"
+            "description": "metadata.csv: file_name, title, category (mã), document_code"
           },
           "is_handwritten": {
             "type": "boolean",
@@ -3895,8 +3913,7 @@
         },
         "type": "object",
         "required": [
-          "files",
-          "category_id"
+          "files"
         ],
         "title": "Body_start_import_api_imports_post"
       },
@@ -5191,6 +5208,28 @@
               }
             ],
             "title": "Message"
+          },
+          "category_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Name"
+          },
+          "category_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Source"
           }
         },
         "type": "object",
