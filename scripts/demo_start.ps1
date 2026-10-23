@@ -114,6 +114,10 @@ $env:WORKER_OCR_PROFILES = 'print'
 $env:PYTHONIOENCODING   = 'utf-8'
 $env:PYTHONUTF8         = '1'
 $env:VITE_DEV_API_TARGET = "http://127.0.0.1:$ApiPort"
+# Demo luôn dùng mật khẩu admin công khai in ở cuối script. Bỏ biến kế thừa: terminal VS Code có
+# python.terminal.useEnvFile tự nạp .env của Docker (DEMO_ADMIN_PASSWORD ngẫu nhiên) vào mọi terminal, làm
+# seed_demo.py tạo admin demo bằng mật khẩu Docker khi chạy -Reset.
+Remove-Item Env:DEMO_ADMIN_PASSWORD -ErrorAction SilentlyContinue
 
 $procs = @()
 Push-Location $Backend
