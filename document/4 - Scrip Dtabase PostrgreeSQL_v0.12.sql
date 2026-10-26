@@ -1,11 +1,11 @@
 -- =====================================================================
--- DATABASE SCHEMA - MVP + P2, phiên bản 0.9 (21/10/2026)
--- Sinh tự động từ Alembic (0001_core → 0109), KHÔNG sửa tay.
--- Đồng bộ: "0 - Đặc tả SDD v0.10" mục 6 và
---          "3 - Các lược đồ usecase_sequence_erd_database v0.10" (ERD, 17 bảng)
+-- DATABASE SCHEMA - MVP + P2, phiên bản 0.12 (27/10/2026)
+-- Sinh tự động từ Alembic (0001_core → 0110), KHÔNG sửa tay.
+-- Đồng bộ: "0 - Đặc tả SDD v0.12" mục 6 và
+--          "3 - Các lược đồ usecase_sequence_erd_database v0.12" (ERD, 17 bảng)
 -- Tạo lại (trong backend/, PowerShell):
 --   $env:DATABASE_URL="postgresql+psycopg://u:p@localhost/db"
---   .venv\Scripts\alembic.exe upgrade head --sql > "..\document\4 - Scrip Dtabase PostrgreeSQL_v0.9.sql"
+--   .venv\Scripts\alembic.exe upgrade head --sql > "..\document\4 - Scrip Dtabase PostrgreeSQL_v0.12.sql"
 --   (rồi chép lại khối chú thích này lên đầu file)
 -- Thay đổi so với bản v0.5 (bản đó chỉ có phần MVP, revision 0001):
 --   + 5 bảng P2: document_approvals (0101), notifications (0102),
@@ -19,6 +19,8 @@
 --   (private | internal | public, mặc định internal) và bảng document_shares (17 bảng).
 -- v0.9: danh mục tự động khi tải lên (D-10, 0109): documents.category_source
 --   (user | auto | pending, mặc định user) và danh mục hệ thống CHUA-PHAN-LOAI "Chưa phân loại".
+-- v0.12: D-11 - document_approvals.action thêm 'withdraw' (chủ sở hữu rút lại) và 'return' (trả lại
+--   chủ sở hữu) (0110, chỉ đổi ràng buộc CHECK).
 -- Toàn bộ chạy trong một transaction (BEGIN … COMMIT).
 -- =====================================================================
 BEGIN;
@@ -117,15 +119,15 @@ CREATE TABLE documents (
     CONSTRAINT ck_documents_approval_status CHECK (approval_status IN ('draft', 'pending_review', 'approved', 'rejected', 'published', 'unpublished'))
 );
 
+CREATE INDEX ix_documents_owner_id ON documents (owner_id);
+
 CREATE INDEX ix_documents_category_id ON documents (category_id);
-
-CREATE INDEX ix_documents_created_at ON documents (created_at);
-
-CREATE INDEX ix_documents_department_id ON documents (department_id);
 
 CREATE INDEX ix_documents_lifecycle_status ON documents (lifecycle_status);
 
-CREATE INDEX ix_documents_owner_id ON documents (owner_id);
+CREATE INDEX ix_documents_department_id ON documents (department_id);
+
+CREATE INDEX ix_documents_created_at ON documents (created_at);
 
 CREATE TABLE document_pages (
     id UUID NOT NULL, 
@@ -235,9 +237,9 @@ CREATE TABLE audit_logs (
     CONSTRAINT ck_audit_logs_result CHECK (result IN ('success', 'failure'))
 );
 
-CREATE INDEX ix_audit_logs_document_id ON audit_logs (document_id);
-
 CREATE INDEX ix_audit_logs_user_id ON audit_logs (user_id);
+
+CREATE INDEX ix_audit_logs_document_id ON audit_logs (document_id);
 
 CREATE INDEX idx_audit_logs_created_at ON audit_logs (created_at);
 
@@ -426,6 +428,14 @@ ALTER TABLE documents ADD CONSTRAINT ck_documents_category_source CHECK (categor
 INSERT INTO categories (name, code, description, is_active) SELECT 'Chưa phân loại', 'CHUA-PHAN-LOAI', 'Danh mục hệ thống: tài liệu chờ tự phân loại sau OCR (D-10)', true WHERE NOT EXISTS (SELECT 1 FROM categories WHERE code = 'CHUA-PHAN-LOAI');
 
 UPDATE alembic_version SET version_num='0109' WHERE alembic_version.version_num = '0108';
+
+-- Running upgrade 0109 -> 0110
+
+ALTER TABLE document_approvals DROP CONSTRAINT ck_document_approvals_action;
+
+ALTER TABLE document_approvals ADD CONSTRAINT ck_document_approvals_action CHECK (action IN ('submit', 'approve', 'reject', 'publish', 'unpublish', 'withdraw', 'return'));
+
+UPDATE alembic_version SET version_num='0110' WHERE alembic_version.version_num = '0109';
 
 COMMIT;
 

@@ -152,11 +152,27 @@ def ensure_can_view(db: Session, principal: Principal, document_id: uuid.UUID) -
     return doc
 
 
-def ensure_can_manage(db: Session, principal: Principal, document_id: uuid.UUID) -> Document:
+def ensure_permission(db: Session, principal: Principal, document_id: uuid.UUID, permission: str) -> Document:
+    """D-11: tài liệu xem được VÀ người dùng có quyền permission (policies.EDIT, REPROCESS, ...); 403 kèm lý do."""
     doc = ensure_can_view(db, principal, document_id)
-    if not policies.can_manage(principal, scope_of(doc)):
-        raise PermissionDeniedError("Bạn không có quyền chỉnh sửa tài liệu này")
+    scope = scope_of(doc)
+    if not policies.allowed(principal, scope, permission):
+        raise PermissionDeniedError(policies.denial_message(principal, scope, permission))
     return doc
+
+
+def ensure_can_edit(db: Session, principal: Principal, document_id: uuid.UUID) -> Document:
+    """SỬA (D-11): metadata, danh mục, OCR, trường trích xuất, vị trí lưu trữ."""
+    return ensure_permission(db, principal, document_id, policies.EDIT)
+
+
+def ensure_can_reprocess(db: Session, principal: Principal, document_id: uuid.UUID) -> Document:
+    """Chạy lại OCR / chạy lại job OCR lỗi (D-11): chủ sở hữu khi Nháp / Bị từ chối."""
+    return ensure_permission(db, principal, document_id, policies.REPROCESS)
+
+
+def ensure_can_cancel_job(db: Session, principal: Principal, document_id: uuid.UUID) -> Document:
+    return ensure_permission(db, principal, document_id, policies.CANCEL_JOB)
 
 
 def ensure_can_review(db: Session, principal: Principal, document_id: uuid.UUID) -> Document:
@@ -169,8 +185,24 @@ def ensure_can_review(db: Session, principal: Principal, document_id: uuid.UUID)
     return doc
 
 
-def can_manage(principal: Principal, doc: Document) -> bool:
-    return policies.can_manage(principal, scope_of(doc))
+def can_edit(principal: Principal, doc: Document) -> bool:
+    return policies.can_edit(principal, scope_of(doc))
+
+
+def permissions(principal: Principal, doc: Document) -> list[str]:
+    return policies.permissions(principal, scope_of(doc))
+
+
+def is_owner(principal: Principal, doc: Document) -> bool:
+    return policies.is_owner(principal, scope_of(doc))
+
+
+def can_submit(principal: Principal, doc: Document) -> bool:
+    return policies.can_submit(principal, scope_of(doc))
+
+
+def can_withdraw(principal: Principal, doc: Document) -> bool:
+    return policies.can_withdraw(principal, scope_of(doc))
 
 
 def can_review(principal: Principal, doc: Document) -> bool:

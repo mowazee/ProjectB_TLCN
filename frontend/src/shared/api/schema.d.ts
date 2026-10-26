@@ -410,7 +410,7 @@ export interface paths {
         put?: never;
         /**
          * Cancel Job
-         * @description FR-04 (v0.10): dừng job đang chờ/đang xử lý; cùng quyền với Chạy lại.
+         * @description FR-04 (v0.10): dừng job đang chờ/đang xử lý; D-11: người được chạy lại OCR hoặc Admin.
          */
         post: operations["cancel_job_api_jobs__job_id__cancel_post"];
         delete?: never;
@@ -1036,7 +1036,7 @@ export interface components {
          * Action
          * @enum {string}
          */
-        Action: "submit" | "approve" | "reject" | "publish" | "unpublish";
+        Action: "submit" | "approve" | "reject" | "publish" | "unpublish" | "withdraw" | "return";
         /** ApprovalEntryOut */
         ApprovalEntryOut: {
             /**
@@ -1531,6 +1531,16 @@ export interface components {
              * @description FR-13: người dùng hiện tại đổi được cấu hình chia sẻ
              */
             can_share: boolean;
+            /**
+             * Permissions
+             * @description D-11 (v0.12): edit, reprocess, delete, restore, cancel_job, submit, withdraw, share
+             */
+            permissions?: string[];
+            /**
+             * Edit Lock Reason
+             * @description D-11: vì sao người dùng không sửa được
+             */
+            edit_lock_reason?: string | null;
         };
         /** DocumentPatch */
         DocumentPatch: {

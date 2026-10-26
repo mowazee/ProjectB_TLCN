@@ -1430,7 +1430,7 @@
           "jobs"
         ],
         "summary": "Cancel Job",
-        "description": "FR-04 (v0.10): dừng job đang chờ/đang xử lý; cùng quyền với Chạy lại.",
+        "description": "FR-04 (v0.10): dừng job đang chờ/đang xử lý; D-11: người được chạy lại OCR hoặc Admin.",
         "operationId": "cancel_job_api_jobs__job_id__cancel_post",
         "parameters": [
           {
@@ -3607,7 +3607,9 @@
           "approve",
           "reject",
           "publish",
-          "unpublish"
+          "unpublish",
+          "withdraw",
+          "return"
         ],
         "title": "Action"
       },
@@ -4951,6 +4953,26 @@
             "type": "boolean",
             "title": "Can Share",
             "description": "FR-13: người dùng hiện tại đổi được cấu hình chia sẻ"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions",
+            "description": "D-11 (v0.12): edit, reprocess, delete, restore, cancel_job, submit, withdraw, share"
+          },
+          "edit_lock_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edit Lock Reason",
+            "description": "D-11: vì sao người dùng không sửa được"
           }
         },
         "type": "object",

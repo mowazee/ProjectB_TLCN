@@ -17,7 +17,9 @@ from app.modules.auth.presentation.deps import Ctx, CurrentPrincipal, DbSession,
 from app.modules.documents.application.queries import (
     department_document_ids,
     document_brief,
-    ensure_can_manage,
+    ensure_can_cancel_job,
+    ensure_can_edit,
+    ensure_can_reprocess,
     ensure_can_view,
 )
 from app.modules.jobs.application import queries as jobs
@@ -72,9 +74,16 @@ class JobListItem(JobOut):
     stale: bool = Field(description="queued/processing quá ngưỡng: worker có thể chưa chạy")
 
 
-def authorize(db: Session, principal: Principal, job: Any, *, manage: bool) -> None:
+def authorize(db: Session, principal: Principal, job: Any, *, action: str = "view") -> None:
+    """D-11: chạy lại job OCR = chạy lại OCR (chủ sở hữu, Nháp); chạy lại job khác (trích xuất, phân loại) = SỬA;
+    dừng job = người được chạy lại OCR hoặc Admin."""
     if job.document_id is not None:
-        (ensure_can_manage if manage else ensure_can_view)(db, principal, job.document_id)
+        if action == "cancel":
+            ensure_can_cancel_job(db, principal, job.document_id)
+        elif action == "retry":
+            (ensure_can_reprocess if job.kind == "OCR" else ensure_can_edit)(db, principal, job.document_id)
+        else:
+            ensure_can_view(db, principal, job.document_id)
         return
     owner = (job.payload or {}).get("user_id")
     if not principal.is_admin and owner != str(principal.id):
@@ -84,22 +93,22 @@ def authorize(db: Session, principal: Principal, job: Any, *, manage: bool) -> N
 @router.get("/{job_id}", response_model=JobOut)
 def get_job(job_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal) -> JobOut:
     job = jobs.get_job(db, job_id)
-    authorize(db, principal, job, manage=False)
+    authorize(db, principal, job)
     return job_out(job)
 
 
 @router.post("/{job_id}/cancel", response_model=JobOut)
 def cancel_job(job_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal, ctx: Ctx) -> JobOut:
-    """FR-04 (v0.10): dừng job đang chờ/đang xử lý; cùng quyền với Chạy lại."""
+    """FR-04 (v0.10): dừng job đang chờ/đang xử lý; D-11: người được chạy lại OCR hoặc Admin."""
     job = jobs.get_job(db, job_id)
-    authorize(db, principal, job, manage=True)
+    authorize(db, principal, job, action="cancel")
     return job_out(jobs.cancel_job(db, principal, job_id, ctx))
 
 
 @router.post("/{job_id}/retry", response_model=JobOut)
 def retry_job(job_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal, ctx: Ctx) -> JobOut:
     job = jobs.get_job(db, job_id)
-    authorize(db, principal, job, manage=True)
+    authorize(db, principal, job, action="retry")
     return job_out(jobs.retry_job(db, principal, job_id, ctx))
 
 

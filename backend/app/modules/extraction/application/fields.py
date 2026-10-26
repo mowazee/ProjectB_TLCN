@@ -124,7 +124,7 @@ def update_field(
     is_verified: bool,
     ctx: RequestContext,
 ) -> FieldView:
-    doc = documents.ensure_can_manage(db, principal, document_id)
+    doc = documents.ensure_can_edit(db, principal, document_id)
     labels = rules.field_labels(_category_code(db, doc.category_id))
     row = _rows(db, doc.id).get(field_name)
     if row is None and field_name not in labels:
@@ -166,7 +166,7 @@ def update_field(
 
 
 def request_extraction(db: Session, principal: Principal, document_id: uuid.UUID, ctx: RequestContext) -> Any:
-    doc = documents.ensure_can_manage(db, principal, document_id)
+    doc = documents.ensure_can_edit(db, principal, document_id)
     job = create_job(db, kind=KIND, document_id=doc.id, queue="default")
     record(
         db,

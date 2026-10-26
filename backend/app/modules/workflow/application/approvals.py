@@ -18,6 +18,7 @@ from app.modules.documents.application import queries as documents
 from app.modules.users.application.queries import display_names, user_ids_with_roles
 from app.modules.workflow.domain.state_machine import (
     ACTION_ROLES,
+    OWNER_ACTIONS,
     PENDING,
     Action,
     InvalidTransition,
@@ -37,6 +38,8 @@ NOTIFY_TITLES = {
     Action.REJECT: "Tài liệu bị từ chối",
     Action.PUBLISH: "Tài liệu đã xuất bản",
     Action.UNPUBLISH: "Tài liệu đã hủy xuất bản",
+    Action.WITHDRAW: "Tài liệu đã được rút lại",
+    Action.RETURN: "Tài liệu được trả lại để chỉnh sửa",
 }
 
 
@@ -80,16 +83,19 @@ def transition(
     """Thực hiện action; trả approval_status mới."""
     if not principal.roles & ACTION_ROLES[action]:
         raise PermissionDeniedError("Vai trò của bạn không được thực hiện thao tác này")
-    # Gửi duyệt: Nghiệp vụ quản lý tài liệu; duyệt/xuất bản/hủy: Kiểm duyệt viên phòng ban của tài liệu - chia sẻ
-    # (FR-13, v0.8) chỉ mở quyền xem nên Kiểm duyệt viên phòng khác được chia sẻ không hủy xuất bản được
-    doc = (
-        documents.ensure_can_manage(db, principal, document_id)
-        if action == Action.SUBMIT
-        else documents.ensure_can_review(db, principal, document_id)
-    )
+    # Gửi duyệt, rút lại: chủ sở hữu (D-11); duyệt/xuất bản/hủy/trả lại: Kiểm duyệt viên phòng ban của tài liệu - chia
+    # sẻ (FR-13, v0.8) chỉ mở quyền xem nên Kiểm duyệt viên phòng khác được chia sẻ không hủy xuất bản được
+    if action in OWNER_ACTIONS:
+        doc = documents.ensure_can_view(db, principal, document_id)
+        if not documents.is_owner(principal, doc):
+            raise PermissionDeniedError("Chỉ người tải lên tài liệu mới gửi duyệt / rút lại được")
+    else:
+        doc = documents.ensure_can_review(db, principal, document_id)
     comments = (comments or "").strip() or None
     if action == Action.REJECT and not comments:
         raise UnprocessableError("Từ chối phải kèm lý do", fields={"comments": "required"})
+    if action == Action.RETURN and not comments:
+        raise UnprocessableError("Trả lại phải kèm ghi chú cho người tải lên", fields={"comments": "required"})
     current = str(doc.approval_status)
     try:
         step = next_status(action, current)
@@ -121,14 +127,14 @@ def transition(
         before={"approval_status": step.from_status},
         after={"approval_status": step.to_status, "comments": comments},
     )
-    if action == Action.SUBMIT:
+    if action in OWNER_ACTIONS:  # gửi duyệt / rút lại: báo Kiểm duyệt viên phòng ban của tài liệu
         recipients = [u for u in user_ids_with_roles(db, {"APPROVER"}, doc.department_id) if u != principal.id]
     else:
         submitter = _last_submitter(db, doc.id) or doc.owner_id
         recipients = [submitter] if submitter and submitter != principal.id else []
     if recipients:
         message = f"'{doc.title}'" + (f" - {comments}" if comments else "")
-        link = "/reviews" if action == Action.SUBMIT else f"/documents/{doc.id}"
+        link = "/reviews" if action == Action.SUBMIT else f"/documents/{doc.id}"  # trả lại: chủ sở hữu mở tài liệu
         get_notifier().notify(
             db,
             recipients,
@@ -162,11 +168,11 @@ def history(db: Session, principal: Principal, document_id: uuid.UUID) -> list[A
 def state(db: Session, principal: Principal, document_id: uuid.UUID) -> dict[str, Any]:
     doc = documents.ensure_can_view(db, principal, document_id)
     current = str(doc.approval_status)
-    actions = allowed_actions(current, principal.roles)
-    if "submit" in actions and not documents.can_manage(principal, doc):
-        actions.remove("submit")
-    if not documents.can_review(principal, doc):  # FR-13: người được chia sẻ không duyệt/xuất bản
-        actions = [a for a in actions if a == "submit"]
+    owner = documents.is_owner(principal, doc)
+    reviewer = documents.can_review(principal, doc)  # FR-13: người được chia sẻ không duyệt/xuất bản
+    actions = [
+        a for a in allowed_actions(current, principal.roles) if (owner if Action(a) in OWNER_ACTIONS else reviewer)
+    ]
     return {"approval_status": current, "allowed_actions": actions}
 
 

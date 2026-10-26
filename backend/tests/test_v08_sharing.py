@@ -129,12 +129,12 @@ def test_sharing_only_grants_view_not_manage_or_review(world):
     assert c["approver_b"].get(f"/api/documents/{doc}/approval").json()["allowed_actions"] == []
     assert c["approver_b"].post(f"/api/documents/{doc}/approval/unpublish").status_code == 403
     assert "unpublish" in c["approver"].get(f"/api/documents/{doc}/approval").json()["allowed_actions"]
-    # Chủ sở hữu vẫn quản lý; người cùng phòng mất quyền sửa khi Riêng tư
+    # Chủ sở hữu chia sẻ được; D-11: tài liệu đã xuất bản không ai sửa (kể cả chủ sở hữu) - hủy xuất bản trước
     assert detail["share_mode"] == "internal"
     assert c["owner"].get(f"/api/documents/{doc}").json()["can_share"] is True
     _share(w, "private")
     assert c["officer_a2"].patch(f"/api/documents/{doc}", json={"title": "x"}).status_code == 403
-    assert c["owner"].patch(f"/api/documents/{doc}", json={"title": "Hợp đồng A1"}).status_code == 200
+    assert c["owner"].patch(f"/api/documents/{doc}", json={"title": "Hợp đồng A1"}).status_code == 403
 
 
 def test_sharing_api_rules(world, db):
@@ -145,7 +145,8 @@ def test_sharing_api_rules(world, db):
     _approve_publish(w)
     assert c["officer_a2"].get(f"/api/documents/{doc}/sharing").status_code == 403  # không phải chủ sở hữu
     assert _share(w, "public", who="officer_a2").status_code == 403
-    assert _share(w, "public", who="approver").status_code == 403
+    assert _share(w, "public", who="approver_b").status_code == 403  # Kiểm duyệt viên phòng khác
+    assert c["approver"].get(f"/api/documents/{doc}/sharing").status_code == 200  # v0.12: Kiểm duyệt viên phòng ban
     assert _share(w, "everyone").status_code == 422
     assert _share(w, "internal", departments=[9999]).status_code == 422
     c["admin"].patch(f"/api/users/{w['ids']['officer_c']}", json={"is_active": False})
@@ -210,10 +211,14 @@ def test_shared_with_me_filter(world):
 def test_borrowing_by_shared_users_decided_by_document_department(world):
     w = world
     c, doc = w["c"], w["doc"]
+    # D-11: gán vị trí lưu trữ là thao tác SỬA - chủ sở hữu làm khi tài liệu còn Nháp
+    loc = c["admin"].post("/api/storage-locations", json={"name": "Kho 1", "code": "k1"}).json()
+    assert (
+        c["owner"].put(f"/api/documents/{doc}/storage-location", json={"storage_location_id": loc["id"]}).status_code
+        == 200
+    )
     _approve_publish(w)
     _share(w, "internal", departments=[w["dep_b"]])
-    loc = c["admin"].post("/api/storage-locations", json={"name": "Kho 1", "code": "k1"}).json()
-    c["owner"].put(f"/api/documents/{doc}/storage-location", json={"storage_location_id": loc["id"]})
     body = {
         "document_id": doc,
         "from_date": str(date.today() + timedelta(days=1)),
@@ -239,7 +244,8 @@ def test_jobs_and_trash_stay_in_department_scope(world):
     assert c["officer_b"].get("/api/jobs").json()["total"] == 0  # job thuộc phòng ban quản lý tài liệu
     assert c["officer_a2"].get("/api/jobs").json()["total"] >= 1
     _share(w, "private")
-    assert c["owner"].delete(f"/api/documents/{doc}").status_code == 204
+    assert c["owner"].delete(f"/api/documents/{doc}").status_code == 403  # D-11: đã xuất bản - chỉ Admin xóa
+    assert c["admin"].delete(f"/api/documents/{doc}").status_code == 204
 
     def trash(user):
         return [d["id"] for d in c[user].get("/api/documents", params={"lifecycle_status": "deleted"}).json()["items"]]
@@ -258,4 +264,4 @@ def test_user_lookup(world):
     assert all(u["username"] != "officer" for u in c["owner"].get("/api/users/lookup", params={"q": "offic"}).json())
     assert c["owner"].get("/api/users/lookup", params={"q": "v"}).status_code == 422
     assert c["viewer"].get("/api/users/lookup", params={"q": "viewer"}).status_code == 403
-    assert c["approver"].get("/api/users/lookup", params={"q": "viewer"}).status_code == 403
+    assert c["approver"].get("/api/users/lookup", params={"q": "viewer"}).status_code == 200  # v0.12: chia sẻ được

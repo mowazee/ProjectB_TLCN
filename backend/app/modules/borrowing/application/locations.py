@@ -100,7 +100,7 @@ def get_document_location(db: Session, principal: Principal, document_id: uuid.U
 def set_document_location(
     db: Session, principal: Principal, document_id: uuid.UUID, location_id: int | None, ctx: RequestContext
 ) -> StorageLocation | None:
-    doc = documents.ensure_can_manage(db, principal, document_id)
+    doc = documents.ensure_can_edit(db, principal, document_id)  # D-11: gán vị trí lưu trữ là thao tác SỬA
     loc = get_location(db, location_id) if location_id is not None else None
     before = document_location_id(db, doc.id)
     db.execute(

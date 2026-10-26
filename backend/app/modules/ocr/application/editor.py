@@ -70,7 +70,7 @@ def get_page_detail(db: Session, principal: Principal, document_id: uuid.UUID, p
         edited_by=current.edited_by if current else None,
         edited_at=current.edited_at if current else None,
         boxes=list(result.boxes or []) if result else [],
-        can_edit=documents.can_manage(principal, doc),
+        can_edit=documents.can_edit(principal, doc),
     )
 
 
@@ -85,9 +85,15 @@ def save_correction(
     ctx: RequestContext,
     action: str = "edit_ocr",
     extra_after: dict[str, Any] | None = None,
+    check_permission: bool = True,
 ) -> OcrCorrection:
-    """action/extra_after cho phép rollback (P2-09) tạo một version mới mang nội dung cũ."""
-    doc = documents.ensure_can_manage(db, principal, document_id)
+    """action/extra_after cho phép rollback (P2-09) tạo một version mới mang nội dung cũ; rollback không chịu giới hạn
+    SỬA của D-11 (check_permission=False)."""
+    doc = (
+        documents.ensure_can_edit(db, principal, document_id)
+        if check_permission
+        else documents.ensure_can_view(db, principal, document_id)
+    )
     page = documents.get_page_for_update(db, document_id, page_number)  # khóa hàng (PostgreSQL)
     result = latest_result(db, page.id)
     if result is None or page.ocr_status not in (PageOcrStatus.COMPLETED, PageOcrStatus.NEEDS_REVIEW):

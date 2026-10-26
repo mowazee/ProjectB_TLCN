@@ -206,13 +206,19 @@ Push-Location $Frontend
 try {
     if (-not (Test-Path 'node_modules')) {
         Step 'Cài thư viện frontend (npm ci)'
+        $ErrorActionPreference = 'Continue'   # npm/node ghi cảnh báo ra stderr: chỉ dựa vào mã thoát
         & npm ci --no-audit --no-fund *>> "$Logs\npm.log"
-        if ($LASTEXITCODE -ne 0) { throw "npm ci thất bại, xem $Logs\npm.log" }
+        $code = $LASTEXITCODE
+        $ErrorActionPreference = 'Stop'
+        if ($code -ne 0) { throw "npm ci thất bại, xem $Logs\npm.log" }
     }
     if ($Rebuild -or -not (Test-Path 'dist\index.html')) {
         Step 'Build giao diện React'
+        $ErrorActionPreference = 'Continue'   # Vite in cảnh báo (vd. [PLUGIN_TIMINGS]) ra stderr: chỉ dựa vào mã thoát
         & npm run build *>> "$Logs\npm.log"
-        if ($LASTEXITCODE -ne 0) { throw "Build frontend thất bại, xem $Logs\npm.log" }
+        $code = $LASTEXITCODE
+        $ErrorActionPreference = 'Stop'
+        if ($code -ne 0) { throw "Build frontend thất bại, xem $Logs\npm.log" }
     }
     Step "Khởi động giao diện (http://127.0.0.1:$Port)"
     $web = Start-Process -PassThru -WindowStyle Hidden -WorkingDirectory $Frontend -FilePath 'node' `

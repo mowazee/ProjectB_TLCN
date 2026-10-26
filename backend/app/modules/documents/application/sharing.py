@@ -47,8 +47,11 @@ def _get(db: Session, principal: Principal, document_id: uuid.UUID) -> Document:
     doc = db.get(Document, document_id)
     if doc is None or doc.lifecycle_status != LifecycleStatus.ACTIVE:
         raise NotFoundError("Không tìm thấy tài liệu")
-    if not (principal.is_admin or (doc.owner_id is not None and doc.owner_id == principal.id)):
-        raise PermissionDeniedError("Chỉ chủ sở hữu tài liệu hoặc Quản trị viên được quản lý chia sẻ")
+    owner = doc.owner_id is not None and doc.owner_id == principal.id
+    if not (principal.is_admin or owner or policies.can_review(principal, scope_of(doc))):  # FR-13 (v0.12, D-11)
+        raise PermissionDeniedError(
+            "Chỉ chủ sở hữu tài liệu, Kiểm duyệt viên phòng ban của tài liệu hoặc Quản trị viên được quản lý chia sẻ"
+        )
     return doc
 
 
