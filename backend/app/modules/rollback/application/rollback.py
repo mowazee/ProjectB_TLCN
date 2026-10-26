@@ -97,7 +97,17 @@ def execute(db: Session, actor: Principal, log_id: int, *, confirm: bool, ctx: R
     if p.kind == "document" and doc_id is not None:
         if p.current == p.target:
             raise UnprocessableError("Dữ liệu hiện tại đã giống trạng thái trước", code="NO_CHANGES")
-        documents.update_document(db, actor, doc_id, dict(p.target), ctx, action="rollback_document", extra_after=extra)
+        # D-11: rollback là công cụ khôi phục của Admin, không chịu giới hạn SỬA theo trạng thái duyệt
+        documents.update_document(
+            db,
+            actor,
+            doc_id,
+            dict(p.target),
+            ctx,
+            action="rollback_document",
+            extra_after=extra,
+            check_permission=False,
+        )
     elif p.kind == "category":
         if p.current == p.target:
             raise UnprocessableError("Dữ liệu hiện tại đã giống trạng thái trước", code="NO_CHANGES")
@@ -114,5 +124,6 @@ def execute(db: Session, actor: Principal, log_id: int, *, confirm: bool, ctx: R
             ctx=ctx,
             action="rollback_ocr",
             extra_after=extra,
+            check_permission=False,
         )
     return p

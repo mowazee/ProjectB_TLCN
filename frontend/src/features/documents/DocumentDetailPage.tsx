@@ -1,4 +1,4 @@
-import { Download, PencilLine, Share2, Trash2 } from "lucide-react";
+import { Lock, Download, PencilLine, Share2, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -20,6 +20,7 @@ import {
 } from "@/shared/components/ui";
 import { useCategories } from "@/shared/hooks/useCategories";
 import { formatBytes, formatDateTime } from "@/shared/lib/format";
+import { can } from "@/shared/lib/permissions";
 import { useSession } from "@/shared/session";
 import { SlotList, useSlots } from "@/shared/slots";
 
@@ -140,9 +141,11 @@ export function DocumentDetailPage() {
     );
   }
   const d = doc.data;
-  // Chủ sở hữu/Admin thấy nút Chia sẻ mờ khi tài liệu chưa xuất bản (biết tính năng có, và vì sao chưa dùng được)
-  const isOwnerOrAdmin = session?.user.id === d.owner?.id || Boolean(session?.roles.includes("ADMIN"));
-  const canShareLater = hasFeature("workflow") && isOwnerOrAdmin && d.lifecycle_status === "active";
+  // Người chia sẻ được khi đã xuất bản (chủ sở hữu, Kiểm duyệt viên, Admin) thấy nút Chia sẻ mờ khi chưa xuất bản
+  const roles = session?.roles ?? [];
+  const sharer = session?.user.id === d.owner?.id || roles.includes("ADMIN") || roles.includes("APPROVER");
+  const canShareLater = hasFeature("workflow") && sharer && d.lifecycle_status === "active";
+  const lockReason = d.edit_lock_reason ?? null; // D-11: vì sao không sửa được (null nếu sửa được / chỉ đọc)
 
   const remove = () => {
     if (window.confirm(`Chuyển "${d.title}" vào thùng rác?`)) {
@@ -177,7 +180,8 @@ export function DocumentDetailPage() {
         actions={
           <div className={s.actions}>
             <SlotList items={documentActions} props={{ document: d }} />
-            {/* FR-13: chủ sở hữu/Admin chia sẻ tài liệu đã xuất bản; chưa xuất bản thì nút mờ kèm lý do */}
+            {/* FR-13: chủ sở hữu, Kiểm duyệt viên phòng ban, Admin chia sẻ tài liệu đã xuất bản; chưa xuất bản thì nút
+                mờ kèm lý do */}
             {d.can_share ? (
               <button className="btn btn-primary" onClick={() => setSharing(true)}>
                 <Share2 size={16} aria-hidden /> Chia sẻ
@@ -198,20 +202,34 @@ export function DocumentDetailPage() {
             <a className="btn" href={fileUrl(d.id)}>
               <Download size={16} aria-hidden /> Tải file gốc
             </a>
-            {d.can_edit && (
-              <>
-                <button className="btn" onClick={() => setEditing(true)}>
-                  <PencilLine size={16} aria-hidden /> Sửa thông tin
-                </button>
-                <button className="btn btn-danger" onClick={remove} disabled={del.isPending}>
-                  <Trash2 size={16} aria-hidden /> Xóa
-                </button>
-              </>
+            {/* D-11: sửa theo chủ sở hữu và trạng thái duyệt; không sửa được thì nút mờ kèm lý do */}
+            {can(d, "edit") ? (
+              <button className="btn" onClick={() => setEditing(true)}>
+                <PencilLine size={16} aria-hidden /> Sửa thông tin
+              </button>
+            ) : (
+              lockReason && (
+                <span title={lockReason}>
+                  <button className="btn" disabled aria-label={`Sửa thông tin - ${lockReason}`}>
+                    <PencilLine size={16} aria-hidden /> Sửa thông tin
+                  </button>
+                </span>
+              )
+            )}
+            {can(d, "delete") && (
+              <button className="btn btn-danger" onClick={remove} disabled={del.isPending}>
+                <Trash2 size={16} aria-hidden /> Xóa
+              </button>
             )}
           </div>
         }
       />
       <ErrorBox error={del.error} />
+      {lockReason && (
+        <p className={s.lockNote} role="note">
+          <Lock size={15} aria-hidden /> {lockReason}
+        </p>
+      )}
       <div className="card">
         <dl className={s.meta}>
           <div>
@@ -250,7 +268,12 @@ export function DocumentDetailPage() {
         </dl>
         {d.job_id && (
           <div style={{ marginTop: 12 }}>
-            <JobStatus jobId={d.job_id} canRetry={d.can_edit} onDone={refresh} />
+            <JobStatus
+              jobId={d.job_id}
+              canRetry={can(d, "reprocess")}
+              canCancel={can(d, "cancel_job")}
+              onDone={refresh}
+            />
           </div>
         )}
       </div>

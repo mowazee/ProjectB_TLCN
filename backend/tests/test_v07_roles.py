@@ -80,8 +80,10 @@ def test_viewer_is_read_only(seed, login, db):
         "/api/borrow-requests", json={"document_id": doc_id, "from_date": "2099-01-01", "to_date": "2099-01-02"}
     )
     assert borrow.status_code == 403
-    # Tài liệu đã xuất bản rồi bị xóa: không lọt vào thùng rác của người chỉ đọc
-    assert officer.delete(f"/api/documents/{doc_id}").status_code == 204
+    # Tài liệu đã xuất bản rồi bị xóa: không lọt vào thùng rác của người chỉ đọc. D-11: chỉ Admin xóa được tài liệu
+    # đã xuất bản (chủ sở hữu chỉ xóa khi Nháp / Bị từ chối)
+    assert officer.delete(f"/api/documents/{doc_id}").status_code == 403
+    assert login("admin", features="workflow,borrowing").delete(f"/api/documents/{doc_id}").status_code == 204
     assert officer.get("/api/documents", params={"lifecycle_status": "deleted"}).json()["total"] == 1
     assert viewer.get("/api/documents", params={"lifecycle_status": "deleted"}).json()["total"] == 0
 

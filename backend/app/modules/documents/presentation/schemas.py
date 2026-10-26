@@ -46,6 +46,11 @@ class DocumentOut(BaseModel):
     category_source: str = Field(description="D-10: user | auto | pending (nguồn danh mục)")
     share_mode: str = Field(description="FR-13: private | internal | public; chỉ có hiệu lực khi đã xuất bản")
     can_share: bool = Field(description="FR-13: người dùng hiện tại đổi được cấu hình chia sẻ")
+    permissions: list[str] = Field(
+        default_factory=list,
+        description="D-11 (v0.12): edit, reprocess, delete, restore, cancel_job, submit, withdraw, share",
+    )
+    edit_lock_reason: str | None = Field(default=None, description="D-11: vì sao người dùng không sửa được")
 
 
 class DocumentPatch(BaseModel):
@@ -97,6 +102,8 @@ def document_out(v: DocumentView) -> DocumentOut:
         share_mode=v.share_mode,
         can_share=v.can_share,
         can_edit=v.can_edit,
+        permissions=v.permissions,
+        edit_lock_reason=v.edit_lock_reason,
     )
 
 

@@ -233,3 +233,27 @@ def test_auto_category_on_upload(officer_page: Page, tmp_path, uniq):
     if name != "Hợp đồng":
         rows.filter(has_text="Hợp đồng").get_by_role("button", name="Áp dụng").click()
         expect(summary.get_by_text("Hợp đồng", exact=True)).to_be_visible()
+
+
+def test_review_locks_editing_d11(officer_page: Page, new_context_page, tmp_path, uniq):
+    """D-11: gửi duyệt khóa sửa với người tải lên (nút mờ + lý do, Rút lại); Kiểm duyệt viên sửa, không chạy lại OCR."""
+    need(officer_page, "workflow")
+    page = officer_page
+    doc_id = upload_and_wait(page, make_pdf(tmp_path / "d11.pdf", [f"Quyết định {uniq} về quyền sửa"]), f"D11 {uniq}")
+    url = f"{BASE_URL}/documents/{doc_id}"
+    expect(page.get_by_role("button", name="Sửa thông tin")).to_be_enabled()
+    page.get_by_role("button", name="Gửi duyệt").click()
+    page.get_by_role("dialog").get_by_role("button", name="Xác nhận").click()
+    expect(page.get_by_role("note")).to_contain_text("Rút lại")
+    expect(page.get_by_role("button", name=re.compile("Sửa thông tin"))).to_be_disabled()
+    expect(page.get_by_role("button", name="Xóa")).to_have_count(0)
+
+    approver = new_context_page(APPROVER)
+    approver.goto(url)
+    expect(approver.get_by_role("button", name="Sửa thông tin")).to_be_enabled()
+    expect(approver.get_by_role("button", name="Chạy lại OCR")).to_have_count(0)
+
+    page.get_by_role("button", name="Rút lại", exact=True).click()
+    page.get_by_role("dialog").get_by_role("button", name="Xác nhận").click()
+    expect(page.get_by_role("button", name="Sửa thông tin")).to_be_enabled()
+    expect(page.get_by_role("note")).to_have_count(0)

@@ -8,10 +8,12 @@ import { useJob, useRetryJob } from "./useJob";
 export function JobStatus({
   jobId,
   canRetry,
+  canCancel = canRetry,
   onDone,
 }: {
   jobId: string;
   canRetry?: boolean;
+  canCancel?: boolean; // D-11: dừng job - người được chạy lại OCR hoặc Admin
   onDone?: (job: Job) => void;
 }) {
   const { data: job, error } = useJob(jobId, onDone);
@@ -26,7 +28,7 @@ export function JobStatus({
         <span className="muted">
           lần {job.attempt}/{job.max_attempts}
         </span>
-        {(job.status === "queued" || job.status === "processing") && canRetry && (
+        {(job.status === "queued" || job.status === "processing") && canCancel && (
           <CancelJobButton jobId={job.id} processing={job.status === "processing"} />
         )}
         {job.status === "failed" && canRetry && (

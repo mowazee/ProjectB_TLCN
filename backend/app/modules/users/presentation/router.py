@@ -1,5 +1,5 @@
 """API users (SDD mục 7.1): GET/POST /api/users; PATCH /api/users/{id}; GET /api/roles.
-GET /api/users/lookup (v0.8, FR-13): tra cứu người dùng để chia sẻ tài liệu (Nghiệp vụ, Admin).
+GET /api/users/lookup (v0.8, FR-13): tra cứu người dùng để chia sẻ tài liệu (Nghiệp vụ, Kiểm duyệt - v0.12, Admin).
 Phòng ban (FR-10, v0.7): GET /api/departments (mọi người dùng, cho form/bộ lọc), POST/PATCH/DELETE (Admin).
 POST /api/users/{id}/revoke-sessions (Admin, v0.7)."""
 
@@ -116,7 +116,11 @@ class UserLookupOut(BaseModel):
     department_name: str | None
 
 
-@router.get("/users/lookup", response_model=list[UserLookupOut], dependencies=[Depends(require_roles("OFFICER"))])
+@router.get(
+    "/users/lookup",
+    response_model=list[UserLookupOut],
+    dependencies=[Depends(require_roles("OFFICER", "APPROVER"))],  # D-11: Kiểm duyệt viên phòng ban cũng chia sẻ
+)
 def lookup_users(
     db: DbSession, q: Annotated[str, Query(min_length=2, max_length=100)], principal: CurrentPrincipal
 ) -> list[UserLookupOut]:

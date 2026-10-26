@@ -1,3 +1,4 @@
+import { can } from "@/shared/lib/permissions";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
@@ -56,7 +57,7 @@ export function TrashPage() {
                       {expired && " (đã quá hạn)"}
                     </td>
                     <td>
-                      {d.can_edit && !expired && (
+                      {can(d, "restore") && !expired && (
                         <button
                           className="btn btn-sm"
                           onClick={() => restore.mutate(d.id)}

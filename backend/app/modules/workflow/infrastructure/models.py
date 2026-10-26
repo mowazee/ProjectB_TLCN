@@ -17,7 +17,8 @@ class DocumentApproval(Base):
     __tablename__ = "document_approvals"
     __table_args__ = (
         CheckConstraint(
-            "action IN ('submit', 'approve', 'reject', 'publish', 'unpublish')", name="ck_document_approvals_action"
+            "action IN ('submit', 'approve', 'reject', 'publish', 'unpublish', 'withdraw', 'return')",
+            name="ck_document_approvals_action",
         ),
     )
 

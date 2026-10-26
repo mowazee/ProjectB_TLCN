@@ -74,6 +74,21 @@ nút **Được chia sẻ với tôi** lọc tài liệu người khác chia s�
 phòng ban của bạn được chọn ở chế độ Nội bộ, hoặc tài liệu Toàn hệ thống của phòng ban khác. Thử nhanh: `nhanvien` chia sẻ một tài liệu đã
 xuất bản cho Phòng Kế toán → đăng nhập `ketoan` (tab ẩn danh) → Tài liệu → Được chia sẻ với tôi.
 
+**Ai được sửa tài liệu** (D-11, SDD v0.12) — theo người tải lên và trạng thái duyệt:
+
+| Trạng thái | Người tải lên | Kiểm duyệt viên phòng ban của tài liệu, Admin |
+|---|---|---|
+| Nháp / Bị từ chối (hoặc không bật `workflow`) | sửa, chạy lại OCR, gửi duyệt, xóa | chỉ xem |
+| Chờ duyệt / Đã duyệt | chỉ xem; **Rút lại** để sửa | sửa (không chạy lại OCR); duyệt, từ chối, xuất bản |
+| Đã xuất bản | chỉ xem; chia sẻ | hủy xuất bản; chia sẻ |
+| Đã hủy xuất bản | chỉ xem | sửa (không chạy lại OCR); xuất bản lại; **Trả lại cho người tải lên** (kèm ghi chú) |
+
+"Sửa" gồm sửa thông tin/danh mục (kể cả áp dụng gợi ý), sửa nội dung OCR, trường trích xuất, vị trí lưu trữ. Đồng nghiệp
+cùng phòng chỉ xem. Admin xóa được ở mọi trạng thái và dừng được job kẹt, nhưng không chạy lại OCR tài liệu của người
+khác; Khôi phục từ nhật ký (P2-09) không bị giới hạn. Trang chi tiết hiện lý do khi không sửa được (nút mờ + thông báo).
+Thử nhanh: `nhanvien` gửi duyệt → `kiemduyet` đổi danh mục (được) nhưng Chạy lại OCR không có; xuất bản → không ai sửa;
+hủy xuất bản → Trả lại → `nhanvien` sửa và gửi lại.
+
 **Chọn danh mục khi tải lên** (D-10, SDD v0.9; cần cờ `classification`): mặc định **Danh mục gợi ý** — tài liệu tạm ở
 danh mục hệ thống **"Chưa phân loại"**, OCR xong job phân loại tự áp dụng gợi ý cao nhất nếu đạt `CLASSIFY_MIN_SCORE`
 (mặc định 0,3) và báo cho người tải lên; dưới ngưỡng thì giữ "Chưa phân loại" và báo để tự chọn (Sửa thông tin hoặc

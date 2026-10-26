@@ -18,7 +18,7 @@ from app.shared.errors import UnprocessableError
 
 
 def reprocess(db: Session, principal: Principal, document_id: uuid.UUID, *, profile: str, ctx: RequestContext) -> Any:
-    doc = documents.ensure_can_manage(db, principal, document_id)
+    doc = documents.ensure_can_reprocess(db, principal, document_id)  # D-11: chủ sở hữu, Nháp / Bị từ chối
     if profile not in ocr_profiles():
         raise UnprocessableError("OCR profile không hợp lệ hoặc chưa bật", fields={"ocr_profile": "invalid"})
     job = create_ocr_job(db, doc.id, profile=profile)

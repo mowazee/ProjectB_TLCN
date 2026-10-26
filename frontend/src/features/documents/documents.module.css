@@ -123,3 +123,21 @@
     flex-basis: 100%;
   }
 }
+
+/* D-11: vì sao người dùng không sửa được tài liệu (đang duyệt, đã xuất bản, không phải người tải lên) */
+.lockNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface-2);
+  color: var(--c-text-2);
+  font-size: 13.5px;
+}
+.lockNote svg {
+  flex-shrink: 0;
+  color: var(--c-muted);
+}

@@ -1,3 +1,4 @@
+import { can } from "@/shared/lib/permissions";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -29,7 +30,7 @@ export function ReprocessButton({ document }: DocumentSlotProps) {
       client.invalidateQueries({ queryKey: ["documents"] });
     },
   });
-  if (!document.can_edit) return null;
+  if (!can(document, "reprocess")) return null; // D-11: chủ sở hữu, tài liệu ở Nháp / Bị từ chối
   return (
     <>
       <button className="btn" onClick={() => setOpen(true)}>

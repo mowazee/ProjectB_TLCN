@@ -1,7 +1,7 @@
 """UC-05 Quản lý tài liệu, UC-05b Thùng rác/khôi phục (FR-07, D-05)."""
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
@@ -14,9 +14,9 @@ from app.modules.documents.application.queries import (
     _department_clause,
     _scope_clause,
     _view_clause,
-    can_manage,
-    ensure_can_manage,
+    ensure_can_edit,
     ensure_can_view,
+    ensure_permission,
     scope_of,
     shared_with_me_clause,
 )
@@ -51,9 +51,11 @@ class DocumentView:
     total_pages: int = 0
     needs_review_pages: int = 0
     job_status: str | None = None
-    can_edit: bool = False
+    can_edit: bool = False  # D-11 SỬA (giữ cho tương thích; xem permissions)
     job_id: uuid.UUID | None = None
-    can_share: bool = False  # FR-13: chủ sở hữu/Admin, tài liệu đã xuất bản
+    can_share: bool = False  # FR-13: chủ sở hữu, Kiểm duyệt viên phòng ban, Admin; tài liệu đã xuất bản
+    permissions: list[str] = field(default_factory=list)  # D-11: thao tác người dùng được làm
+    edit_lock_reason: str | None = None  # D-11: vì sao không sửa được (hiện cạnh nút mờ)
 
     @property
     def category_source(self) -> str:
@@ -110,9 +112,11 @@ def build_views(db: Session, principal: Principal, docs: list[Document]) -> list
                 total_pages=sum(counts.values()),
                 needs_review_pages=counts.get(PageOcrStatus.NEEDS_REVIEW.value, 0),
                 job_status=job_map[d.id][1] if d.id in job_map else None,
-                can_edit=can_manage(principal, d),
+                can_edit=policies.can_edit(principal, scope := scope_of(d)),
                 job_id=job_map[d.id][0] if d.id in job_map else None,
-                can_share=policies.can_share(principal, scope_of(d)),
+                can_share=policies.can_share(principal, scope),
+                permissions=policies.permissions(principal, scope),
+                edit_lock_reason=policies.edit_lock_reason(principal, scope),
             )
         )
     return views
@@ -180,9 +184,13 @@ def update_document(
     *,
     action: str = "update_document",
     extra_after: dict[str, Any] | None = None,
+    check_permission: bool = True,
 ) -> Document:
-    """Sửa metadata (tên, danh mục, số hiệu, chữ viết tay). Dùng lại cho P2-05 và P2-09."""
-    doc = ensure_can_manage(db, principal, document_id)
+    """Sửa metadata (tên, danh mục, số hiệu, chữ viết tay). Dùng lại cho P2-05 và P2-09.
+    check_permission=False: rollback (P2-09) - công cụ khôi phục của Admin, không chịu giới hạn SỬA của D-11."""
+    doc = (
+        ensure_can_edit(db, principal, document_id) if check_permission else ensure_can_view(db, principal, document_id)
+    )
     before = _snapshot(doc)
     if changes.get("title"):
         doc.title = str(changes["title"]).strip()[:255]
@@ -242,8 +250,8 @@ def apply_auto_category(
 
 
 def soft_delete(db: Session, principal: Principal, document_id: uuid.UUID, ctx: RequestContext) -> None:
-    """Xóa mềm: lifecycle_status=deleted + deleted_at; job đang chờ kết thúc; vào thùng rác."""
-    doc = ensure_can_manage(db, principal, document_id)
+    """Xóa mềm: lifecycle_status=deleted + deleted_at; job đang chờ kết thúc; vào thùng rác. Quyền: D-11."""
+    doc = ensure_permission(db, principal, document_id, policies.DELETE)
     before = _snapshot(doc)
     doc.lifecycle_status = LifecycleStatus.DELETED
     doc.deleted_at = utcnow()
@@ -269,8 +277,9 @@ def restore(db: Session, principal: Principal, document_id: uuid.UUID, ctx: Requ
     doc = db.get(Document, document_id)
     if doc is None:
         raise NotFoundError("Không tìm thấy tài liệu (có thể đã bị xóa cứng)")
-    if not policies.can_manage(principal, scope_of(doc)):
-        raise PermissionDeniedError("Bạn không có quyền khôi phục tài liệu này")
+    scope = scope_of(doc)
+    if not policies.can_view(principal, scope) or not policies.can_restore(principal, scope):
+        raise PermissionDeniedError(policies.denial_message(principal, scope, policies.RESTORE))
     if doc.lifecycle_status != LifecycleStatus.DELETED:
         return doc
     if not can_restore_at(aware(doc.deleted_at), settings.SOFT_DELETE_RETENTION_DAYS, utcnow()):
@@ -292,13 +301,4 @@ def restore(db: Session, principal: Principal, document_id: uuid.UUID, ctx: Requ
     )
     publish(db, DocumentRestored(doc.id))
     db.commit()
-    return doc
-
-
-def get_trashed_scope_check(db: Session, principal: Principal, document_id: uuid.UUID) -> Document:
-    doc = db.get(Document, document_id)
-    if doc is None:
-        raise NotFoundError("Không tìm thấy tài liệu")
-    if not policies.can_manage(principal, scope_of(doc)):  # thùng rác theo phạm vi quản lý, không theo chia sẻ
-        raise PermissionDeniedError("Bạn không có quyền truy cập tài liệu này")
     return doc

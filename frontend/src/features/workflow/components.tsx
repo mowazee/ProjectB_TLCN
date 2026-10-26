@@ -23,9 +23,19 @@ const ACTION_LABELS: Record<string, string> = {
   reject: "Từ chối",
   publish: "Xuất bản",
   unpublish: "Hủy xuất bản",
+  withdraw: "Rút lại",
+  return: "Trả lại cho người tải lên",
+};
+// Thao tác bắt buộc ghi chú: lý do từ chối, ghi chú khi trả lại (D-11)
+const NEEDS_COMMENT = new Set(["reject", "return"]);
+const HINTS: Record<string, string> = {
+  withdraw: "Tài liệu về Nháp để bạn chỉnh sửa (kể cả chạy lại OCR) rồi gửi duyệt lại.",
+  unpublish: "Sau khi hủy xuất bản, Kiểm duyệt viên/Admin có thể chỉnh sửa hoặc trả lại cho người tải lên.",
+  return: "Tài liệu về Nháp; người tải lên nhận thông báo kèm ghi chú và chỉnh sửa lại.",
 };
 
-/** P2-01: nút theo action server cho phép; server vẫn kiểm state machine (409) và quyền (403). */
+/** P2-01: nút theo action server cho phép (D-11: gửi duyệt, rút lại - chủ sở hữu; duyệt, xuất bản, hủy, trả lại -
+ *  Kiểm duyệt viên phòng ban / Admin); server vẫn kiểm state machine (409) và quyền (403). */
 export function ApprovalActions({ document }: DocumentSlotProps) {
   const state = useApprovalState(document.id);
   const action = useApprovalAction(document.id);
@@ -68,14 +78,24 @@ export function ApprovalActions({ document }: DocumentSlotProps) {
             <button
               className="btn btn-primary"
               onClick={() => run(pending)}
-              disabled={action.isPending || (pending === "reject" && !comments.trim())}
+              disabled={action.isPending || (NEEDS_COMMENT.has(pending) && !comments.trim())}
             >
               Xác nhận
             </button>
           }
         >
           <ErrorBox error={action.error} />
-          <Field label={pending === "reject" ? "Lý do từ chối (bắt buộc)" : "Ghi chú"} htmlFor="cm">
+          {HINTS[pending] && <p className="muted">{HINTS[pending]}</p>}
+          <Field
+            label={
+              pending === "reject"
+                ? "Lý do từ chối (bắt buộc)"
+                : pending === "return"
+                  ? "Ghi chú cho người tải lên (bắt buộc)"
+                  : "Ghi chú"
+            }
+            htmlFor="cm"
+          >
             <textarea
               id="cm"
               className="textarea"

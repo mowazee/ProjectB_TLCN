@@ -87,3 +87,35 @@ describe("Chi tiết tài liệu - chia sẻ (FR-13)", () => {
     expect(screen.queryByRole("button", { name: /Xóa/ })).toBeNull();
   });
 });
+
+describe("Chi tiết tài liệu - quyền sửa theo trạng thái duyệt (D-11)", () => {
+  it("chủ sở hữu tài liệu Nháp: Sửa thông tin, Xóa dùng được, không có thông báo khóa", async () => {
+    render(doc({ approval_status: "draft", can_share: false, permissions: ["edit", "delete", "reprocess", "submit"] }));
+    expect(await screen.findByRole("button", { name: /Sửa thông tin/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Xóa/ })).toBeEnabled();
+    expect(screen.queryByRole("note")).toBeNull();
+  });
+
+  it("không sửa được: nút Sửa thông tin mờ kèm lý do, có thông báo khóa, không có Xóa", async () => {
+    const reason = "Tài liệu đang chờ duyệt: bấm Rút lại để chỉnh sửa";
+    render(
+      doc({ approval_status: "pending_review", can_share: false, permissions: ["withdraw"], edit_lock_reason: reason }),
+    );
+    const btn = await screen.findByRole("button", { name: /Sửa thông tin/ });
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveAccessibleName(`Sửa thông tin - ${reason}`);
+    expect(screen.getByRole("note")).toHaveTextContent(reason);
+    expect(screen.queryByRole("button", { name: /Xóa/ })).toBeNull();
+  });
+
+  it("Admin xóa được tài liệu đã xuất bản dù không sửa được", async () => {
+    render(
+      doc({
+        permissions: ["delete", "share"],
+        edit_lock_reason: "Tài liệu đã xuất bản: cần hủy xuất bản trước khi chỉnh sửa",
+      }),
+    );
+    expect(await screen.findByRole("button", { name: /Xóa/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Sửa thông tin/ })).toBeDisabled();
+  });
+});

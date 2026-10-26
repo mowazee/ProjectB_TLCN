@@ -3,6 +3,8 @@
 draft -> pending_review -> approved | rejected; rejected -> draft; approved -> published <-> unpublished.
 "rejected -> draft" không có action riêng trong API (SDD 7.2 chỉ có submit/approve/reject/publish/
 unpublish): gửi duyệt lại từ rejected được hiểu là rejected -> draft -> pending_review trong một bước.
+D-11 (v0.12): withdraw - chủ sở hữu rút lại để sửa (pending_review | approved -> draft); return - Kiểm duyệt viên/Admin
+trả lại chủ sở hữu sau khi hủy xuất bản (unpublished -> draft, kèm ghi chú).
 """
 
 from dataclasses import dataclass
@@ -15,6 +17,8 @@ class Action(StrEnum):
     REJECT = "reject"
     PUBLISH = "publish"
     UNPUBLISH = "unpublish"
+    WITHDRAW = "withdraw"
+    RETURN = "return"
 
 
 DRAFT, PENDING, APPROVED, REJECTED, PUBLISHED, UNPUBLISHED = (
@@ -32,6 +36,8 @@ TRANSITIONS: dict[Action, tuple[frozenset[str], str]] = {
     Action.REJECT: (frozenset({PENDING}), REJECTED),
     Action.PUBLISH: (frozenset({APPROVED, UNPUBLISHED}), PUBLISHED),
     Action.UNPUBLISH: (frozenset({PUBLISHED}), UNPUBLISHED),
+    Action.WITHDRAW: (frozenset({PENDING, APPROVED}), DRAFT),
+    Action.RETURN: (frozenset({UNPUBLISHED}), DRAFT),
 }
 
 # Nghiệp vụ (OFFICER) gửi duyệt; Kiểm duyệt (APPROVER) quyết định; Admin làm được tất cả (SDD mục 3)
@@ -41,7 +47,10 @@ ACTION_ROLES: dict[Action, frozenset[str]] = {
     Action.REJECT: frozenset({"APPROVER", "ADMIN"}),
     Action.PUBLISH: frozenset({"APPROVER", "ADMIN"}),
     Action.UNPUBLISH: frozenset({"APPROVER", "ADMIN"}),
+    Action.WITHDRAW: frozenset({"OFFICER", "ADMIN"}),
+    Action.RETURN: frozenset({"APPROVER", "ADMIN"}),
 }
+OWNER_ACTIONS = frozenset({Action.SUBMIT, Action.WITHDRAW})  # D-11: chỉ chủ sở hữu tài liệu
 
 
 @dataclass(frozen=True)

@@ -4,7 +4,7 @@ Tiểu luận chuyên ngành — UTE, Nhóm 3. Mọi yêu cầu, tên dữ liệ
 **SDD v0.12** (`document/0 -Dac_ta_SDD_v0.12.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
 
 ProjectB được dựng mới hoàn toàn từ baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng);
-đặc tả nâng lên v0.6 (16/10/2026) sau khi hiện thực xong để khớp với code; v0.7 (18/10/2026) thêm phân hệ quản trị và tài khoản (FR-09…FR-12, đã hiện thực); v0.8 (18/10/2026) thêm chia sẻ tài liệu đã xuất bản (FR-13, đã hiện thực); v0.9 (21/10/2026) thêm chọn danh mục tự động khi tải lên (D-10) và OCR vùng ảnh trong trang PDF có lớp chữ; v0.10 (21/10/2026) thêm dừng OCR, xử lý văn bản ký số (đã hiện thực); v0.11 (21/10/2026) đồng bộ đặc tả với OCR chữ in tiếng Việt bằng VietOCR, chống nghiêng, lọc ký tự lạ (đã hiện thực, GUIDE mục 9); v0.12 (26/10/2026) chốt D-11 — quyền sửa tài liệu theo chủ sở hữu và trạng thái duyệt, thêm Rút lại / Trả lại — và đồng bộ nhập hàng loạt với Danh mục gợi ý (đang hiện thực). **Trạng thái:** MVP + P2 chạy end to end,
+đặc tả nâng lên v0.6 (16/10/2026) sau khi hiện thực xong để khớp với code; v0.7 (18/10/2026) thêm phân hệ quản trị và tài khoản (FR-09…FR-12, đã hiện thực); v0.8 (18/10/2026) thêm chia sẻ tài liệu đã xuất bản (FR-13, đã hiện thực); v0.9 (21/10/2026) thêm chọn danh mục tự động khi tải lên (D-10) và OCR vùng ảnh trong trang PDF có lớp chữ; v0.10 (21/10/2026) thêm dừng OCR, xử lý văn bản ký số (đã hiện thực); v0.11 (21/10/2026) đồng bộ đặc tả với OCR chữ in tiếng Việt bằng VietOCR, chống nghiêng, lọc ký tự lạ (đã hiện thực, GUIDE mục 9); v0.12 (26/10/2026) chốt D-11 — quyền sửa tài liệu theo chủ sở hữu và trạng thái duyệt, thêm Rút lại / Trả lại — và đồng bộ nhập hàng loạt với Danh mục gợi ý (đã hiện thực). **Trạng thái:** MVP + P2 chạy end to end,
 CI xanh; việc còn lại cần dữ liệu thật để đo chất lượng OCR — xem [SUMMARY.md](SUMMARY.md) mục 4.
 ProjectA (`D:\ProjectA_TLCN`) giữ lại làm tham chiếu bản MVP cũ (Jinja2).
 
@@ -41,7 +41,7 @@ frontend/           React + TypeScript + Vite (src/app, src/features/*, src/shar
 infra/nginx/        default.conf (SPA + reverse proxy /api, CSP)
 infra/backup/       backup.sh (sao lưu/khôi phục, chạy trong service backup/restore)
 docs/openapi.json   hợp đồng API (sinh types React: npm run gen:api)
-document/           đặc tả v0.12: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.9 (sinh từ Alembic 0001…0109)
+document/           đặc tả v0.12: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.12 (sinh từ Alembic 0001…0110)
 tests/e2e/          Playwright (Python) chạy trên hệ thống thật
 .github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2), compose.yml (Docker + sao lưu)
 compose.yaml        Docker Compose (profile hw, rag, tools); compose.dev.yaml
@@ -61,12 +61,12 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin trong
 
 | Bộ | Lệnh | Kết quả hiện tại |
 |---|---|---|
-| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 169 passed, 1 skipped |
-| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 169 passed, 1 skipped |
+| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 461 passed, 1 skipped |
+| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 461 passed, 1 skipped |
 | Backend trên PostgreSQL 18 + Redis | CI `backend.yml` (6 tổ hợp cờ) | xanh mỗi PR |
-| Frontend | `cd frontend; npm test` | 51 passed |
+| Frontend | `cd frontend; npm test` | 56 passed |
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |
-| E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | 12 passed, 1 skipped (mọi cờ bật) |
+| E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | 13 passed, 1 skipped (mọi cờ bật) |
 | Docker + sao lưu/khôi phục | CI `compose.yml` | xanh |
 
 Tài liệu khác: [GUIDE.md](GUIDE.md) (cài đặt, vận hành, Git/CI, sự cố) · [SUMMARY.md](SUMMARY.md) (trạng thái, truy vết, chênh lệch so với đặc tả)
