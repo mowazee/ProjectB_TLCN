@@ -20,6 +20,7 @@ import {
 import { useCategories } from "@/shared/hooks/useCategories";
 import { formatDateTime } from "@/shared/lib/format";
 import { useSession } from "@/shared/session";
+import { SlotList, useSlots } from "@/shared/slots";
 
 const RECENT_KEY = "imports.recent";
 
@@ -66,6 +67,7 @@ export function ImportPage() {
   const canAuto = hasFeature("classification"); // Danh mục gợi ý cần P2-05
   const [mode, setMode] = useState<CategoryMode>("auto");
   const categoryMode: CategoryMode = canAuto ? mode : "user";
+  const { uploadFields } = useSlots();
   const navigate = useNavigate();
   const [count, setCount] = useState(0);
   const start = useMutation({
@@ -155,6 +157,8 @@ export function ImportPage() {
         >
           <input id="meta" name="metadata" type="file" accept=".csv,text/csv" />
         </Field>
+        {/* P2-03: lô scan chữ viết tay -> OCR trên hàng đợi ocr_hw (cùng ô với trang tải lên) */}
+        <SlotList items={uploadFields} props={{}} />
         <div>
           <button className="btn btn-primary" type="submit" disabled={start.isPending}>
             {start.isPending ? "Đang tải lên..." : "Bắt đầu nhập"}

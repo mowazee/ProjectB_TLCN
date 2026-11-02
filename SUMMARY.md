@@ -15,7 +15,7 @@ và chạy được end to end**; đặc tả v0.7 khớp với code; CI xanh tr
 | Frontend | React 19 + TS + Vite 8, React Router 7, TanStack Query 5, CSS Modules, Chart.js; 15 feature (6 lõi + 9 P2, lazy); types sinh từ OpenAPI | 18 test Vitest; tsc/eslint/prettier sạch |
 | Giao diện | Design token + component dùng chung; icon `lucide-react`; sidebar/header mới, ô tìm nhanh, avatar; đăng nhập chia đôi; dashboard theo nhóm + biểu đồ theo hướng dẫn trực quan hóa; **nền sáng/tối** (theo hệ thống / sáng / tối, lưu lựa chọn) | E2E 9 passed trên giao diện mới; soát ảnh chụp desktop 1440px + mobile 390px, sáng và tối |
 | Sao lưu (NFR-03) | Service `backup` hằng ngày (database + storage), mỗi bản tự thử khôi phục → OK/WARN/FAILED; `restore` có chốt an toàn | thử thật trên Docker; CI `compose` chạy vòng sao lưu → xóa → khôi phục |
-| Hạ tầng | Nginx (SPA + /api, CSP), Dockerfile backend/frontend, compose (profile hw, rag, tools), compose.dev, Makefile; CI 4 workflow (ma trận cờ P2); ruleset `protect-main` | — |
+| Hạ tầng | Nginx (SPA + /api, CSP), Dockerfile backend/frontend, compose (worker nghe cả ocr_hw; profile rag, tools), compose.dev, Makefile; CI 4 workflow (ma trận cờ P2); ruleset `protect-main` | — |
 | Đánh giá | `backend/eval/`: CER/WER/độ chính xác ký tự, hiệu chỉnh ngưỡng, precision/recall trích xuất, top-1 phân loại | chạy thử với PaddleOCR thật trên dữ liệu tổng hợp |
 | Demo | `demo-start.cmd` / `demo-stop.cmd` (PostgreSQL riêng `.demo\`, worker, beat, API, React :8080) | đã chạy end-to-end với PaddleOCR thật |
 
@@ -23,10 +23,10 @@ và chạy được end to end**; đặc tả v0.7 khớp với code; CI xanh tr
 
 | Bộ | Kết quả |
 |---|---|
-| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 461 passed, 1 skipped / 461 passed, 1 skipped (27/10, thêm D-11: ma trận quyền 288 trường hợp + luồng API) |
+| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 467 passed, 1 skipped / 467 passed, 1 skipped (02/11, thêm worker nhận ocr_hw, engine chữ viết tay chia dòng) |
 | CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#5) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (PR #4, `main` sau #4) |
-| Frontend Vitest | 56 passed (27/10: thêm nút theo quyền D-11, Rút lại / Trả lại) |
+| Frontend Vitest | 57 passed (02/11: thêm ô Tài liệu viết tay ở trang Nhập hàng loạt) |
 | E2E Playwright trên demo thật, mọi cờ bật (local, 27/10) | 13 passed, 1 skipped (thêm khóa sửa khi chờ duyệt / Rút lại - D-11; thêm nhập hàng loạt với Danh mục gợi ý + metadata.csv; thêm luồng tải lên với Danh mục gợi ý → tự phân loại → Áp dụng gợi ý khác; test còn lại dành cho cờ tắt) |
 | CI `e2e`: 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) | xanh trên mọi PR (#2–#5) |
 | E2E chế độ chỉ MVP (`-Mvp`, local 05/10) | 6 passed, 4 skipped (các test P2 tự bỏ qua khi cờ tắt) |
@@ -95,6 +95,7 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); bản v0.6 sinh
 | **SDD v0.10** — dừng OCR (POST /api/jobs/{id}/cancel, nút Dừng có xác nhận), trang scan có khối chữ ký số vẫn OCR nội dung, model OCR chữ in mặc định bản mobile (văn bản scan 17 trang của nhóm: 1241 s → 67 s, nội dung tương đương; dấu tiếng Việt vẫn kém như GUIDE mục 9) | đặc tả v0.10 | cùng PR #17 |
 | **Cải thiện OCR có dấu — chữ in** (GUIDE mục 9, phương án 1+2+3; đặc tả v0.11) | — | **xong 21/10** (#20, đặc tả v0.11): VietOCR đọc chữ in (chia dòng dài), lọc ký tự lạ, sửa lỗi chống nghiêng nhân đôi góc; scan thật 87,7% → 98,2% (`vgg_seq2seq`, ~8 s/trang) / 99,1% (`vgg_transformer`). Còn: hiệu chỉnh lại `NEEDS_REVIEW_THRESHOLD` khi có ≥ 30 trang thật; chữ viết tay chưa đo lại |
 | **Hiện thực SDD v0.12 — D-11** quyền sửa theo chủ sở hữu và trạng thái duyệt (Nháp/Bị từ chối: chủ sở hữu sửa, chạy lại OCR, xóa; Chờ duyệt/Đã duyệt/Đã hủy xuất bản: Kiểm duyệt viên phòng ban hoặc Admin sửa, không chạy lại OCR; Đã xuất bản: không ai sửa), action withdraw/return, Kiểm duyệt viên phòng ban chia sẻ, DocumentOut.permissions | đặc tả v0.12 | **xong 27/10**: đặc tả v0.12 (#24); hiện thực: policy ở domain, `DocumentOut.permissions` + lý do khóa, action withdraw/return (migration 0110, script CSDL v0.12), giao diện nút theo quyền, test ma trận 288 trường hợp |
+| **OCR chữ viết tay vận hành** (02/11) | — | **xong**: worker chính nhận cả hàng đợi `ocr_hw` (bỏ `worker-hw` / `-Hw` — trước đây quên `-Hw` thì job chờ mãi); engine chữ viết tay chia dòng dài và dùng chung model dò dòng của chữ in (45–100 → 22–27 s/trang, đo trên chữ in); Nhập hàng loạt có ô Tài liệu viết tay. Còn: đo độ chính xác trên mẫu chữ viết tay thật (NFR-08 > 70%) |
 | **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB`, `MAX_PAGES` |
 | Bắt buộc CI xanh trước khi merge | sửa ruleset (GUIDE 7.1) | 2 test chập chờn đã sửa (PR #4) nên có thể bật |
 | Chép bản sao lưu ra ngoài máy | tùy nơi triển khai (ổ ngoài, cloud) | `BACKUP_DIR` (GUIDE 6.4) |

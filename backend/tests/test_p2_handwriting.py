@@ -64,3 +64,24 @@ def test_handwriting_model_failure_does_not_affect_print(seed, login, db, fake_e
     pr = upload(c, seed["category"].id, make_png(), "print.png").json()
     assert run_job(UUID(hw["job_id"])) == JobOutcome.RETRY
     assert run_job(UUID(pr["job_id"])) == JobOutcome.COMPLETED
+
+
+def test_bulk_import_handwritten_batch_goes_to_hw_queue(seed, login, db, enqueued):
+    """Lô scan chữ viết tay (trang Nhập hàng loạt có ô "Tài liệu viết tay"): mỗi tài liệu OCR trên hàng đợi ocr_hw."""
+    c = login("officer", features="handwriting,imports")
+    engines.override("handwriting", HwEngine())
+    r = c.post(
+        "/api/imports",
+        data={"category_id": str(seed["category"].id), "is_handwritten": "true"},
+        files=[("files", ("a.png", make_png(), "image/png")), ("files", ("b.png", make_png(), "image/png"))],
+    )
+    assert r.status_code == 202, r.text
+    import_job = UUID(r.json()["job_id"])
+    assert enqueued == [(import_job, "default")]
+    enqueued.clear()
+    assert run_job(import_job) == JobOutcome.COMPLETED
+    assert [q for _, q in enqueued] == ["ocr_hw", "ocr_hw"]
+    run_all_jobs(enqueued)
+    db.rollback()
+    profiles = [j.payload["profile"] for j in db.scalars(select(ProcessingJob).where(ProcessingJob.kind == "OCR"))]
+    assert profiles == ["handwriting", "handwriting"]

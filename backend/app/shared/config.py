@@ -82,6 +82,9 @@ class Settings(BaseSettings):
     # P2-03: auto (vietocr nếu đã cài, không thì paddleocr-hw) | vietocr | paddleocr-hw (baseline)
     OCR_HW_ENGINE: str = "auto"
     OCR_HW_REC_MODEL: str = ""  # P2-03 paddleocr-hw: tên model nhận dạng (trống = mặc định theo ngôn ngữ)
+    # P2-03 vietocr: model dò dòng cho chữ viết tay. Trống = dùng chung OCR_DET_MODEL của chữ in (nạp một lần, đo trên
+    # văn bản scan nhanh hơn 2-4 lần và không kém bản server); đặt PP-OCRv5_server_det nếu chữ viết tay thật dò kém
+    OCR_HW_DET_MODEL: str = ""
     VIETOCR_CONFIG: str = "vgg_transformer"  # P2-03 vietocr: cấu hình/weights VietOCR
     VIETOCR_CACHE_DIR: str = ""  # nơi lưu cấu hình + weights VietOCR (trống = ~/.cache/vietocr)
     OCR_LANG: str = "vi"

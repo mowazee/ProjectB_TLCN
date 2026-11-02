@@ -1,7 +1,8 @@
 """Celery app cho worker và beat (cùng codebase với API).
 
-Worker:  celery -A app.workers.celery_app:celery_app worker -Q default,ocr -P solo -l info
-Worker chữ viết tay (P2-03, profile hw): ... worker -Q ocr_hw  (WORKER_OCR_PROFILES=handwriting)
+Worker:  celery -A app.workers.celery_app:celery_app worker -Q default,ocr,ocr_hw -P solo -l info
+         (WORKER_OCR_PROFILES=print,handwriting: nạp sẵn engine chữ in và chữ viết tay - P2-03 dùng hàng đợi ocr_hw;
+         có thể tách worker riêng cho ocr_hw khi cần scale, cùng image)
 Beat:    celery -A app.workers.celery_app:celery_app beat -l info
 """
 
@@ -64,7 +65,11 @@ def _on_worker_init(**_: Any) -> None:
         logger.exception("Không kiểm tra được job bỏ dở")
     if not settings.OCR_PRELOAD_ON_START:
         return
-    for profile in [p.strip() for p in os.environ.get("WORKER_OCR_PROFILES", "print").split(",") if p.strip()]:
+    wanted = [p.strip() for p in os.environ.get("WORKER_OCR_PROFILES", "print").split(",") if p.strip()]
+    for profile in wanted:
+        if profile not in engines.profiles():  # vd. handwriting khi cờ tắt: không có gì để nạp, không dừng worker
+            logger.info("Bỏ qua nạp sẵn OCR profile '%s' (tính năng chưa bật)", profile)
+            continue
         try:
             engines.get_engine(profile)
         except Exception as exc:

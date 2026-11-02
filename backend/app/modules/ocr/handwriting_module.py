@@ -1,7 +1,7 @@
 """P2-03 OCR chữ viết tay: file bổ sung trong module ocr, cờ "handwriting".
 
 setup(): đăng ký engine profile "handwriting" (HandwritingEngine) và profile OCR -> hàng đợi
-"ocr_hw" (worker riêng: WORKER_OCR_PROFILES=handwriting, -Q ocr_hw; compose --profile hw).
+"ocr_hw" (worker chính nghe cả -Q default,ocr,ocr_hw; WORKER_OCR_PROFILES=print,handwriting).
 Tài liệu is_handwritten=True được xếp vào profile này. Tắt cờ hoặc lỗi model không ảnh hưởng OCR in.
 """
 

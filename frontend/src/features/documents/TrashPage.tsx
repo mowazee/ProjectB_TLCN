@@ -1,10 +1,10 @@
-import { can } from "@/shared/lib/permissions";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
 import { EmptyState, ErrorBox, Loading, PageHeader, Pagination } from "@/shared/components/ui";
 import { formatDateTime } from "@/shared/lib/format";
+import { can } from "@/shared/lib/permissions";
 
 import { useDocuments, useRestoreDocument } from "./api";
 

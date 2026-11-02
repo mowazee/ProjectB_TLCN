@@ -118,8 +118,8 @@ cho từng tài liệu, chỉ một thông báo "Nhập hàng loạt xong" dẫn
 Menu bên trái gom theo nhóm **Tài liệu / Quy trình / Quản trị / Cá nhân** (chỉ hiện mục vai trò đó dùng được).
 **Hàng đợi xử lý** (`/jobs`, Nghiệp vụ và Admin, FR-11) liệt kê job OCR, trích xuất, phân loại, nhập hàng loạt; job lỗi
 có nút "Chạy lại". Nhãn **"Chờ quá lâu"** nghĩa là job đang chờ quá `JOB_REQUEUE_AFTER_SECONDS` (mặc định 10 phút) hoặc
-đã bị beat gửi lại mà vẫn chưa chạy — thường do worker của hàng đợi đó chưa bật (vd. OCR chữ viết tay cần worker
-`-Q ocr_hw`, GUIDE 4.3). Danh sách tài liệu có cột và bộ lọc **trạng thái duyệt** khi bật cờ `workflow`; trang chi tiết
+đã bị beat gửi lại mà vẫn chưa chạy — thường do worker chưa bật hoặc không nghe hàng đợi đó (worker phải nghe
+`-Q default,ocr,ocr_hw`, GUIDE 4.3). Danh sách tài liệu có cột và bộ lọc **trạng thái duyệt** khi bật cờ `workflow`; trang chi tiết
 có nút **Quay lại** giữ nguyên bộ lọc đang dùng.
 
 Gợi ý kịch bản demo: đăng nhập `nhanvien` → Tài liệu → mở hợp đồng mẫu → xem trang/sửa OCR (thử mở 2 tab để thấy 409) →
@@ -139,7 +139,7 @@ cd backend; .\.venv\Scripts\python.exe -m alembic upgrade head
 cd frontend; npm run dev        # http://localhost:5173
 ```
 
-Worker chữ viết tay (P2-03) chạy riêng: `$env:WORKER_OCR_PROFILES="handwriting"; celery ... worker -Q ocr_hw`.
+Worker xử lý cả chữ viết tay (P2-03, hàng đợi `ocr_hw`): `celery ... worker -Q default,ocr,ocr_hw` (`$env:WORKER_OCR_PROFILES="print,handwriting"` để nạp sẵn cả hai engine).
 
 Khi đổi API: `python scripts/export_openapi.py` rồi `npm run gen:api` và commit cả `docs/openapi.json` lẫn `schema.d.ts`
 (CI `frontend.yml` báo lỗi nếu lệch).
@@ -187,9 +187,15 @@ cd backend
 
 Model lưu ở `VIETOCR_CACHE_DIR` (mặc định `%USERPROFILE%\.cache\vietocr`), tải một lần, sau đó chạy không cần mạng.
 Demo (mục 3) tự kiểm tra và in "Engine chữ viết tay: VietOCR" và "Engine chữ in: VietOCR" khi khởi động. Docker:
-`worker` (chữ in) và `worker-hw` (`.\docker-start.cmd -Hw`) dùng image `docso-backend-hw` (PyTorch CPU); image của
-api/beat không mang thêm. Chữ in dùng model `OCR_VIETOCR_CONFIG` (mặc định `vgg_seq2seq`), chữ viết tay dùng
-`VIETOCR_CONFIG` (mặc định `vgg_transformer`); cả hai tải một lần vào cache.
+`worker` xử lý cả chữ in và chữ viết tay (hàng đợi `default,ocr,ocr_hw`) bằng image `docso-backend-hw` (PyTorch
+CPU) — không còn `worker-hw` / `-Hw` riêng (trước đây quên `-Hw` thì job chữ viết tay chờ mãi); image của api/beat
+không mang thêm. Chữ in dùng model `OCR_VIETOCR_CONFIG` (mặc định `vgg_seq2seq`), chữ viết tay dùng
+`VIETOCR_CONFIG` (mặc định `vgg_transformer`); cả hai tải một lần vào cache. Hai engine dùng chung một model dò
+dòng (`OCR_DET_MODEL`, đặt riêng cho chữ viết tay bằng `OCR_HW_DET_MODEL`) và đều chia dòng dài trước khi đọc
+(`OCR_VIETOCR_MAX_RATIO`). Đo 02/11/2026 (engine chữ viết tay trên trang chữ in, cùng model): trước 45–100 s/trang
+với model dò dòng bản server, nay 22–27 s/trang, độ chính xác không giảm (98,6% → 99,1% trên scan thật); worker
+nạp cả hai engine tốn thêm ~0,9 GB RAM. Chưa có số liệu trên chữ viết tay thật (cần mẫu, mục đo bên dưới).
+Trang **Nhập hàng loạt** cũng có ô "Tài liệu viết tay" cho lô scan viết tay.
 
 **Đo độ chính xác (mục tiêu > 70%, D-06) ngay trên dữ liệu trong ứng dụng:** upload ảnh chữ viết tay → OCR tự chạy →
 mở OCR Editor, sửa text cho **đúng hoàn toàn** với bản gốc (cả dấu, xuống dòng) → Lưu → chạy
@@ -243,7 +249,6 @@ RAM cho Docker do WSL2 tự cấp (mặc định ~50% RAM máy); worker OCR cầ
 cd D:\ProjectB_TLCN
 .\docker-start.cmd -Demo        # lần đầu: tạo .env (mật khẩu ngẫu nhiên), build image ~10-20 phút, seed dữ liệu demo
 .\docker-start.cmd              # các lần sau / môi trường thật: chỉ tạo admin nếu chưa có
-.\docker-start.cmd -Hw          # + worker chữ viết tay (P2-03, hàng đợi ocr_hw)
 .\docker-start.cmd -Dev         # mở Postgres 127.0.0.1:55433, Redis 127.0.0.1:6379, API :8000 (reload theo code)
 .\docker-start.cmd -Build       # build lại image sau khi sửa code
 .\docker-stop.cmd               # dừng (giữ dữ liệu)   -Down: xóa container   -Purge: XÓA HẾT dữ liệu
@@ -382,7 +387,8 @@ sửa phiên bản trong file, chạy test, để CI xác nhận.
 | Worker dừng ngay, log có `Application Control policy has blocked this file` | Windows Smart App Control chặn DLL (libpaddle, sklearn `_liblinear` — PaddleX tự import scikit-learn). Tắt Smart App Control (Windows Security → App & browser control) hoặc chạy worker bằng Docker (mục 6). |
 | Worker khởi động rất lâu (~2 phút) | PaddleX kiểm tra nguồn model; giữ `OCR_MODEL_SOURCE_CHECK=false`. |
 | `paddle` lỗi oneDNN | Dùng `paddlepaddle>=3.2,<3.3` (đã ghim trong requirements-ocr.txt). |
-| Job đứng ở "Đang chờ" | Worker chưa chạy hoặc không nghe đúng hàng đợi (`default,ocr`, chữ viết tay `ocr_hw`); beat gửi lại job kẹt sau `JOB_REQUEUE_AFTER_SECONDS`. |
+| Job đứng ở "Đang chờ" | Worker chưa chạy hoặc không nghe đúng hàng đợi (`default,ocr,ocr_hw`; bản Docker cũ cần
+`-Hw` cho `ocr_hw` — cập nhật code và `.\docker-start.cmd -Build`); beat gửi lại job kẹt sau `JOB_REQUEUE_AFTER_SECONDS`. |
 | OCR quá chậm (hàng chục giây/trang) | Kiểm tra `OCR_DET_MODEL`, `OCR_REC_MODEL` trong `backend/.env`: để trống = model PP-OCRv6 medium (~50 s/trang CPU); mặc định bản mobile (~3–4 s/trang). Job đang chạy có thể bấm **Dừng** ở trang chi tiết hoặc Hàng đợi xử lý (dừng sau trang hiện tại, các trang đã xong được giữ, bấm Chạy lại để làm lại). |
 | Demo: `admin / Admin@12345` báo sai mật khẩu (sau `-Reset`) | Terminal VS Code bật `python.terminal.useEnvFile` nạp `.env` của Docker vào terminal, nên lần `-Reset` đó tạo admin bằng `DEMO_ADMIN_PASSWORD` của Docker (đăng nhập được bằng mật khẩu đó). Từ 23/10/2026 `demo-start` bỏ biến này; tạo lại đúng mật khẩu: `.\demo-start.cmd -Reset` (xóa dữ liệu demo). |
 | 403 `CSRF_FAILED` / `ORIGIN_REJECTED` | Truy cập khác origin cấu hình: thêm origin vào `ALLOWED_ORIGINS`; tải lại trang để lấy CSRF token mới. |
