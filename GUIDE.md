@@ -8,7 +8,7 @@
 | Node.js | 24 (npm 11) | cài bằng `winget install OpenJS.NodeJS.LTS` (theo user) |
 | PostgreSQL | 14+ (máy dev: 18) | demo tạo cluster riêng trong `.demo\`, không đụng service đã cài |
 | Redis | 7+ (Docker: 8) | bắt buộc ở production (session + hàng đợi). Redis không có bản Windows chính thức → chạy trong Docker (mục 6); demo mục 3 dùng session bộ nhớ + broker PostgreSQL |
-| Docker Desktop | Compose v2, WSL2 | chạy giống production (`docker-start.cmd`, mục 6) |
+| Docker Desktop | Compose v2, WSL2 | chạy giống production (`docker-start.cmd`, mục 6); nên cấp ≥ 6 GB RAM (worker nạp cả OCR chữ in và chữ viết tay) |
 
 ## 2. Cài đặt lần đầu
 
@@ -38,6 +38,7 @@ cd D:\ProjectB_TLCN
 .\demo-start.cmd -Reset       # xóa sạch dữ liệu demo và tạo lại
 .\demo-start.cmd -Mvp         # chỉ MVP (tắt mọi cờ P2)
 .\demo-start.cmd -Rebuild     # build lại giao diện sau khi sửa frontend
+.\demo-start.cmd -Port 8081   # đổi cổng giao diện (khi bản Docker đang giữ 8080)
 .\demo-stop.cmd               # dừng tất cả (dữ liệu giữ trong .demo\)
 ```
 
@@ -117,7 +118,8 @@ cho từng tài liệu, chỉ một thông báo "Nhập hàng loạt xong" dẫn
 
 Menu bên trái gom theo nhóm **Tài liệu / Quy trình / Quản trị / Cá nhân** (chỉ hiện mục vai trò đó dùng được).
 **Hàng đợi xử lý** (`/jobs`, Nghiệp vụ và Admin, FR-11) liệt kê job OCR, trích xuất, phân loại, nhập hàng loạt; job lỗi
-có nút "Chạy lại". Nhãn **"Chờ quá lâu"** nghĩa là job đang chờ quá `JOB_REQUEUE_AFTER_SECONDS` (mặc định 10 phút) hoặc
+có nút "Chạy lại". Job của tài liệu trong thùng rác không hiện (không chạy lại được); khôi phục tài liệu thì job hiện
+lại. Nhãn **"Chờ quá lâu"** nghĩa là job đang chờ quá `JOB_REQUEUE_AFTER_SECONDS` (mặc định 10 phút) hoặc
 đã bị beat gửi lại mà vẫn chưa chạy — thường do worker chưa bật hoặc không nghe hàng đợi đó (worker phải nghe
 `-Q default,ocr,ocr_hw`, GUIDE 4.3). Danh sách tài liệu có cột và bộ lọc **trạng thái duyệt** khi bật cờ `workflow`; trang chi tiết
 có nút **Quay lại** giữ nguyên bộ lọc đang dùng.
@@ -133,16 +135,19 @@ xuất bản; Mượn hồ sơ; Nhập hàng loạt (ZIP); `admin` → Nhật k�
 cd backend; .\.venv\Scripts\python.exe -m alembic upgrade head
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 # Terminal 2: worker (+ beat)
-.\.venv\Scripts\celery.exe -A app.workers.celery_app:celery_app worker -Q default,ocr -P solo -l info
+$env:WORKER_OCR_PROFILES="print,handwriting"   # nạp sẵn cả engine chữ in và chữ viết tay
+.\.venv\Scripts\celery.exe -A app.workers.celery_app:celery_app worker -Q default,ocr,ocr_hw -P solo -l info
 .\.venv\Scripts\celery.exe -A app.workers.celery_app:celery_app beat -l info
 # Terminal 3: React (Vite proxy /api -> 127.0.0.1:8000)
 cd frontend; npm run dev        # http://localhost:5173
 ```
 
-Worker xử lý cả chữ viết tay (P2-03, hàng đợi `ocr_hw`): `celery ... worker -Q default,ocr,ocr_hw` (`$env:WORKER_OCR_PROFILES="print,handwriting"` để nạp sẵn cả hai engine).
+Worker phải nghe cả `ocr_hw` (chữ viết tay, P2-03); thiếu hàng đợi nào thì job loại đó đứng "Đang chờ". Profile có cờ
+tính năng đang tắt (vd. `handwriting`) được bỏ qua khi nạp sẵn.
 
-Khi đổi API: `python scripts/export_openapi.py` rồi `npm run gen:api` và commit cả `docs/openapi.json` lẫn `schema.d.ts`
-(CI `frontend.yml` báo lỗi nếu lệch).
+Khi đổi API — kể cả chỉ sửa docstring của endpoint, vì FastAPI lấy docstring làm mô tả trong OpenAPI:
+`python scripts/export_openapi.py` rồi `npm run gen:api` và commit cả `docs/openapi.json` lẫn `schema.d.ts`
+(CI `frontend.yml`, check `openapi-drift`, báo lỗi nếu lệch).
 
 ### 4.1 Thêm một tính năng P2/P3 (Đặc tả đề tài 4.9)
 1. Backend: tạo `app/modules/<tên>/` 4 lớp + `module.py` với `feature="<tên>"`; thêm **1 dòng** vào `app/registry.py`,
@@ -241,7 +246,8 @@ winget install -e --id Docker.DockerDesktop
 Mở Docker Desktop, chấp nhận điều khoản (không cần đăng nhập), đợi góc dưới trái báo **Engine running**.
 Windows Home không có Hyper-V nên Docker luôn chạy bằng WSL2 và **không hiện** tùy chọn "Use WSL 2 based engine" —
 không cần chọn gì. Kiểm tra: `docker version` (Server: linux) và `wsl -l -v` (docker-desktop, VERSION 2).
-RAM cho Docker do WSL2 tự cấp (mặc định ~50% RAM máy); worker OCR cần ~2-3 GB.
+RAM cho Docker do WSL2 tự cấp (mặc định ~50% RAM máy); worker OCR cần ~3–4 GB (nạp cả engine chữ in và chữ viết
+tay, thêm ~0,9 GB so với chỉ chữ in), cả hệ thống nên có ≥ 6 GB.
 
 ### 6.2 Chạy
 
@@ -254,13 +260,24 @@ cd D:\ProjectB_TLCN
 .\docker-stop.cmd               # dừng (giữ dữ liệu)   -Down: xóa container   -Purge: XÓA HẾT dữ liệu
 ```
 
-Không chạy song song với demo mục 3 (cùng cổng 8080): `.\demo-stop.cmd` trước.
-Mật khẩu admin nằm trong `.env` (`DEMO_ADMIN_PASSWORD`). Lệnh thường dùng:
+Không chạy song song với demo mục 3 trên cùng cổng 8080: `.\demo-stop.cmd` trước, hoặc chạy demo bằng `-Port 8081`.
+Mật khẩu admin nằm trong `.env` (`DEMO_ADMIN_PASSWORD`). Tùy chọn `-Hw` cũ không còn cần: `worker` đã xử lý cả chữ
+viết tay (lệnh vẫn nhận `-Hw` nhưng chỉ in thông báo); `docker-start` tự gỡ container `worker-hw` cũ (`--remove-orphans`).
+
+**Thời gian build:** `-Build` thường chỉ 1–2 phút vì thư viện Python nằm trong cache build. Lần đầu, hoặc khi Docker
+đã tự dọn cache (cache build gần ngưỡng mặc định ~20 GB), bước `pip install` phải tải lại PaddlePaddle, OpenCV,
+PyTorch… mất 20–40 phút nếu mạng tới PyPI chậm — log vẫn chạy dòng `Downloading …` là không treo, **đừng hủy**
+(hủy thì bước đó tải lại từ đầu). Image api/beat (`WITH_HW=0`) và worker (`WITH_HW=1`) dùng chung lớp thư viện
+này (`ARG WITH_HW` khai báo sau bước `pip install` chung trong `backend/Dockerfile`), nên chỉ tải một lần. Để Docker giữ cache lâu hơn: Docker Desktop → Settings → Docker Engine, thêm
+`"builder": { "gc": { "enabled": true, "defaultKeepStorage": "40GB" } }` → Apply & restart. Xem build đang chạy:
+`docker buildx history ls`.
+
+Lệnh thường dùng:
 
 ```powershell
 docker compose ps                          # trạng thái (api/web/postgres/redis: healthy)
-docker compose logs -f api worker          # log
-docker compose up -d --scale worker=2      # thêm worker OCR (mỗi worker ~2-3 GB RAM)
+docker compose logs -f api worker          # log (worker sẵn sàng khi có dòng "celery@... ready")
+docker compose up -d --scale worker=2      # thêm worker OCR (mỗi worker ~3-4 GB RAM)
 docker compose exec redis redis-cli info keyspace   # session/hàng đợi trong Redis
 ```
 
@@ -270,7 +287,7 @@ docker compose exec redis redis-cli info keyspace   # session/hàng đợi trong
 | redis | session + broker | AOF (`appendonly yes`) → restart không mất session/job đang chờ; `noeviction` |
 | migrate | `alembic upgrade head` rồi thoát | api/worker/beat chỉ chạy sau khi migrate thành công |
 | api | FastAPI | healthcheck `/health`; Redis mất → API trả 503 `SERVICE_UNAVAILABLE` (không treo) |
-| worker | Celery `-P solo`, hàng đợi `default,ocr` | worker chết giữa job → khi container khởi động lại tự nhận lại job dở (log "Nhận lại … job bị bỏ dở"); worker chết hẳn → beat gửi lại sau `JOB_STALE_SECONDS`; runner claim theo DB nên không chạy trùng; mất Redis → tự kết nối lại. Chạy nhiều worker ngoài Docker trên cùng máy: đặt `WORKER_NAME` khác nhau |
+| worker | Celery `-P solo`, hàng đợi `default,ocr,ocr_hw`, image `docso-backend-hw` (có VietOCR + PyTorch CPU) | worker chết giữa job → khi container khởi động lại tự nhận lại job dở (log "Nhận lại … job bị bỏ dở"); worker chết hẳn → beat gửi lại sau `JOB_STALE_SECONDS`; runner claim theo DB nên không chạy trùng; mất Redis → tự kết nối lại. Chạy nhiều worker ngoài Docker trên cùng máy: đặt `WORKER_NAME` khác nhau |
 | beat | purge, gửi lại job kẹt, nhắc quá hạn | chỉ chạy **1** bản |
 | web | Nginx + React | chỉ nghe `127.0.0.1:8080` (đổi `WEB_BIND` trong `.env`) |
 
@@ -387,9 +404,11 @@ sửa phiên bản trong file, chạy test, để CI xác nhận.
 | Worker dừng ngay, log có `Application Control policy has blocked this file` | Windows Smart App Control chặn DLL (libpaddle, sklearn `_liblinear` — PaddleX tự import scikit-learn). Tắt Smart App Control (Windows Security → App & browser control) hoặc chạy worker bằng Docker (mục 6). |
 | Worker khởi động rất lâu (~2 phút) | PaddleX kiểm tra nguồn model; giữ `OCR_MODEL_SOURCE_CHECK=false`. |
 | `paddle` lỗi oneDNN | Dùng `paddlepaddle>=3.2,<3.3` (đã ghim trong requirements-ocr.txt). |
-| Job đứng ở "Đang chờ" | Worker chưa chạy hoặc không nghe đúng hàng đợi (`default,ocr,ocr_hw`; bản Docker cũ cần
+| Job đứng ở "Đang chờ" | Worker chưa chạy hoặc không nghe đúng hàng đợi (`default,ocr,ocr_hw`; bản Docker trước 02/11/2026 cần
 `-Hw` cho `ocr_hw` — cập nhật code và `.\docker-start.cmd -Build`); beat gửi lại job kẹt sau `JOB_REQUEUE_AFTER_SECONDS`. |
-| OCR quá chậm (hàng chục giây/trang) | Kiểm tra `OCR_DET_MODEL`, `OCR_REC_MODEL` trong `backend/.env`: để trống = model PP-OCRv6 medium (~50 s/trang CPU); mặc định bản mobile (~3–4 s/trang). Job đang chạy có thể bấm **Dừng** ở trang chi tiết hoặc Hàng đợi xử lý (dừng sau trang hiện tại, các trang đã xong được giữ, bấm Chạy lại để làm lại). |
+| OCR quá chậm (hàng chục giây/trang) | Mức bình thường trên CPU: chữ in VietOCR `vgg_seq2seq` ~8–9 s/trang (`vgg_transformer` ~21–25 s), chữ viết tay ~22–27 s/trang. Chậm hơn nhiều: kiểm tra `OCR_DET_MODEL` trong `backend/.env` — để trống = model dò dòng bản server, chậm hơn nhiều so với mặc định `PP-OCRv5_mobile_det`. Job đang chạy có thể bấm **Dừng** ở trang chi tiết hoặc Hàng đợi xử lý (dừng sau trang hiện tại, các trang đã xong được giữ, bấm Chạy lại để làm lại). |
+| `docker-start -Build` đứng lâu ở một bước (vd. 26/40) | Thường là bước `pip install` đang tải lại thư viện vì cache build đã bị dọn; mạng tới PyPI chậm thì mất 20–40 phút. Không hủy; xem mục 6.2 (Thời gian build) để Docker giữ cache lâu hơn. |
+| Hàng đợi xử lý còn job của tài liệu đã xóa; Chạy lại báo không tìm thấy tài liệu | Bản trước 02/11/2026 (PR #27): cập nhật code và `.\docker-start.cmd -Build` (demo: chạy lại `demo-start`). |
 | Demo: `admin / Admin@12345` báo sai mật khẩu (sau `-Reset`) | Terminal VS Code bật `python.terminal.useEnvFile` nạp `.env` của Docker vào terminal, nên lần `-Reset` đó tạo admin bằng `DEMO_ADMIN_PASSWORD` của Docker (đăng nhập được bằng mật khẩu đó). Từ 23/10/2026 `demo-start` bỏ biến này; tạo lại đúng mật khẩu: `.\demo-start.cmd -Reset` (xóa dữ liệu demo). |
 | 403 `CSRF_FAILED` / `ORIGIN_REJECTED` | Truy cập khác origin cấu hình: thêm origin vào `ALLOWED_ORIGINS`; tải lại trang để lấy CSRF token mới. |
 | `Cổng 8080 đang được dùng` | Demo đang chạy → `.\demo-stop.cmd`, hoặc `.\demo-start.cmd -Port 8081`. |

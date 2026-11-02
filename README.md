@@ -3,10 +3,22 @@
 Tiểu luận chuyên ngành — UTE, Nhóm 3. Mọi yêu cầu, tên dữ liệu và hợp đồng API bám theo
 **SDD v0.12** (`document/0 -Dac_ta_SDD_v0.12.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
 
-ProjectB được dựng mới hoàn toàn từ baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng);
-đặc tả nâng lên v0.6 (16/10/2026) sau khi hiện thực xong để khớp với code; v0.7 (18/10/2026) thêm phân hệ quản trị và tài khoản (FR-09…FR-12, đã hiện thực); v0.8 (18/10/2026) thêm chia sẻ tài liệu đã xuất bản (FR-13, đã hiện thực); v0.9 (21/10/2026) thêm chọn danh mục tự động khi tải lên (D-10) và OCR vùng ảnh trong trang PDF có lớp chữ; v0.10 (21/10/2026) thêm dừng OCR, xử lý văn bản ký số (đã hiện thực); v0.11 (21/10/2026) đồng bộ đặc tả với OCR chữ in tiếng Việt bằng VietOCR, chống nghiêng, lọc ký tự lạ (đã hiện thực, GUIDE mục 9); v0.12 (26/10/2026) chốt D-11 — quyền sửa tài liệu theo chủ sở hữu và trạng thái duyệt, thêm Rút lại / Trả lại — và đồng bộ nhập hàng loạt với Danh mục gợi ý (đã hiện thực). **Trạng thái:** MVP + P2 chạy end to end,
-CI xanh; việc còn lại cần dữ liệu thật để đo chất lượng OCR — xem [SUMMARY.md](SUMMARY.md) mục 4.
+**Trạng thái (02/11/2026):** MVP + P2 + phân hệ quản trị/tài khoản chạy end to end trên demo Windows và Docker; đặc tả
+v0.12 khớp với code; CI xanh trên mọi PR (#1–#27). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng OCR,
+trích xuất, phân loại — xem [SUMMARY.md](SUMMARY.md) mục 4.
+
+ProjectB được dựng mới hoàn toàn từ baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng).
 ProjectA (`D:\ProjectA_TLCN`) giữ lại làm tham chiếu bản MVP cũ (Jinja2).
+
+| Phiên bản đặc tả | Ngày | Nội dung chính (đều đã hiện thực) |
+|---|---|---|
+| v0.6 | 16/10/2026 | Hợp thức hóa 10 chênh lệch giữa v0.5 và code |
+| v0.7 | 18/10/2026 | Phân hệ quản trị và tài khoản (FR-09…FR-12), vai trò Người dùng thông thường |
+| v0.8 | 18/10/2026 | Chia sẻ tài liệu đã xuất bản (FR-13, D-09) |
+| v0.9 | 21/10/2026 | Chọn danh mục tự động khi tải lên (D-10); OCR vùng ảnh trong trang PDF có lớp chữ |
+| v0.10 | 21/10/2026 | Dừng OCR, xử lý văn bản ký số, model OCR nhanh |
+| v0.11 | 21/10/2026 | OCR chữ in tiếng Việt bằng VietOCR, chống nghiêng, lọc ký tự lạ (GUIDE mục 9) |
+| v0.12 | 26/10/2026 | D-11 quyền sửa theo chủ sở hữu và trạng thái duyệt (Rút lại / Trả lại); nhập hàng loạt có Danh mục gợi ý |
 
 ## Kiến trúc
 
@@ -21,10 +33,13 @@ Trình duyệt ── React SPA (Vite, TS) ──/api──► Nginx ──► F
 ```
 
 - **Backend** `backend/app/modules/<module>/{presentation,application,domain,infrastructure}` + `module.py` (ModuleSpec).
-  Quy tắc phụ thuộc R1–R10 kiểm tự động bằng **import-linter**.
+  Quy tắc phụ thuộc R1–R10 kiểm tự động bằng **import-linter** (5 contract).
 - **6 điểm mở rộng**: module registry (`app/registry.py`), job kind registry (task chung `jobs.run`), domain event
   (phát sau commit), port (OcrEngine, StoragePort, Notifier), API truy vấn công khai, UI registry (`frontend/src/app/registry.ts`).
 - **Cờ tính năng** `FEATURES_ENABLED`: router P2 chỉ gắn khi bật (tắt → 404); `/api/auth/me` trả `features` để React ẩn/hiện màn hình.
+- **OCR:** chữ in đọc bằng VietOCR (PaddleOCR dò dòng), chữ viết tay bằng VietOCR trên hàng đợi `ocr_hw`; một worker
+  xử lý cả hai (GUIDE mục 4.3, 9).
+- **Quyền sửa (D-11):** theo người tải lên và trạng thái duyệt; API trả `permissions` để giao diện ẩn/mờ nút (GUIDE mục 3).
 - **Giao diện:** design token + component dùng chung, icon `lucide-react`, nền **sáng/tối** (nút trên thanh tiêu đề:
   theo hệ thống → sáng → tối, lưu lựa chọn). Quy ước khi sửa giao diện: GUIDE mục 4.2.
 - **Sao lưu (NFR-03):** service `backup` sao lưu hằng ngày database + file, mỗi bản tự thử khôi phục (GUIDE mục 6.4).
@@ -36,12 +51,12 @@ Trình duyệt ── React SPA (Vite, TS) ──/api──► Nginx ──► F
 ## Cấu trúc thư mục
 
 ```
-backend/            FastAPI + Celery (app/, alembic/, tests/, eval/, scripts/)
-frontend/           React + TypeScript + Vite (src/app, src/features/*, src/shared)
+backend/            FastAPI + Celery (app/, alembic/ 0001…0110, tests/, eval/, scripts/)
+frontend/           React + TypeScript + Vite (src/app, src/features/* - 18 feature, src/shared)
 infra/nginx/        default.conf (SPA + reverse proxy /api, CSP)
 infra/backup/       backup.sh (sao lưu/khôi phục, chạy trong service backup/restore)
 docs/openapi.json   hợp đồng API (sinh types React: npm run gen:api)
-document/           đặc tả v0.12: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.12 (sinh từ Alembic 0001…0110)
+document/           đặc tả v0.12: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.12 (17 bảng, sinh từ Alembic)
 tests/e2e/          Playwright (Python) chạy trên hệ thống thật
 .github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2), compose.yml (Docker + sao lưu)
 compose.yaml        Docker Compose (profile rag, tools); compose.dev.yaml
@@ -51,23 +66,26 @@ scripts/            demo_start/stop.ps1 (demo một chạm), docker_start/stop.p
 ## Chạy nhanh
 
 - **Demo trên Windows (không cần Docker/Redis):** bấm đúp `demo-start.cmd` → mở http://127.0.0.1:8080.
-  Trong PowerShell phải gõ `.\demo-start.cmd` (có `.\`). Dừng: `.\demo-stop.cmd`. Chi tiết: [GUIDE.md](GUIDE.md).
+  Trong PowerShell phải gõ `.\demo-start.cmd` (có `.\`). Dừng: `.\demo-stop.cmd`. Đang chạy Docker ở cổng 8080 thì
+  dùng `.\demo-start.cmd -Port 8081`. Chi tiết: [GUIDE.md](GUIDE.md) mục 3.
 - **Docker (giống production — Redis session/broker, worker + beat trong container):** cài Docker Desktop
-  (GUIDE mục 6.1) rồi `.\docker-start.cmd -Demo` → http://127.0.0.1:8080. Dừng: `.\docker-stop.cmd`.
+  (GUIDE mục 6.1, nên cấp ≥ 6 GB RAM) rồi `.\docker-start.cmd -Demo` → http://127.0.0.1:8080. Sau khi sửa code:
+  `.\docker-start.cmd -Build`. Dừng: `.\docker-stop.cmd`.
 
-Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin trong `.env`), `nhanvien`, `kiemduyet`, `ketoan`, `nguoidung` (Người dùng thông thường: chỉ xem tài liệu đã xuất bản) / `Demo@12345`.
+Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin là `DEMO_ADMIN_PASSWORD` trong `.env`), `nhanvien`,
+`kiemduyet`, `ketoan`, `nguoidung` (Người dùng thông thường: chỉ xem tài liệu đã xuất bản) / `Demo@12345`.
 
 ## Kiểm thử
 
-| Bộ | Lệnh | Kết quả hiện tại |
+| Bộ | Lệnh | Kết quả hiện tại (02/11/2026) |
 |---|---|---|
 | Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 468 passed, 1 skipped |
 | Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 468 passed, 1 skipped |
 | Backend trên PostgreSQL 18 + Redis | CI `backend.yml` (6 tổ hợp cờ) | xanh mỗi PR |
-| Frontend | `cd frontend; npm test` | 57 passed |
+| Frontend | `cd frontend; npm test` | 57 passed (16 file) |
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |
 | E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | 13 passed, 1 skipped (mọi cờ bật) |
 | Docker + sao lưu/khôi phục | CI `compose.yml` | xanh |
 
-Tài liệu khác: [GUIDE.md](GUIDE.md) (cài đặt, vận hành, Git/CI, sự cố) · [SUMMARY.md](SUMMARY.md) (trạng thái, truy vết, chênh lệch so với đặc tả)
-· [backend/eval/README.md](backend/eval/README.md) (đánh giá NFR-08).
+Tài liệu khác: [GUIDE.md](GUIDE.md) (cài đặt, sử dụng, vận hành, Git/CI, sự cố, OCR) · [SUMMARY.md](SUMMARY.md)
+(trạng thái, truy vết, chênh lệch so với đặc tả, việc còn lại) · [backend/eval/README.md](backend/eval/README.md) (đánh giá NFR-08).
