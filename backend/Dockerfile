@@ -14,10 +14,11 @@ WORKDIR /app
 
 COPY requirements.txt requirements-ocr.txt requirements-hw.txt constraints.txt ./
 ARG WITH_OCR=1
-ARG WITH_HW=0
 RUN pip install -r requirements.txt -c constraints.txt \
     && if [ "$WITH_OCR" = "1" ]; then pip install -r requirements-ocr.txt -c constraints.txt; fi
 # VietOCR: PyTorch bản CPU (bản mặc định trên Linux kèm CUDA, vài GB); vietocr --no-deps (xem requirements-hw.txt)
+# ARG đặt sau bước pip chung: image api/beat (WITH_HW=0) và worker (WITH_HW=1) dùng chung lớp thư viện ở trên
+ARG WITH_HW=0
 RUN if [ "$WITH_HW" = "1" ]; then \
       pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-hw.txt -c constraints.txt \
       && pip install vietocr==0.3.13 --no-deps; \
