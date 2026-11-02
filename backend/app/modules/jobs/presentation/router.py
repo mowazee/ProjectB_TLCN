@@ -120,11 +120,12 @@ def list_jobs(
     status: JobStatus | None = None,
     kind: Annotated[str | None, Query(max_length=30)] = None,
 ) -> Page[JobListItem]:
-    """FR-11: job của tài liệu trong phạm vi xem (kể cả thùng rác) + job nhập hàng loạt do mình tạo (Admin: tất cả)."""
+    """FR-11: job của tài liệu đang dùng trong phạm vi + job nhập hàng loạt do mình tạo (Admin: tất cả). Tài liệu trong
+    thùng rác không hiện (không chạy lại được); khôi phục thì job hiện lại."""
     rows, total = jobs.list_jobs(
         db,
         # job là việc xử lý của phòng ban quản lý tài liệu: chia sẻ (FR-13) không đưa job phòng khác vào đây
-        document_ids_select=department_document_ids(principal, include_deleted=True),
+        document_ids_select=department_document_ids(principal),
         batch_owner=None if principal.is_admin else str(principal.id),
         params=params,
         status=status,

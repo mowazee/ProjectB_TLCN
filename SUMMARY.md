@@ -23,7 +23,7 @@ và chạy được end to end**; đặc tả v0.7 khớp với code; CI xanh tr
 
 | Bộ | Kết quả |
 |---|---|
-| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 467 passed, 1 skipped / 467 passed, 1 skipped (02/11, thêm worker nhận ocr_hw, engine chữ viết tay chia dòng) |
+| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 468 passed, 1 skipped / 468 passed, 1 skipped (02/11, thêm hàng đợi ẩn tài liệu trong thùng rác) |
 | CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#5) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (PR #4, `main` sau #4) |
 | Frontend Vitest | 57 passed (02/11: thêm ô Tài liệu viết tay ở trang Nhập hàng loạt) |
