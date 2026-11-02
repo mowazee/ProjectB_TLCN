@@ -445,7 +445,8 @@ export interface paths {
         };
         /**
          * List Jobs
-         * @description FR-11: job của tài liệu trong phạm vi xem (kể cả thùng rác) + job nhập hàng loạt do mình tạo (Admin: tất cả).
+         * @description FR-11: job của tài liệu đang dùng trong phạm vi + job nhập hàng loạt do mình tạo (Admin: tất cả). Tài liệu trong
+         *     thùng rác không hiện (không chạy lại được); khôi phục thì job hiện lại.
          */
         get: operations["list_jobs_api_jobs_get"];
         put?: never;
