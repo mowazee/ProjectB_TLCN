@@ -200,3 +200,20 @@ def test_worker_restart_releases_only_its_own_orphaned_jobs(seed, login, db, enq
     db.expire_all()
     assert db.get(ProcessingJob, mine).status == JobStatus.QUEUED
     assert db.get(ProcessingJob, other).status == JobStatus.PROCESSING
+
+
+def test_job_queue_hides_trashed_documents(seed, login, db, fake_engine, enqueued):
+    """FR-11: tài liệu trong thùng rác không hiện ở Hàng đợi xử lý (không chạy lại được); khôi phục thì hiện lại."""
+    c = login("officer")
+    keep = upload(c, seed["category"].id, make_png(), "giu.png").json()
+    gone = upload(c, seed["category"].id, make_png(), "xoa.png").json()
+
+    def queue():
+        return {j["document_id"] for j in c.get("/api/jobs").json()["items"]}
+
+    assert queue() == {keep["document_id"], gone["document_id"]}
+    assert c.delete(f"/api/documents/{gone['document_id']}").status_code == 204
+    assert queue() == {keep["document_id"]}
+    assert c.post(f"/api/jobs/{gone['job_id']}/retry").status_code == 404  # gọi thẳng API vẫn bị chặn
+    assert c.post(f"/api/documents/{gone['document_id']}/restore").status_code == 200
+    assert queue() == {keep["document_id"], gone["document_id"]}
