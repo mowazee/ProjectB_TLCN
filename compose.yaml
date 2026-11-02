@@ -1,6 +1,5 @@
 # Triển khai bằng Docker Compose (NFR-05, Đặc tả đề tài v0.5 mục 2):
 #   docker compose up -d                 lõi + P2 nhẹ (web, api, worker OCR in, beat, postgres, redis)
-#   docker compose --profile hw up -d    + worker chữ viết tay (P2-03, hàng đợi ocr_hw)
 #   docker compose --profile rag up -d   P3 (học kỳ sau - chưa có dịch vụ)
 # Biến môi trường lấy từ .env ở thư mục gốc (mẫu: .env.docker.example; scripts\docker_start.ps1 tự tạo).
 # KHÔNG commit .env.
@@ -79,15 +78,17 @@ services:
   worker:
     <<: *backend
     # GUIDE 9: chữ in đọc bằng VietOCR (OCR_ENGINE=auto -> vietocr) nên worker dùng image có PyTorch CPU + VietOCR;
-    # api/beat giữ image nhẹ.
+    # api/beat giữ image nhẹ. Cùng image đó đọc được chữ viết tay (P2-03) nên worker nhận luôn hàng đợi ocr_hw - không
+    # còn service worker-hw / profile hw riêng (trước đây quên bật -Hw thì job chữ viết tay chờ mãi).
     build: { context: ./backend, args: { WITH_HW: "1" } }
     image: docso-backend-hw:0.5
     # -P solo: nạp model Paddle một lần trong chính tiến trình xử lý (prefork = fork sau khi nạp
     # Paddle/OpenMP, dễ treo). Tăng thông lượng bằng cách scale: docker compose up -d --scale worker=2
-    command: ["celery", "-A", "app.workers.celery_app:celery_app", "worker", "-Q", "default,ocr", "-P", "solo", "-l", "info"]
+    command: ["celery", "-A", "app.workers.celery_app:celery_app", "worker", "-Q", "default,ocr,ocr_hw", "-P", "solo", "-l", "info"]
     environment:
       <<: *backend-env
-      WORKER_OCR_PROFILES: print
+      # Nạp sẵn cả engine chữ in và chữ viết tay khi khởi động (profile chưa bật cờ thì bỏ qua)
+      WORKER_OCR_PROFILES: print,handwriting
       # Cấu hình + weights VietOCR tải một lần vào volume "models", khởi động lại không tải lại
       VIETOCR_CACHE_DIR: /home/app/.paddlex/vietocr
     depends_on: *after-migrate
@@ -95,22 +96,6 @@ services:
     stop_grace_period: 60s
     # Pool solo không trả lời ping khi đang OCR -> không dùng "celery inspect ping" làm healthcheck.
     # Worker chết (vd. không nạp được model) thì thoát -> restart: unless-stopped khởi động lại.
-    healthcheck: { disable: true }
-
-  worker-hw:
-    <<: *backend
-    profiles: [hw]
-    # Image riêng có VietOCR (PyTorch CPU); image chung của api/worker giữ nhẹ. OCR_HW_ENGINE=auto -> vietocr.
-    build: { context: ./backend, args: { WITH_HW: "1" } }
-    image: docso-backend-hw:0.5
-    command: ["celery", "-A", "app.workers.celery_app:celery_app", "worker", "-Q", "ocr_hw", "-P", "solo", "-l", "info"]
-    environment:
-      <<: *backend-env
-      WORKER_OCR_PROFILES: handwriting
-      # Cấu hình + weights VietOCR (~150 MB) tải một lần vào volume "models", khởi động lại không tải lại
-      VIETOCR_CACHE_DIR: /home/app/.paddlex/vietocr
-    depends_on: *after-migrate
-    stop_grace_period: 60s
     healthcheck: { disable: true }
 
   beat:

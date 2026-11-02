@@ -83,6 +83,19 @@ def fix_quotes(text: str) -> str:
     return "".join(out)
 
 
+_detectors: dict[str | None, Any] = {}
+
+
+def text_detector(model_name: str | None) -> Any:
+    """Model dò dòng PaddleOCR dùng chung trong tiến trình: worker chính nạp cả engine chữ in và chữ viết tay, cùng
+    tên model thì chỉ nạp một lần (tiết kiệm RAM). None = model mặc định của PaddleOCR."""
+    if model_name not in _detectors:
+        from paddleocr import TextDetection
+
+        _detectors[model_name] = TextDetection(model_name=model_name) if model_name else TextDetection()
+    return _detectors[model_name]
+
+
 @dataclass(frozen=True)
 class LineCrop:
     """Cách cắt dòng trước khi đưa VietOCR.
@@ -135,13 +148,12 @@ class VietOcrEngine:
         paddle_env()
         from importlib.metadata import version
 
-        from paddleocr import TextDetection
         from vietocr.tool.config import Cfg
         from vietocr.tool.predictor import Predictor
 
         cfg = prepare_vietocr(config)
         self._crop = crop
-        self._det = TextDetection(model_name=det_model) if det_model else TextDetection()
+        self._det = text_detector(det_model)
         self._rec = Predictor(Cfg(cfg))
         self.version: str | None = f"{version('vietocr')} {config or settings.VIETOCR_CONFIG}"  # engine_version
 

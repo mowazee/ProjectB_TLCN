@@ -1,13 +1,13 @@
-import { can } from "@/shared/lib/permissions";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { api } from "@/shared/api/client";
 import type { ReprocessOut } from "@/shared/api/types";
 import { ErrorBox, Field, Modal } from "@/shared/components/ui";
+import { can } from "@/shared/lib/permissions";
 import type { DocumentSlotProps } from "@/shared/types/feature";
 
-/** Trường thêm vào form upload: is_handwritten -> OCR bằng HandwritingEngine trên hàng đợi ocr_hw. */
+/** Trường thêm vào form tải lên và nhập hàng loạt: is_handwritten -> OCR bằng HandwritingEngine (hàng đợi ocr_hw). */
 export function HandwrittenField() {
   return (
     <label className="row">

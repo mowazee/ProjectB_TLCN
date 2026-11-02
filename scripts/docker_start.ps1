@@ -10,7 +10,6 @@
 
     .\docker-start.cmd                 production (chỉ tạo tài khoản admin)
     .\docker-start.cmd -Demo           + tài khoản demo và 4 tài liệu mẫu (để thử nghiệm)
-    .\docker-start.cmd -Hw             + worker chữ viết tay (P2-03, profile hw)
     .\docker-start.cmd -Dev            mở cổng Postgres 55433 / Redis 6379 / API 8000, API tự reload
     .\docker-start.cmd -Build          build lại image (sau khi sửa code)
 
@@ -80,7 +79,8 @@ $port = if ($envMap['WEB_PORT']) { $envMap['WEB_PORT'] } else { '8080' }
 
 $ComposeArgs = @('--project-directory', $Root, '-f', (Join-Path $Root 'compose.yaml'))
 if ($Dev) { $ComposeArgs += @('-f', (Join-Path $Root 'compose.dev.yaml')) }
-if ($Hw) { $ComposeArgs += @('--profile', 'hw') }
+# -Hw không còn cần: worker chính đã nhận cả OCR chữ viết tay (hàng đợi ocr_hw). Giữ tham số để lệnh cũ vẫn chạy.
+if ($Hw) { Write-Host 'Không cần -Hw nữa: worker chính đã xử lý cả OCR chữ viết tay.' -ForegroundColor Yellow }
 
 # ---------------------------------------------------------------- build + up
 $images = docker image ls --format '{{.Repository}}:{{.Tag}}'

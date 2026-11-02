@@ -15,7 +15,7 @@ Trình duyệt ── React SPA (Vite, TS) ──/api──► Nginx ──► F
                                                           │  PostgreSQL (metadata, OCR, audit, FTS)
                                                           │  Redis (session TTL + hàng đợi)
                                                           ▼
-                                    Celery worker (OCR in) / worker-hw (chữ viết tay, hàng đợi ocr_hw) / beat
+                                    Celery worker (OCR in + chữ viết tay, hàng đợi default,ocr,ocr_hw) / beat
                                                           │
                                                    Private storage (file gốc, ảnh trang)
 ```
@@ -44,7 +44,7 @@ docs/openapi.json   hợp đồng API (sinh types React: npm run gen:api)
 document/           đặc tả v0.12: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.12 (sinh từ Alembic 0001…0110)
 tests/e2e/          Playwright (Python) chạy trên hệ thống thật
 .github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2), compose.yml (Docker + sao lưu)
-compose.yaml        Docker Compose (profile hw, rag, tools); compose.dev.yaml
+compose.yaml        Docker Compose (profile rag, tools); compose.dev.yaml
 scripts/            demo_start/stop.ps1 (demo một chạm), docker_start/stop.ps1
 ```
 
@@ -61,10 +61,10 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin trong
 
 | Bộ | Lệnh | Kết quả hiện tại |
 |---|---|---|
-| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 461 passed, 1 skipped |
-| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 461 passed, 1 skipped |
+| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 467 passed, 1 skipped |
+| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 467 passed, 1 skipped |
 | Backend trên PostgreSQL 18 + Redis | CI `backend.yml` (6 tổ hợp cờ) | xanh mỗi PR |
-| Frontend | `cd frontend; npm test` | 56 passed |
+| Frontend | `cd frontend; npm test` | 57 passed |
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |
 | E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | 13 passed, 1 skipped (mọi cờ bật) |
 | Docker + sao lưu/khôi phục | CI `compose.yml` | xanh |

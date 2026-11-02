@@ -56,13 +56,16 @@ class PaddleHandwritingEngine:
 
 
 class VietOcrHandwritingEngine(VietOcrEngine):
-    """VietOCR cho chữ viết tay: nới khung dòng vài pixel (nét chữ viết tay hay tràn ra ngoài khung detection),
-    model dò dòng mặc định của PaddleOCR."""
+    """VietOCR cho chữ viết tay: nới khung dòng vài pixel (nét chữ viết tay hay tràn ra ngoài khung detection); chia
+    dòng dài như chữ in (OCR_VIETOCR_MAX_RATIO - cùng họ model, dòng dài bị cụt đuôi khi giải mã); model dò dòng
+    OCR_HW_DET_MODEL (trống = dùng chung model dò dòng của chữ in OCR_DET_MODEL)."""
 
     PAD = 4
 
     def __init__(self) -> None:
-        super().__init__(LineCrop(pad=self.PAD))
+        crop = LineCrop(pad=self.PAD, max_ratio=settings.OCR_VIETOCR_MAX_RATIO or None)
+        # Trống: dùng chung model dò dòng của chữ in (một model trong worker); đo 11/2026 nhanh hơn 2-4 lần bản server
+        super().__init__(crop, det_model=settings.OCR_HW_DET_MODEL or settings.OCR_DET_MODEL or None)
 
 
 def resolved_engine_name() -> str:

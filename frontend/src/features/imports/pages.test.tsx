@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { Route, Routes } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
+import { EMPTY_SLOTS, type Slots } from "@/shared/slots";
 import { mockFetch, renderWithProviders, SESSION } from "@/test/utils";
+
+import { HandwrittenField } from "../handwriting/components";
 
 import { ImportPage, ImportReportPage } from "./pages";
 
@@ -12,7 +15,7 @@ const CATEGORIES = [
   { id: 9, name: "Chưa phân loại", code: "CHUA-PHAN-LOAI", is_active: true, is_system: true },
 ];
 
-function renderImport(features: string[]) {
+function renderImport(features: string[], slots: Slots = EMPTY_SLOTS) {
   const calls = mockFetch({
     "GET /api/auth/me": { body: { ...SESSION, features } },
     "GET /api/categories": { body: CATEGORIES },
@@ -24,7 +27,7 @@ function renderImport(features: string[]) {
       <Route path="/imports" element={<ImportPage />} />
       <Route path="/imports/:jobId" element={<p>Báo cáo lô</p>} />
     </Routes>,
-    { route: "/imports" },
+    { route: "/imports", slots },
   );
   return calls;
 }
@@ -141,5 +144,19 @@ describe("ImportReportPage - danh mục từng file", () => {
     expect(within(await row("a.pdf")).getByText("Hợp đồng")).toBeInTheDocument();
     expect(within(await row("b.pdf")).getByText("Chờ phân loại")).toBeInTheDocument();
     expect(within(await row("c.pdf")).getByText("—")).toBeInTheDocument();
+  });
+});
+
+describe("ImportPage - lô chữ viết tay (P2-03)", () => {
+  it("có ô Tài liệu viết tay như trang tải lên, gửi is_handwritten", async () => {
+    const user = userEvent.setup();
+    const calls = renderImport(["imports"], { ...EMPTY_SLOTS, uploadFields: [HandwrittenField] });
+    await screen.findByRole("option", { name: "Hợp đồng" });
+    await user.click(screen.getByRole("checkbox", { name: /Tài liệu viết tay/ }));
+    await user.upload(screen.getByLabelText(/Các file/), new File(["%PDF"], "a.pdf", { type: "application/pdf" }));
+    await user.selectOptions(screen.getByLabelText("Danh mục"), "1");
+    submit();
+    await screen.findByText("Báo cáo lô");
+    expect(sentForm(calls).get("is_handwritten")).toBe("true");
   });
 });

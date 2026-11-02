@@ -17,7 +17,7 @@ $Root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'docker_path.ps1')
 if (-not (Find-Docker)) { throw 'Chưa cài Docker Desktop (GUIDE.md mục 6.1).' }
 
-$ComposeArgs = @('--project-directory', $Root, '-f', (Join-Path $Root 'compose.yaml'), '--profile', 'hw')
+$ComposeArgs = @('--project-directory', $Root, '-f', (Join-Path $Root 'compose.yaml'))
 $ErrorActionPreference = 'Continue'
 if ($Purge) {
     Write-Host '==> Xóa container và TOÀN BỘ dữ liệu (volume)' -ForegroundColor Yellow
