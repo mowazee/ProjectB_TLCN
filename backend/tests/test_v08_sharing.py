@@ -162,7 +162,7 @@ def test_sharing_api_rules(world, db):
     assert r["owner_department"]["name"] == "Phòng A" and r["is_published"] is True
     assert _share(w, "public", who="admin").status_code == 200  # Admin quản lý chia sẻ mọi tài liệu
 
-    logs = db.scalars(select(AuditLog).where(AuditLog.action == "update_sharing")).all()
+    logs = db.scalars(select(AuditLog).where(AuditLog.action == "update_sharing").order_by(AuditLog.id)).all()
     assert len(logs) == 2 and logs[0].state_before["share_mode"] == "internal"
     assert logs[0].state_after["department_ids"] == [w["dep_b"]]
 
