@@ -12,12 +12,18 @@ export function PageImage({
   width,
   height,
   query,
+  highlight = null,
+  zoom = 1,
 }: {
   documentId: string;
   pageNumber: number;
   width: number;
   height: number;
   query: string;
+  /** OCR Editor (FR-05 v0.13): khung dòng đang chọn [x, y, w, h] theo pixel ảnh gốc */
+  highlight?: number[] | null;
+  /** Phóng to trong khung cuộn (1 = vừa chiều rộng) */
+  zoom?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -33,9 +39,21 @@ export function PageImage({
     return () => ro.disconnect();
   }, [width]);
 
-  return (
-    <div ref={ref} className={s.viewer}>
+  const image = (
+    <div ref={ref} className={s.viewer} style={zoom !== 1 ? { width: `${zoom * 100}%` } : undefined}>
       <img src={pageImageUrl(documentId, pageNumber)} alt={`Trang ${pageNumber}`} width={width} height={height} />
+      {scale > 0 && highlight && highlight.length === 4 && (
+        <div
+          className={s.lineMark}
+          data-testid="line-highlight"
+          style={{
+            left: highlight[0] * scale,
+            top: highlight[1] * scale,
+            width: highlight[2] * scale,
+            height: highlight[3] * scale,
+          }}
+        />
+      )}
       {scale > 0 && (
         <div className={s.overlay}>
           <SlotList
@@ -46,4 +64,5 @@ export function PageImage({
       )}
     </div>
   );
+  return zoom !== 1 ? <div className={s.zoomBox}>{image}</div> : image;
 }
