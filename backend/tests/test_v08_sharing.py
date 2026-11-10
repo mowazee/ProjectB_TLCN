@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 from app.modules.audit.infrastructure.models import AuditLog
 from app.modules.users.application.manage import create_department, create_user
-from tests.conftest import CTX, PASSWORD, make_pdf, upload
+from tests.conftest import CTX, PASSWORD, VALID, make_pdf, upload
 
 WF = "workflow,notifications,borrowing"
 USERS = ["owner", "officer_a2", "approver", "viewer", "officer_b", "approver_b", "viewer_b", "officer_c", "admin"]
@@ -57,7 +57,7 @@ def _approve_publish(w):
     c, doc = w["c"], w["doc"]
     # D-12 (v0.13): gửi duyệt khai báo bản cứng nếu chưa có vị trí lưu trữ
     declared = c["owner"].get(f"/api/documents/{doc}/storage-location").json()["storage_location"]
-    body = None if declared else {"has_physical_copy": False}
+    body = VALID if declared else {**VALID, "has_physical_copy": False}
     assert c["owner"].post(f"/api/documents/{doc}/approval/submit", json=body).status_code == 200
     assert c["approver"].post(f"/api/documents/{doc}/approval/approve").status_code == 200
     assert c["approver"].post(f"/api/documents/{doc}/approval/publish").status_code == 200

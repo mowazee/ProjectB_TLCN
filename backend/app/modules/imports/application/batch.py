@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 from app.modules.audit.application.recorder import record
 from app.modules.categories.application import manage as categories
 from app.modules.documents.application import queries as documents
+from app.modules.documents.application import validity
 from app.modules.documents.application.attachments import IncomingFile
 from app.modules.documents.application.upload import create_document_from_bytes, merge_files
 from app.modules.imports.domain.archive import ArchiveError, Budget, Entry, expand_batch, parse_metadata
@@ -205,6 +206,9 @@ def run_import(ctx: Any) -> None:
             row = item.row or meta.get(first.filename.lower(), {})
             try:
                 mode, category_id = _file_category(db, row, p)
+                declared = (  # FR-19 (v0.14): cột validity, valid_until tùy chọn; sai -> lỗi riêng bộ này
+                    validity.validate(row["validity"], row.get("valid_until")) if row.get("validity") else None
+                )
                 if len(item.main) > 1:  # FR-16: thư mục chỉ có ảnh -> gộp theo thứ tự tên file
                     data, filename = merge_files([(e.filename, e.data or b"") for e in item.main])
                 else:
@@ -225,6 +229,8 @@ def run_import(ctx: Any) -> None:
                     merged_files=len(item.main) if len(item.main) > 1 else None,
                     attachments=[IncomingFile(a.filename, a.data or b"") for a in item.attachments],
                 )
+                if declared:
+                    validity.set_initial(db, doc, *declared, actor_id=principal.id, ctx=job_ctx)
             except AppError as exc:
                 state.pop(key, None)  # đã bị rollback cùng transaction
                 save(key, {"status": "error", "code": exc.code, "message": exc.message})

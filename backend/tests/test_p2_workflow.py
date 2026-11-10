@@ -3,7 +3,7 @@
 from sqlalchemy import select
 
 from app.modules.audit.infrastructure.models import AuditLog
-from tests.conftest import make_pdf, upload
+from tests.conftest import VALID, make_pdf, upload
 
 F = "workflow,notifications"
 
@@ -31,7 +31,7 @@ def test_full_state_machine_with_notifications(seed, login, db):
 
     assert officer.post(f"/api/documents/{doc_id}/approval/approve").status_code == 403  # sai quyền
     assert approver.post(f"/api/documents/{doc_id}/approval/approve").status_code == 409  # sai trạng thái
-    r = officer.post(f"/api/documents/{doc_id}/approval/submit")
+    r = officer.post(f"/api/documents/{doc_id}/approval/submit", json=VALID)
     assert r.status_code == 200 and r.json()["approval_status"] == "pending_review"
     assert officer.post(f"/api/documents/{doc_id}/approval/submit").json()["error"]["code"] == "INVALID_TRANSITION"
 
@@ -70,7 +70,7 @@ def test_full_state_machine_with_notifications(seed, login, db):
 def test_reject_requires_reason_and_resubmit(seed, login):
     officer, doc_id = _doc(seed, login)
     approver = login("approver", features=F)
-    officer.post(f"/api/documents/{doc_id}/approval/submit")
+    officer.post(f"/api/documents/{doc_id}/approval/submit", json=VALID)
     bad = approver.post(f"/api/documents/{doc_id}/approval/reject", json={"comments": "  "})
     assert bad.status_code == 422 and bad.json()["error"]["fields"] == {"comments": "required"}
     assert (
@@ -87,7 +87,7 @@ def test_scope_and_ocr_edit_does_not_change_status(seed, login, fake_engine, enq
     doc_id = upload(officer, seed["category"].id, make_png(), "a.png").json()["document_id"]
     run_all_jobs(enqueued)
     assert login("officerb", features=F).post(f"/api/documents/{doc_id}/approval/submit").status_code == 403
-    officer.post(f"/api/documents/{doc_id}/approval/submit")
+    officer.post(f"/api/documents/{doc_id}/approval/submit", json=VALID)
     officer.put(f"/api/documents/{doc_id}/pages/1/correction", json={"corrected_text": "sửa", "base_version": 0})
     assert officer.get(f"/api/documents/{doc_id}").json()["approval_status"] == "pending_review"
     assert officer.get("/api/dashboard").json()["extras"]["documents_pending_review"] == 1

@@ -1,13 +1,15 @@
 """DTO API của documents. JSON snake_case theo tên cột SDD mục 6; không có storage_key."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
 from app.modules.documents.application.manage import DocumentView
 from app.modules.documents.application.sharing import SharingView
+from app.modules.documents.application.validity import today
 from app.modules.documents.domain.lifecycle import ShareMode
+from app.modules.documents.domain.validity import effective_status
 
 
 class CategoryRef(BaseModel):
@@ -51,6 +53,11 @@ class DocumentOut(BaseModel):
         description="D-11 (v0.12): edit, reprocess, delete, restore, cancel_job, submit, withdraw, share",
     )
     edit_lock_reason: str | None = Field(default=None, description="D-11: vì sao người dùng không sửa được")
+    validity_status: str = Field(
+        default="unspecified",
+        description="FR-19: unspecified | effective | effective_until | expired (đã tính hết hạn theo ngày hệ thống)",
+    )
+    valid_until: date | None = Field(default=None, description="FR-19: ngày cuối còn hiệu lực")
 
 
 class DocumentPatch(BaseModel):
@@ -58,6 +65,12 @@ class DocumentPatch(BaseModel):
     category_id: int | None = None
     document_code: str | None = Field(default=None, max_length=100)
     is_handwritten: bool | None = None
+
+
+class ValidityIn(BaseModel):
+    validity_status: str = Field(description="FR-19: unspecified | effective | effective_until | expired")
+    valid_until: date | None = Field(default=None, description="Bắt buộc khi effective_until, ≥ hôm nay")
+    reason: str | None = Field(default=None, max_length=500, description="Bắt buộc khi đã duyệt/xuất bản (5-500)")
 
 
 class UploadOut(BaseModel):
@@ -104,6 +117,8 @@ def document_out(v: DocumentView) -> DocumentOut:
         can_edit=v.can_edit,
         permissions=v.permissions,
         edit_lock_reason=v.edit_lock_reason,
+        validity_status=effective_status(str(d.validity_status), d.valid_until, today()).value,
+        valid_until=d.valid_until,
     )
 
 

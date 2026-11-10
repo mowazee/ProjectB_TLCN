@@ -10,7 +10,7 @@ from app.modules.documents.domain import policies as P
 from app.modules.jobs.infrastructure.models import ProcessingJob
 from app.modules.users.application.manage import create_user
 from app.shared.context import Principal
-from tests.conftest import CTX, PASSWORD, make_pdf, run_all_jobs, upload
+from tests.conftest import CTX, PASSWORD, VALID, make_pdf, run_all_jobs, upload
 
 F = "workflow,notifications,extraction,classification,rollback,handwriting"
 OWNER_ID, DEP_A, DEP_B = uuid.uuid4(), 1, 2
@@ -107,6 +107,8 @@ def _ocr_page(client, doc_id):
 
 
 def _act(client, doc_id, action, **body):
+    if action == "submit":
+        body = {**VALID, **body}
     return client.post(f"/api/documents/{doc_id}/approval/{action}", json=body or None)
 
 
@@ -123,7 +125,7 @@ def test_d11_lifecycle_api(people, login, db, fake_engine, enqueued):
         return set(client.get(base).json()["permissions"])
 
     # Nháp: chỉ chủ sở hữu sửa, chạy lại OCR, xóa; đồng nghiệp cùng phòng, kiểm duyệt viên, Admin chỉ xem
-    assert perms(owner) == {"edit", "reprocess", "delete", "restore", "cancel_job", "submit"}
+    assert perms(owner) == {"edit", "reprocess", "delete", "restore", "cancel_job", "submit", "validity"}
     assert perms(colleague) == set() and colleague.get(base).json()["edit_lock_reason"] is None  # không hiện nút
     for c in (colleague, approver, admin):
         assert c.patch(base, json=cat2).status_code == 403

@@ -7,14 +7,16 @@ borrowing (P2-07) thêm bằng migration riêng. share_mode và document_shares:
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     UniqueConstraint,
@@ -31,6 +33,7 @@ from app.modules.documents.domain.lifecycle import (
     PageOcrStatus,
     ShareMode,
 )
+from app.modules.documents.domain.validity import ValidityStatus
 from app.shared.db import Base, BigIntPK, str_enum, utcnow
 
 FILE_TYPES = {"application/pdf": "PDF", "image/png": "PNG", "image/jpeg": "JPG"}
@@ -71,6 +74,16 @@ class Document(Base):
         default=ShareMode.INTERNAL,
         server_default=ShareMode.INTERNAL.value,
     )
+    # FR-19 (v0.14, migration 0116): hiệu lực tài liệu; API trả trạng thái đã tính theo ngày (domain/validity.py)
+    validity_status: Mapped[ValidityStatus] = mapped_column(
+        str_enum(ValidityStatus, "ck_documents_validity_status"),
+        default=ValidityStatus.UNSPECIFIED,
+        server_default=ValidityStatus.UNSPECIFIED.value,
+    )
+    valid_until: Mapped[date | None] = mapped_column(Date)
+    validity_updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    validity_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    validity_reminded_on: Mapped[date | None] = mapped_column(Date)  # ngày hết hạn đã được nhắc
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, server_default=func.now(), index=True
     )
@@ -83,6 +96,8 @@ class Document(Base):
     shares: Mapped[list["DocumentShare"]] = relationship(
         lazy="select", cascade="all, delete-orphan", passive_deletes=True
     )
+
+    __table_args__ = (Index("ix_documents_validity", "validity_status", "valid_until"),)
 
     @property
     def file_type(self) -> str:

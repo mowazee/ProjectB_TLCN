@@ -15,6 +15,8 @@ import {
 import { useCategories } from "@/shared/hooks/useCategories";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 import { APPROVAL_LABELS, formatDateTime } from "@/shared/lib/format";
+import { ValidityBadge } from "@/shared/components/validity";
+import { VALIDITY_LABELS } from "@/shared/lib/validity";
 import { useSession } from "@/shared/session";
 
 import { useDocuments } from "./api";
@@ -50,6 +52,9 @@ export function DocumentsListPage() {
   const status = params.get("status") ?? "";
   const approval = params.get("approval_status") ?? "";
   const sharedWithMe = params.get("shared") === "with_me";
+  // FR-19: tài liệu hết hiệu lực ẩn mặc định
+  const validity = params.get("validity") ?? "";
+  const showExpired = params.get("include_expired") === "1";
   const { hasRole, hasFeature } = useSession();
   const workflow = hasFeature("workflow"); // FR-07 (v0.7): cột + bộ lọc trạng thái duyệt khi quy trình duyệt bật
   useRememberListSearch(useLocation().search);
@@ -62,6 +67,8 @@ export function DocumentsListPage() {
     status: status || undefined,
     approval_status: (workflow && approval) || undefined,
     shared: workflow && sharedWithMe ? "with_me" : undefined,
+    validity: validity || undefined,
+    include_expired: showExpired || undefined,
   });
 
   const update = (key: string, value: string) => {
@@ -160,6 +167,27 @@ export function DocumentsListPage() {
             ))}
           </select>
         )}
+        <select
+          className="select"
+          value={validity}
+          onChange={(e) => update("validity", e.target.value)}
+          aria-label="Hiệu lực"
+        >
+          <option value="">Mọi hiệu lực</option>
+          {Object.entries(VALIDITY_LABELS).map(([v, label]) => (
+            <option key={v} value={v}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <label className="row">
+          <input
+            type="checkbox"
+            checked={showExpired}
+            onChange={(e) => update("include_expired", e.target.checked ? "1" : "")}
+          />
+          Hiện tài liệu hết hiệu lực
+        </label>
         <Link className="btn" to="/search">
           Tìm trong nội dung
         </Link>
@@ -185,6 +213,7 @@ export function DocumentsListPage() {
                   <th>Trang</th>
                   <th>OCR</th>
                   {workflow && <th>Duyệt</th>}
+                  <th>Hiệu lực</th>
                   <th>Ngày tạo</th>
                 </tr>
               </thead>
@@ -219,6 +248,9 @@ export function DocumentsListPage() {
                         <ApprovalBadge status={d.approval_status} />
                       </td>
                     )}
+                    <td>
+                      <ValidityBadge status={d.validity_status} validUntil={d.valid_until} />
+                    </td>
                     <td>{formatDateTime(d.created_at)}</td>
                   </tr>
                 ))}

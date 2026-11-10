@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.modules.audit.infrastructure.models import AuditLog
 from app.modules.borrowing.application.requests import remind_overdue
 from app.modules.borrowing.infrastructure.models import BorrowRequest
-from tests.conftest import make_pdf, upload
+from tests.conftest import VALID, make_pdf, upload
 
 F = "borrowing,notifications"
 D = date.today()
@@ -123,12 +123,15 @@ def _publish(approver, doc):
 def test_submit_requires_physical_copy_declaration(seed, login):
     admin, owner, approver, loc, doc = _wf(seed, login)
     base = f"/api/documents/{doc}/approval/submit"
-    r = owner.post(base)
+    r = owner.post(base, json=VALID)
     assert r.status_code == 422 and r.json()["error"]["code"] == "PHYSICAL_COPY_REQUIRED"
-    assert owner.post(base, json={"has_physical_copy": True}).status_code == 422  # thiếu kho/kệ
+    assert owner.post(base, json={**VALID, "has_physical_copy": True}).status_code == 422  # thiếu kho/kệ
     general = next(x for x in admin.get("/api/storage-locations").json() if x["is_virtual"])
-    assert owner.post(base, json={"has_physical_copy": True, "storage_location_id": general["id"]}).status_code == 422
-    r = owner.post(base, json={"has_physical_copy": True, "storage_location_id": loc["id"]})
+    assert (
+        owner.post(base, json={**VALID, "has_physical_copy": True, "storage_location_id": general["id"]}).status_code
+        == 422
+    )
+    r = owner.post(base, json={**VALID, "has_physical_copy": True, "storage_location_id": loc["id"]})
     assert r.status_code == 200 and r.json()["approval_status"] == "pending_review"
     got = owner.get(f"/api/documents/{doc}/storage-location").json()
     assert got["has_physical_copy"] is True and got["storage_location"]["code"] == "KHO-B"
@@ -136,7 +139,7 @@ def test_submit_requires_physical_copy_declaration(seed, login):
 
 def test_no_physical_copy_goes_to_general_store_and_cannot_be_borrowed(seed, login):
     admin, owner, approver, loc, doc = _wf(seed, login)
-    owner.post(f"/api/documents/{doc}/approval/submit", json={"has_physical_copy": False})
+    owner.post(f"/api/documents/{doc}/approval/submit", json={**VALID, "has_physical_copy": False})
     got = owner.get(f"/api/documents/{doc}/storage-location").json()
     assert got["has_physical_copy"] is False and got["storage_location"]["is_virtual"] is True
     _publish(approver, doc)
@@ -151,7 +154,7 @@ def test_draft_cannot_be_borrowed_and_location_editable_after_publish(seed, logi
     owner.put(f"/api/documents/{doc}/storage-location", json={"storage_location_id": loc["id"]})
     r = _req(owner, doc, 1, 3)
     assert r.status_code == 409 and r.json()["error"]["code"] == "DOCUMENT_NOT_PUBLISHED"
-    assert owner.post(f"/api/documents/{doc}/approval/submit").status_code == 200  # đã khai báo trước đó
+    assert owner.post(f"/api/documents/{doc}/approval/submit", json=VALID).status_code == 200  # đã khai báo trước đó
     _publish(approver, doc)
     assert _req(owner, doc, 1, 3).status_code == 201
     other = admin.post("/api/storage-locations", json={"name": "Kho C", "code": "kho-c"}).json()

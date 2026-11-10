@@ -5,6 +5,7 @@ các hàm ensure_* để kiểm quyền trên một tài liệu; không truy v�
 """
 
 import uuid
+from datetime import date
 from typing import Any
 
 from sqlalchemy import Select, and_, exists, false, func, or_, select, true
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.documents.domain import policies
 from app.modules.documents.domain.lifecycle import ApprovalStatus, LifecycleStatus, PageOcrStatus, ShareMode
+from app.modules.documents.domain.validity import ValidityStatus
 from app.modules.documents.infrastructure.models import Document, DocumentPage, DocumentShare
 from app.shared.config import settings
 from app.shared.context import APPROVER, Principal
@@ -102,10 +104,22 @@ def _scope_clause(principal: Principal) -> Any:
 
 
 def visible_document_ids(
-    principal: Principal, *, include_deleted: bool = False, category_id: int | None = None
+    principal: Principal,
+    *,
+    include_deleted: bool = False,
+    category_id: int | None = None,
+    today: date | None = None,
+    include_expired: bool = True,
+    validity: str | None = None,
 ) -> Select[tuple[uuid.UUID]]:
-    """SELECT id các tài liệu người dùng được XEM (mặc định chỉ tài liệu active) - mở rộng theo chia sẻ (D-09)."""
+    """SELECT id các tài liệu người dùng được XEM (mặc định chỉ tài liệu active) - mở rộng theo chia sẻ (D-09).
+
+    FR-19 (cần today): include_expired=False loại tài liệu hết hiệu lực; validity lọc theo trạng thái đã tính."""
     clause = _scope_clause(principal)
+    if today is not None and validity:
+        clause = and_(clause, validity_clause(validity, today))
+    elif today is not None and not include_expired:
+        clause = and_(clause, ~expired_clause(today))
     if not include_deleted:
         clause = and_(clause, Document.lifecycle_status == LifecycleStatus.ACTIVE)
     if category_id is not None:
@@ -303,6 +317,8 @@ def document_brief(db: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, dict[str
             Document.category_id,
             Document.category_source,
             Document.created_at,
+            Document.validity_status,
+            Document.valid_until,
         ).where(Document.id.in_(ids))
     ).all()
     return {
@@ -314,6 +330,8 @@ def document_brief(db: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, dict[str
             "category_id": r.category_id,
             "category_source": str(r.category_source),
             "created_at": r.created_at.isoformat() if r.created_at else "",
+            "validity_status": str(r.validity_status),
+            "valid_until": r.valid_until,
         }
         for r in rows
     }
@@ -405,3 +423,23 @@ def page_numbers(db: Session, document_id: uuid.UUID) -> list[tuple[int, int, in
             .order_by(DocumentPage.page_number)
         ).all()
     ]
+
+
+# ---------------------------------------------------------------- FR-19 hiệu lực (v0.14)
+
+
+def expired_clause(today: date) -> Any:
+    """Tài liệu hết hiệu lực (đã chuyển expired hoặc effective_until đã qua ngày) - SQL khớp domain/validity."""
+    return or_(
+        Document.validity_status == ValidityStatus.EXPIRED,
+        and_(Document.validity_status == ValidityStatus.EFFECTIVE_UNTIL, Document.valid_until < today),
+    )
+
+
+def validity_clause(status: str, today: date) -> Any:
+    st = ValidityStatus(status)
+    if st == ValidityStatus.EXPIRED:
+        return expired_clause(today)
+    if st == ValidityStatus.EFFECTIVE_UNTIL:
+        return and_(Document.validity_status == st, or_(Document.valid_until.is_(None), Document.valid_until >= today))
+    return Document.validity_status == st

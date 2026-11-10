@@ -1,4 +1,4 @@
-import { Download, Lock, PencilLine, Send, Share2, Trash2 } from "lucide-react";
+import { CalendarClock, Download, Lock, PencilLine, Send, Share2, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -19,6 +19,7 @@ import {
   type TabDef,
 } from "@/shared/components/ui";
 import { useCategories } from "@/shared/hooks/useCategories";
+import { ValidityBadge } from "@/shared/components/validity";
 import { formatBytes, formatDateTime } from "@/shared/lib/format";
 import { can } from "@/shared/lib/permissions";
 import { useSession } from "@/shared/session";
@@ -40,6 +41,7 @@ import s from "./documents.module.css";
 import { ExternalShareDialog } from "./sharing/ExternalShareDialog";
 import { ShareDialog } from "./sharing/ShareDialog";
 import { ShareModeBadge } from "./sharing/ShareModeBadge";
+import { ValidityDialog } from "./ValidityDialog";
 
 function EditMetadata({ doc, onClose }: { doc: DocumentOut; onClose: () => void }) {
   const categories = useCategories(true, { selectable: true });
@@ -133,6 +135,7 @@ export function DocumentDetailPage() {
   const [editing, setEditing] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [external, setExternal] = useState(false); // FR-18
+  const [changingValidity, setChangingValidity] = useState(false); // FR-19
   const { session, hasFeature } = useSession();
 
   if (doc.isPending) return <Loading />;
@@ -229,6 +232,11 @@ export function DocumentDetailPage() {
                 </span>
               )
             )}
+            {can(d, "validity") && (
+              <button className="btn" onClick={() => setChangingValidity(true)}>
+                <CalendarClock size={16} aria-hidden /> Đổi hiệu lực
+              </button>
+            )}
             {can(d, "delete") && (
               <button className="btn btn-danger" onClick={remove} disabled={del.isPending}>
                 <Trash2 size={16} aria-hidden /> Xóa
@@ -238,6 +246,12 @@ export function DocumentDetailPage() {
         }
       />
       <ErrorBox error={del.error} />
+      {d.validity_status === "expired" && (
+        <p className={s.lockNote} role="note">
+          <CalendarClock size={15} aria-hidden /> Tài liệu đã hết hiệu lực
+          {d.valid_until ? ` từ sau ngày ${d.valid_until.split("-").reverse().join("/")}` : ""}.
+        </p>
+      )}
       {lockReason && (
         <p className={s.lockNote} role="note">
           <Lock size={15} aria-hidden /> {lockReason}
@@ -248,6 +262,12 @@ export function DocumentDetailPage() {
           <div>
             <dt>Số hiệu</dt>
             <dd>{d.document_code ?? "—"}</dd>
+          </div>
+          <div>
+            <dt>Hiệu lực</dt>
+            <dd>
+              <ValidityBadge status={d.validity_status} validUntil={d.valid_until} />
+            </dd>
           </div>
           <div>
             <dt>Trạng thái duyệt</dt>
@@ -296,6 +316,7 @@ export function DocumentDetailPage() {
       {editing && <EditMetadata doc={d} onClose={() => setEditing(false)} />}
       {sharing && <ShareDialog doc={d} onClose={() => setSharing(false)} />}
       {external && <ExternalShareDialog doc={d} onClose={() => setExternal(false)} />}
+      {changingValidity && <ValidityDialog doc={d} onClose={() => setChangingValidity(false)} />}
     </div>
   );
 }

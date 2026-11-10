@@ -23,6 +23,9 @@ export interface ApprovalActionInput {
   /** D-12 (submit khi bật borrowing): có bản cứng không, kho/kệ khi có */
   has_physical_copy?: boolean;
   storage_location_id?: number;
+  /** FR-19: submit (bắt buộc), approve (khi Kiểm duyệt viên sửa) */
+  validity_status?: string;
+  valid_until?: string | null;
 }
 
 export function usePhysicalCopyChoices(docId: string, enabled: boolean) {

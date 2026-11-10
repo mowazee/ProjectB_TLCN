@@ -4,6 +4,7 @@ POST   /api/documents                       multipart -> 201 {document_id, job_i
 GET    /api/documents                       phân trang; lọc danh mục/trạng thái; lifecycle_status=deleted = thùng rác
 GET    /api/documents/{id}                  chi tiết (kiểm quyền)
 PATCH  /api/documents/{id}                  sửa metadata; DELETE xóa mềm
+PUT    /api/documents/{id}/validity         FR-19: đổi hiệu lực (lý do khi đã duyệt/xuất bản)
 POST   /api/documents/{id}/restore          khôi phục trong hạn; quá hạn 410; đã purge 404
 GET    /api/documents/{id}/pages            danh sách trang
 GET    /api/documents/{id}/file             file gốc (người quản lý được tài liệu)
@@ -20,6 +21,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from app.modules.auth.presentation.deps import Ctx, CurrentPrincipal, DbSession
 from app.modules.documents.application import attachments as attachments_app
 from app.modules.documents.application import files, manage, sharing, upload
+from app.modules.documents.application import validity as validity_app
 from app.modules.documents.application.queries import ensure_can_view, list_pages
 from app.modules.documents.domain.lifecycle import ApprovalStatus, LifecycleStatus
 from app.modules.documents.presentation.schemas import (
@@ -30,6 +32,7 @@ from app.modules.documents.presentation.schemas import (
     SharingIn,
     SharingOut,
     UploadOut,
+    ValidityIn,
     document_out,
     sharing_out,
 )
@@ -111,6 +114,8 @@ def list_documents(
     lifecycle_status: LifecycleStatus = LifecycleStatus.ACTIVE,
     approval_status: ApprovalStatus | None = None,
     shared: Annotated[str | None, Query(pattern="^with_me$")] = None,
+    include_expired: bool = False,
+    validity: Annotated[str | None, Query(pattern="^(unspecified|effective|effective_until|expired)$")] = None,
 ) -> Page[DocumentOut]:
     views, total = manage.list_documents(
         db,
@@ -122,6 +127,8 @@ def list_documents(
         lifecycle_status=lifecycle_status,
         approval_status=approval_status,
         shared_with_me=shared == "with_me",
+        include_expired=include_expired,
+        validity=validity,
     )
     return Page(items=[document_out(v) for v in views], total=total, page=params.page, page_size=params.page_size)
 
@@ -136,6 +143,23 @@ def update_document(
     document_id: uuid.UUID, data: DocumentPatch, db: DbSession, principal: CurrentPrincipal, ctx: Ctx
 ) -> DocumentOut:
     manage.update_document(db, principal, document_id, data.model_dump(exclude_unset=True), ctx)
+    return document_out(manage.get_document_view(db, principal, document_id))
+
+
+@router.put("/{document_id}/validity", response_model=DocumentOut)
+def update_validity(
+    document_id: uuid.UUID, data: ValidityIn, db: DbSession, principal: CurrentPrincipal, ctx: Ctx
+) -> DocumentOut:
+    """FR-19: đổi hiệu lực; đã duyệt/xuất bản bắt buộc lý do (422 REASON_REQUIRED)."""
+    validity_app.change(
+        db,
+        principal,
+        document_id,
+        validity_status=data.validity_status,
+        valid_until=data.valid_until,
+        reason=data.reason,
+        ctx=ctx,
+    )
     return document_out(manage.get_document_view(db, principal, document_id))
 
 

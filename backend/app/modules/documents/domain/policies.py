@@ -42,7 +42,7 @@ OWNER_PHASE = frozenset({DRAFT, REJECTED})  # chủ sở hữu sửa
 REVIEW_PHASE = frozenset({PENDING_REVIEW, APPROVED, UNPUBLISHED})  # Kiểm duyệt viên phòng ban / Admin sửa
 
 # Quyền trên một tài liệu (DocumentOut.permissions, D-11)
-EDIT, REPROCESS, DELETE, RESTORE, CANCEL_JOB, SUBMIT, WITHDRAW, SHARE = (
+EDIT, REPROCESS, DELETE, RESTORE, CANCEL_JOB, SUBMIT, WITHDRAW, SHARE, VALIDITY = (
     "edit",
     "reprocess",
     "delete",
@@ -51,7 +51,9 @@ EDIT, REPROCESS, DELETE, RESTORE, CANCEL_JOB, SUBMIT, WITHDRAW, SHARE = (
     "submit",
     "withdraw",
     "share",
+    "validity",
 )
+VALIDITY_REASON_PHASE = frozenset({APPROVED, PUBLISHED, UNPUBLISHED})  # FR-19: đổi hiệu lực phải có lý do
 
 
 @dataclass(frozen=True)
@@ -174,6 +176,18 @@ def can_share(principal: Principal, doc: DocScope) -> bool:
     return principal.is_admin or _is_owner(principal, doc) or can_review(principal, doc)
 
 
+def can_change_validity(principal: Principal, doc: DocScope) -> bool:
+    """FR-19, D-14 (v0.14): chủ sở hữu khi Nháp/Bị từ chối (hoặc cờ workflow tắt); Kiểm duyệt viên phòng ban của tài
+    liệu và Admin ở mọi trạng thái (sau khi duyệt/xuất bản bắt buộc lý do - validity_reason_required)."""
+    if phase(doc) in OWNER_PHASE and is_owner(principal, doc):
+        return True
+    return doc.publication_required and can_review(principal, doc)
+
+
+def validity_reason_required(doc: DocScope) -> bool:
+    return doc.publication_required and phase(doc) in VALIDITY_REASON_PHASE
+
+
 _CHECKS = {
     EDIT: can_edit,
     REPROCESS: can_reprocess,
@@ -183,6 +197,7 @@ _CHECKS = {
     SUBMIT: can_submit,
     WITHDRAW: can_withdraw,
     SHARE: can_share,
+    VALIDITY: can_change_validity,
 }
 
 

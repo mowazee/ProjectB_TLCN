@@ -7,6 +7,7 @@ import { api } from "@/shared/api/client";
 import type { PageHit, Paged, SearchHit } from "@/shared/api/types";
 import { Badge, EmptyState, ErrorBox, Loading, PageHeader, Pagination } from "@/shared/components/ui";
 import { useCategories } from "@/shared/hooks/useCategories";
+import { ValidityBadge } from "@/shared/components/validity";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 
 import s from "./search.module.css";
@@ -30,6 +31,7 @@ export function SearchPage() {
   const q = useDebounce(input.trim(), 400);
   const page = Number(params.get("page") ?? 1);
   const categoryId = params.get("category_id") ?? "";
+  const showExpired = params.get("include_expired") === "1"; // FR-19: mặc định ẩn tài liệu hết hiệu lực
   const categories = useCategories();
 
   useEffect(() => {
@@ -41,11 +43,17 @@ export function SearchPage() {
   }, [q, params, setParams]);
 
   const result = useQuery({
-    queryKey: ["search", q, page, categoryId],
+    queryKey: ["search", q, page, categoryId, showExpired],
     enabled: q.length > 0,
     queryFn: () =>
       api<Paged<SearchHit>>("/api/search", {
-        query: { q, page, page_size: 10, category_id: categoryId || undefined },
+        query: {
+          q,
+          page,
+          page_size: 10,
+          category_id: categoryId || undefined,
+          include_expired: showExpired || undefined,
+        },
       }),
     placeholderData: (prev) => prev,
   });
@@ -88,6 +96,14 @@ export function SearchPage() {
             </option>
           ))}
         </select>
+        <label className="row">
+          <input
+            type="checkbox"
+            checked={showExpired}
+            onChange={(e) => setParam("include_expired", e.target.checked ? "1" : "")}
+          />
+          Hiện tài liệu hết hiệu lực
+        </label>
       </div>
       <ErrorBox error={result.error} />
       {!q ? (
@@ -108,6 +124,9 @@ export function SearchPage() {
                   <span className="muted">{hit.category_name}</span>
                   {hit.pages.length > 0 && <span className="muted">· {hit.pages.length} trang khớp</span>}
                   {hit.title_match && <Badge tone="info">Khớp tên tài liệu</Badge>}
+                  {hit.validity_status && hit.validity_status !== "unspecified" && (
+                    <ValidityBadge status={hit.validity_status} validUntil={hit.valid_until} />
+                  )}
                 </div>
                 <ul className={s.pages}>
                   {hit.pages.map((p) => (

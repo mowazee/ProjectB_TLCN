@@ -74,9 +74,16 @@ describe("Gửi duyệt khai báo bản cứng (D-12)", () => {
     const select = await screen.findByLabelText("Kho/kệ lưu trữ");
     expect(screen.queryByRole("option", { name: /Kho chung/ })).toBeNull();
     await user.selectOptions(select, "1");
+    expect(confirm).toBeDisabled(); // FR-19: chưa chọn hiệu lực
+    await user.click(screen.getByLabelText("Còn hiệu lực"));
     await user.click(confirm);
     const post = calls.find((c) => c.method === "POST");
-    expect(post?.body).toEqual({ has_physical_copy: true, storage_location_id: 1 });
+    expect(post?.body).toEqual({
+      has_physical_copy: true,
+      storage_location_id: 1,
+      validity_status: "effective",
+      valid_until: null,
+    });
   });
 
   it("Không có bản cứng gửi has_physical_copy=false", async () => {
@@ -84,7 +91,15 @@ describe("Gửi duyệt khai báo bản cứng (D-12)", () => {
     const calls = renderSubmit();
     await user.click(await screen.findByRole("button", { name: "Gửi duyệt" }));
     await user.click(screen.getByLabelText(/Không — đưa vào Kho chung/));
-    await user.click(screen.getByRole("button", { name: "Xác nhận" }));
-    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ has_physical_copy: false });
+    await user.click(screen.getByLabelText("Còn hiệu lực đến ngày…"));
+    const confirm = screen.getByRole("button", { name: "Xác nhận" });
+    expect(confirm).toBeDisabled(); // FR-19: chưa chọn ngày
+    await user.type(screen.getByLabelText("Còn hiệu lực đến ngày"), "2099-12-31");
+    await user.click(confirm);
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({
+      has_physical_copy: false,
+      validity_status: "effective_until",
+      valid_until: "2099-12-31",
+    });
   });
 });
