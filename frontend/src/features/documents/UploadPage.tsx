@@ -12,6 +12,7 @@ import { useSession } from "@/shared/session";
 import { SlotList, useSlots } from "@/shared/slots";
 
 import { useUpload } from "./api";
+import { ATTACHMENT_ACCEPT } from "./attachments";
 import s from "./documents.module.css";
 
 const ACCEPT = ".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg";
@@ -30,6 +31,8 @@ export function UploadPage() {
   const upload = useUpload();
   const { uploadFields } = useSlots();
   const [files, setFiles] = useState<File[]>([]);
+  const [extras, setExtras] = useState<File[]>([]);
+  const [keepOriginals, setKeepOriginals] = useState(false);
   const [result, setResult] = useState<(UploadOut & { auto: boolean }) | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const errors = fieldErrors(upload.error);
@@ -50,11 +53,16 @@ export function UploadPage() {
     form.delete("file");
     if (files.length > 1) files.forEach((f) => form.append("files", f));
     else if (files.length === 1) form.set("file", files[0]);
+    form.delete("attachments");
+    extras.forEach((f) => form.append("attachments", f)); // FR-15: tài liệu đi kèm, không OCR
+    if (files.length > 1 && keepOriginals) form.set("keep_originals", "true");
     upload.mutate(form, {
       onSuccess: (data) => {
         setResult({ ...data, auto: categoryMode === "auto" });
         formRef.current?.reset();
         setFiles([]);
+        setExtras([]);
+        setKeepOriginals(false);
       },
     });
   };
@@ -156,6 +164,49 @@ export function UploadPage() {
               </div>
             )}
           </div>
+        </Field>
+        {files.length > 1 && (
+          <label className="row" style={{ gap: 6 }}>
+            <input type="checkbox" checked={keepOriginals} onChange={(e) => setKeepOriginals(e.target.checked)} />
+            Giữ các file gốc riêng lẻ làm tài liệu đi kèm
+          </label>
+        )}
+        <Field
+          label="Tài liệu đi kèm (tùy chọn)"
+          htmlFor="attachments"
+          hint="Word, Excel, PDF, ảnh... Lưu cùng tài liệu chính thành một bộ, không OCR."
+          error={errors.attachments}
+        >
+          <input
+            id="attachments"
+            type="file"
+            multiple
+            accept={ATTACHMENT_ACCEPT}
+            onChange={(e) => {
+              const picked = Array.from(e.target.files ?? []);
+              if (picked.length) setExtras((list) => [...list, ...picked]);
+              e.target.value = "";
+            }}
+          />
+          {extras.length > 0 && (
+            <ul className={s.mergeList}>
+              {extras.map((f, i) => (
+                <li key={`${f.name}-${i}`}>
+                  <span className="grow">
+                    {f.name} · {formatBytes(f.size)}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-icon"
+                    aria-label={`Bỏ tài liệu đi kèm ${f.name}`}
+                    onClick={() => setExtras((list) => list.filter((_, k) => k !== i))}
+                  >
+                    <X size={14} aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </Field>
         <Field label="Tiêu đề" htmlFor="title" hint="Để trống sẽ dùng tên file" error={errors.title}>
           <input id="title" name="title" className="input" maxLength={255} />

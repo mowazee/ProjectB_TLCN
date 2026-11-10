@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     MAX_UPLOAD_MB: int = 25
     MAX_PAGES: int = 100
     MAX_MERGE_FILES: int = 20  # FR-16 (v0.13): số file tối đa gộp thành một tài liệu
+    # FR-15 (v0.13): tài liệu đi kèm - số file mỗi bộ, dung lượng mỗi file và tổng mỗi bộ
+    MAX_ATTACHMENTS: int = 20
+    MAX_ATTACHMENT_MB: int = 25
+    MAX_BUNDLE_MB: int = 200
     MAX_IMAGE_PIXELS: int = 60_000_000
 
     # Xóa mềm (D-05)

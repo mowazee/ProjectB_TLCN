@@ -32,6 +32,11 @@ def page_image_key(document_id: uuid.UUID, page_number: int) -> str:
     return f"documents/{document_id}/pages/{page_number:04d}.png"
 
 
+def attachment_key(document_id: uuid.UUID, attachment_id: uuid.UUID, ext: str) -> str:
+    """FR-15: nằm trong thư mục của tài liệu nên xóa cứng tài liệu (purge) xóa luôn tài liệu đi kèm."""
+    return f"documents/{document_id}/attachments/{attachment_id}{ext}"
+
+
 def document_prefix(document_id: uuid.UUID) -> str:
     return f"documents/{document_id}"
 

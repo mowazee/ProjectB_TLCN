@@ -151,3 +151,14 @@ def sharing_out(v: SharingView) -> SharingOut:
             for u in v.users
         ],
     )
+
+
+class AttachmentOut(BaseModel):
+    """FR-15 (v0.13): tài liệu đi kèm (không trả storage_key)."""
+
+    id: uuid.UUID
+    file_name: str
+    mime_type: str
+    bytes: int
+    uploaded_by: uuid.UUID | None
+    created_at: datetime

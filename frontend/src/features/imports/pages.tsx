@@ -60,6 +60,22 @@ function downloadTemplate(categories: Category[]) {
   URL.revokeObjectURL(url);
 }
 
+/** manifest.csv mẫu (FR-15, v0.13): mỗi dòng một bộ hồ sơ - file chính + tài liệu đi kèm. */
+function downloadManifest(categories: Category[]) {
+  const code = categories[0]?.code ?? "HOP-DONG";
+  const rows = [
+    "file_name,attachments,title,category,document_code",
+    `quyet-dinh-12.pdf,phu-luc-1.docx;bang-ke.xlsx,Quyết định số 12/2026,${code},12/QĐ-UBND`,
+    "cong-van-07.pdf,,Công văn số 07,,07/CV",
+  ];
+  const url = URL.createObjectURL(new Blob(["\uFEFF" + rows.join("\r\n") + "\r\n"], { type: "text/csv" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "manifest.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** UC-23 (P2-08): tải nhiều file hoặc ZIP + cách gán danh mục (+ metadata.csv) -> job BULK_IMPORT. */
 export function ImportPage() {
   const categories = useCategories(true, { selectable: true });
@@ -157,6 +173,21 @@ export function ImportPage() {
         >
           <input id="meta" name="metadata" type="file" accept=".csv,text/csv" />
         </Field>
+        <div className="card stack">
+          <strong>Bộ hồ sơ có tài liệu đi kèm (v0.13)</strong>
+          <span className="muted">
+            Cách 1 — trong file ZIP, mỗi thư mục con là một bộ: file chính đặt tên <code>main.*</code> (hoặc là file duy
+            nhất ở gốc thư mục; thư mục chỉ có ảnh sẽ được gộp theo thứ tự tên file), tài liệu đi kèm đặt trong thư mục
+            con <code>dinh-kem/</code>. Cách 2 — thêm <code>manifest.csv</code> (trong ZIP hoặc chọn cùng các file) với
+            cột <code>file_name</code>, <code>attachments</code> (phân cách bằng <code>;</code>), <code>title</code>,{" "}
+            <code>category</code>, <code>document_code</code>.
+          </span>
+          <div>
+            <button type="button" className="btn btn-sm" onClick={() => downloadManifest(categories.data ?? [])}>
+              <Download size={14} aria-hidden /> Tải manifest.csv mẫu
+            </button>
+          </div>
+        </div>
         {/* P2-03: lô scan chữ viết tay -> OCR trên hàng đợi ocr_hw (cùng ô với trang tải lên) */}
         <SlotList items={uploadFields} props={{}} />
         <div>
@@ -262,7 +293,10 @@ export function ImportReportPage() {
                 </td>
                 <td>
                   {f.document_id ? (
-                    <Link to={`/documents/${f.document_id}`}>Mở tài liệu</Link>
+                    <span>
+                      <Link to={`/documents/${f.document_id}`}>Mở tài liệu</Link>
+                      {f.attachments ? <span className="muted"> · {f.attachments} tài liệu đi kèm</span> : null}
+                    </span>
                   ) : (
                     <span>
                       {f.message} {f.code && <code>({f.code})</code>}

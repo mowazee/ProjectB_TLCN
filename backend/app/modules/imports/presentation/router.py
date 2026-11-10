@@ -31,6 +31,7 @@ class FileReport(BaseModel):
     message: str | None = None
     category_name: str | None = None  # danh mục hiện tại của tài liệu đã nhập
     category_source: str | None = None  # D-10: user | auto | pending
+    attachments: int | None = None  # FR-15 (v0.13): số tài liệu đi kèm của bộ
 
 
 class ImportReport(BaseModel):
