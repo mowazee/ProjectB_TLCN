@@ -6684,6 +6684,11 @@
             },
             "type": "array",
             "title": "Pages"
+          },
+          "title_match": {
+            "type": "boolean",
+            "title": "Title Match",
+            "default": false
           }
         },
         "type": "object",

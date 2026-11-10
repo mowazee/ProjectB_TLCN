@@ -5,7 +5,7 @@ import { Link, useSearchParams } from "react-router";
 
 import { api } from "@/shared/api/client";
 import type { PageHit, Paged, SearchHit } from "@/shared/api/types";
-import { EmptyState, ErrorBox, Loading, PageHeader, Pagination } from "@/shared/components/ui";
+import { Badge, EmptyState, ErrorBox, Loading, PageHeader, Pagination } from "@/shared/components/ui";
 import { useCategories } from "@/shared/hooks/useCategories";
 import { useDebounce } from "@/shared/hooks/useDebounce";
 
@@ -106,7 +106,8 @@ export function SearchPage() {
                     {hit.title}
                   </Link>
                   <span className="muted">{hit.category_name}</span>
-                  <span className="muted">· {hit.pages.length} trang khớp</span>
+                  {hit.pages.length > 0 && <span className="muted">· {hit.pages.length} trang khớp</span>}
+                  {hit.title_match && <Badge tone="info">Khớp tên tài liệu</Badge>}
                 </div>
                 <ul className={s.pages}>
                   {hit.pages.map((p) => (

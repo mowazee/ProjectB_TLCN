@@ -2150,6 +2150,11 @@ export interface components {
             category_name: string | null;
             /** Pages */
             pages: components["schemas"]["PageHitOut"][];
+            /**
+             * Title Match
+             * @default false
+             */
+            title_match: boolean;
         };
         /** SessionOut */
         SessionOut: {
