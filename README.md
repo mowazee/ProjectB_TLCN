@@ -1,16 +1,16 @@
-# Hệ thống số hóa hồ sơ tài liệu doanh nghiệp (ProjectB — SDD v0.12)
+# Hệ thống số hóa hồ sơ tài liệu doanh nghiệp (ProjectB — SDD v0.13)
 
 Tiểu luận chuyên ngành — UTE, Nhóm 3. Mọi yêu cầu, tên dữ liệu và hợp đồng API bám theo
-**SDD v0.12** (`document/0 -Dac_ta_SDD_v0.12.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
+**SDD v0.13** (`document/0 -Dac_ta_SDD_v0.13.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
 
 **Trạng thái (02/11/2026):** MVP + P2 + phân hệ quản trị/tài khoản chạy end to end trên demo Windows và Docker; đặc tả
-v0.12 khớp với code; CI xanh trên mọi PR (#1–#27). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng OCR,
+v0.12 khớp với code (v0.13 đã chốt đặc tả, đang hiện thực); CI xanh trên mọi PR (#1–#27). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng OCR,
 trích xuất, phân loại — xem [SUMMARY.md](SUMMARY.md) mục 4.
 
 ProjectB được dựng mới hoàn toàn từ baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng).
 ProjectA (`D:\ProjectA_TLCN`) giữ lại làm tham chiếu bản MVP cũ (Jinja2).
 
-| Phiên bản đặc tả | Ngày | Nội dung chính (đều đã hiện thực) |
+| Phiên bản đặc tả | Ngày | Nội dung chính |
 |---|---|---|
 | v0.6 | 16/10/2026 | Hợp thức hóa 10 chênh lệch giữa v0.5 và code |
 | v0.7 | 18/10/2026 | Phân hệ quản trị và tài khoản (FR-09…FR-12), vai trò Người dùng thông thường |
@@ -19,6 +19,7 @@ ProjectA (`D:\ProjectA_TLCN`) giữ lại làm tham chiếu bản MVP cũ (Jinja
 | v0.10 | 21/10/2026 | Dừng OCR, xử lý văn bản ký số, model OCR nhanh |
 | v0.11 | 21/10/2026 | OCR chữ in tiếng Việt bằng VietOCR, chống nghiêng, lọc ký tự lạ (GUIDE mục 9) |
 | v0.12 | 26/10/2026 | D-11 quyền sửa theo chủ sở hữu và trạng thái duyệt (Rút lại / Trả lại); nhập hàng loạt có Danh mục gợi ý |
+| v0.13 | 10/11/2026 | Bổ sung sau demo: cấu hình thời gian lưu trữ (FR-14), tài liệu đi kèm (FR-15), gộp nhiều file (FR-16), thống kê (FR-17), chia sẻ ra ngoài bằng link + OTP (FR-18), bản cứng/Kho chung (D-12), tìm theo tên, OCR Editor — **đang hiện thực** |
 
 ## Kiến trúc
 
