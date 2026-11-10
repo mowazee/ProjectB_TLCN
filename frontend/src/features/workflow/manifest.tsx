@@ -3,7 +3,7 @@ import { lazyNamed } from "@/shared/lib/lazy";
 import type { FeatureManifest } from "@/shared/types/feature";
 
 const load = () => import("./components");
-const ReviewsPage = lazyNamed(load, "ReviewsPage");
+const ReviewsPage = lazyNamed(() => import("./ReviewsPage"), "ReviewsPage");
 
 export const workflowManifest: FeatureManifest = {
   id: "workflow",

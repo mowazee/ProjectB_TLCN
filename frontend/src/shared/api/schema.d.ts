@@ -939,6 +939,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reviews/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Review
+         * @description FR-20: duyệt/xuất bản/từ chối hàng loạt; > 20 → 422 BULK_LIMIT; thiếu checklist → 422 CHECKLIST_REQUIRED.
+         */
+        post: operations["bulk_review_api_reviews_bulk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reviews": {
         parameters: {
             query?: never;
@@ -1652,6 +1672,56 @@ export interface components {
              * @description x, y, w, h theo pixel ảnh trang
              */
             box: number[];
+        };
+        /** BulkIn */
+        BulkIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "approve" | "approve_publish" | "publish" | "reject";
+            /**
+             * Document Ids
+             * @description Tối đa BULK_REVIEW_MAX (20) tài liệu
+             */
+            document_ids: string[];
+            /**
+             * Comments
+             * @description Bắt buộc khi reject (lý do chung)
+             */
+            comments?: string | null;
+            /**
+             * Confirmed Checks
+             * @description Duyệt/xuất bản: phải có đủ validity, physical_copy, extraction, metadata
+             */
+            confirmed_checks?: string[];
+        };
+        /** BulkItemOut */
+        BulkItemOut: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Ok */
+            ok: boolean;
+            /** Approval Status */
+            approval_status: string | null;
+            /** Error Code */
+            error_code: string | null;
+            /** Error Message */
+            error_message: string | null;
+        };
+        /** BulkOut */
+        BulkOut: {
+            /** Batch Id */
+            batch_id: string;
+            /** Succeeded */
+            succeeded: number;
+            /** Failed */
+            failed: number;
+            /** Results */
+            results: components["schemas"]["BulkItemOut"][];
         };
         /** CategoryIn */
         CategoryIn: {
@@ -5019,9 +5089,43 @@ export interface operations {
             };
         };
     };
+    bulk_review_api_reviews_bulk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     review_queue_api_reviews_get: {
         parameters: {
             query?: {
+                include_expired?: boolean;
                 page?: number;
                 page_size?: number;
             };

@@ -1,7 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/shared/api/client";
-import type { ApprovalEntry, ApprovalState, Paged, ReviewItem, StorageLocation } from "@/shared/api/types";
+import type {
+  ApprovalEntry,
+  ApprovalState,
+  BulkReviewOut,
+  Paged,
+  ReviewItem,
+  StorageLocation,
+} from "@/shared/api/types";
 
 export function useApprovalState(docId: string) {
   return useQuery({
@@ -62,9 +69,32 @@ export function useApprovalAction(docId: string) {
   });
 }
 
-export function useReviews(page: number) {
+export function useReviews(page: number, includeExpired = false) {
   return useQuery({
-    queryKey: ["reviews", page],
-    queryFn: () => api<Paged<ReviewItem>>("/api/reviews", { query: { page, page_size: 20 } }),
+    queryKey: ["reviews", page, includeExpired],
+    queryFn: () =>
+      api<Paged<ReviewItem>>("/api/reviews", {
+        query: { page, page_size: 20, include_expired: includeExpired || undefined },
+      }),
+  });
+}
+
+export interface BulkReviewInput {
+  action: "approve" | "approve_publish" | "publish" | "reject";
+  document_ids: string[];
+  comments?: string;
+  confirmed_checks?: string[];
+}
+
+/** FR-20: duyệt / duyệt và xuất bản / từ chối hàng loạt (tối đa 20). */
+export function useBulkReview() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: BulkReviewInput) => api<BulkReviewOut>("/api/reviews/bulk", { method: "POST", json: body }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["reviews"] });
+      client.invalidateQueries({ queryKey: ["documents"] });
+      client.invalidateQueries({ queryKey: ["approval"] });
+    },
   });
 }

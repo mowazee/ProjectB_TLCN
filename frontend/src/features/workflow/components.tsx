@@ -1,24 +1,13 @@
-import { ClipboardCheck } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router";
 
-import {
-  ApprovalBadge,
-  EmptyState,
-  ErrorBox,
-  Field,
-  Loading,
-  Modal,
-  PageHeader,
-  Pagination,
-} from "@/shared/components/ui";
-import { APPROVAL_LABELS, formatDateTime } from "@/shared/lib/format";
+import { ApprovalBadge, EmptyState, ErrorBox, Field, Loading, Modal } from "@/shared/components/ui";
+import { formatDateTime } from "@/shared/lib/format";
 import type { DocumentSlotProps } from "@/shared/types/feature";
 import { ValidityBadge, ValidityPicker, validityIncomplete, type ValidityValue } from "@/shared/components/validity";
 
 import { useSession } from "@/shared/session";
 
-import { useApprovalAction, useApprovalHistory, useApprovalState, usePhysicalCopyChoices, useReviews } from "./api";
+import { useApprovalAction, useApprovalHistory, useApprovalState, usePhysicalCopyChoices } from "./api";
 
 const ACTION_LABELS: Record<string, string> = {
   submit: "Gửi duyệt",
@@ -230,55 +219,5 @@ export function ApprovalHistoryTab({ document }: DocumentSlotProps) {
         ))}
       </tbody>
     </table>
-  );
-}
-
-export function ReviewsPage() {
-  const [page, setPage] = useState(1);
-  const reviews = useReviews(page);
-  return (
-    <div>
-      <PageHeader
-        icon={ClipboardCheck}
-        title="Hàng chờ duyệt"
-        subtitle={`Tài liệu ở trạng thái “${APPROVAL_LABELS.pending_review}”`}
-      />
-      <ErrorBox error={reviews.error} />
-      {reviews.isPending ? (
-        <Loading />
-      ) : !reviews.data?.items.length ? (
-        <EmptyState>Không có tài liệu chờ duyệt.</EmptyState>
-      ) : (
-        <>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Tài liệu</th>
-                <th>Hiệu lực</th>
-                <th>Người gửi</th>
-                <th>Gửi lúc</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reviews.data.items.map((r) => (
-                <tr key={r.document_id}>
-                  <td>
-                    <Link to={`/documents/${r.document_id}`} state={{ from: "/reviews", fromLabel: "hàng chờ duyệt" }}>
-                      {r.title}
-                    </Link>
-                  </td>
-                  <td>
-                    <ValidityBadge status={r.validity_status} validUntil={r.valid_until} />
-                  </td>
-                  <td>{r.submitted_by ?? "—"}</td>
-                  <td>{formatDateTime(r.submitted_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pagination page={page} pageSize={reviews.data.page_size} total={reviews.data.total} onChange={setPage} />
-        </>
-      )}
-    </div>
   );
 }
