@@ -65,3 +65,4 @@ export interface Paged<T> {
   page: number;
   page_size: number;
 }
+export type SystemSettings = S["SettingsOut"];

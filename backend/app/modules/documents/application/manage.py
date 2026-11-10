@@ -32,6 +32,7 @@ from app.modules.documents.domain.lifecycle import (
 )
 from app.modules.documents.infrastructure.models import Document, DocumentPage
 from app.modules.jobs.application import queries as jobs
+from app.modules.settings.application.retention import trash_retention_days
 from app.modules.users.application.queries import display_names
 from app.shared.config import settings
 from app.shared.context import SYSTEM_CONTEXT, Principal, RequestContext
@@ -56,6 +57,7 @@ class DocumentView:
     can_share: bool = False  # FR-13: chủ sở hữu, Kiểm duyệt viên phòng ban, Admin; tài liệu đã xuất bản
     permissions: list[str] = field(default_factory=list)  # D-11: thao tác người dùng được làm
     edit_lock_reason: str | None = None  # D-11: vì sao không sửa được (hiện cạnh nút mờ)
+    retention_days: int = field(default_factory=lambda: settings.SOFT_DELETE_RETENTION_DAYS)  # FR-14
 
     @property
     def category_source(self) -> str:
@@ -67,7 +69,7 @@ class DocumentView:
 
     @property
     def restore_deadline(self) -> datetime | None:
-        return restore_deadline(aware(self.doc.deleted_at), settings.SOFT_DELETE_RETENTION_DAYS)
+        return restore_deadline(aware(self.doc.deleted_at), self.retention_days)
 
 
 def _snapshot(doc: Document) -> dict[str, Any]:
@@ -102,11 +104,13 @@ def build_views(db: Session, principal: Principal, docs: list[Document]) -> list
         ).all():
             page_counts.setdefault(doc_id, {})[str(st)] = n
     views = []
+    days = trash_retention_days(db)
     for d in docs:
         counts = page_counts.get(d.id, {})
         views.append(
             DocumentView(
                 doc=d,
+                retention_days=days,
                 category_name=cats.get(d.category_id),
                 owner_name=owners.get(d.owner_id) if d.owner_id else None,
                 total_pages=sum(counts.values()),
@@ -282,7 +286,7 @@ def restore(db: Session, principal: Principal, document_id: uuid.UUID, ctx: Requ
         raise PermissionDeniedError(policies.denial_message(principal, scope, policies.RESTORE))
     if doc.lifecycle_status != LifecycleStatus.DELETED:
         return doc
-    if not can_restore_at(aware(doc.deleted_at), settings.SOFT_DELETE_RETENTION_DAYS, utcnow()):
+    if not can_restore_at(aware(doc.deleted_at), trash_retention_days(db), utcnow()):
         raise GoneError("Đã quá thời hạn khôi phục", code="RESTORE_EXPIRED")
     before = _snapshot(doc)
     doc.lifecycle_status = LifecycleStatus.ACTIVE

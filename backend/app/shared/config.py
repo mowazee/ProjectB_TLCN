@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     # Xóa mềm (D-05)
     SOFT_DELETE_RETENTION_DAYS: int = 30
     PURGE_INTERVAL_SECONDS: int = 24 * 3600
+    # FR-14 (v0.13): giá trị mặc định ban đầu; Admin đổi trên giao diện (bảng system_settings)
+    AUDIT_RETENTION_DAYS: int = 365
 
     # Job nền (FR-04, NFR-03)
     JOB_MAX_ATTEMPTS: int = 3

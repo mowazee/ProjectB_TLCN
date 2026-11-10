@@ -16,7 +16,7 @@ from app.modules.documents.domain.events import DocumentPurged
 from app.modules.documents.domain.lifecycle import LifecycleStatus
 from app.modules.documents.infrastructure.models import Document
 from app.modules.jobs.application.queries import has_running_jobs
-from app.shared.config import settings
+from app.modules.settings.application.retention import trash_retention_days
 from app.shared.context import SYSTEM_CONTEXT
 from app.shared.db import SessionLocal, utcnow
 from app.shared.events import publish
@@ -26,10 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 def purge_expired() -> int:
-    cutoff = utcnow() - timedelta(days=settings.SOFT_DELETE_RETENTION_DAYS)
     purged = 0
     storage = get_storage()
     with SessionLocal() as db:
+        cutoff = utcnow() - timedelta(days=trash_retention_days(db))  # FR-14: Admin cấu hình
         candidates = db.scalars(
             select(Document).where(Document.lifecycle_status == LifecycleStatus.DELETED, Document.deleted_at < cutoff)
         ).all()
