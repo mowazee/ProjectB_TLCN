@@ -1,7 +1,7 @@
 import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Route, Routes } from "react-router";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { EMPTY_SLOTS, type Slots } from "@/shared/slots";
 import { mockFetch, renderWithProviders, SESSION } from "@/test/utils";
@@ -75,26 +75,11 @@ describe("ImportPage - danh mục cho cả lô (P2-08, D-10)", () => {
     expect(sentForm(calls).get("category_id")).toBe("1");
   });
 
-  it("tải file manifest.csv mẫu có đủ cột và mã danh mục thật", async () => {
-    const user = userEvent.setup();
+  it("nút tải file mẫu trỏ tới ZIP manifest.csv + hướng dẫn, không hiện hướng dẫn dài", async () => {
     renderImport(["imports", "classification"]);
-    await screen.findByRole("radio", { name: /Danh mục gợi ý/ });
-    await screen.findByText(/File không có trong manifest sẽ bị bỏ qua/);
-    let blob: Blob | undefined;
-    URL.createObjectURL = vi.fn((b: Blob) => {
-      blob = b;
-      return "blob:x";
-    });
-    URL.revokeObjectURL = vi.fn();
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Tải manifest.csv mẫu/ })).toBeEnabled());
-    await user.click(screen.getByRole("button", { name: /Tải manifest.csv mẫu/ }));
-    expect(click).toHaveBeenCalled();
-    const bytes = new Uint8Array(await blob!.arrayBuffer());
-    expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]); // BOM: Excel mở đúng tiếng Việt
-    const text = await blob!.text(); // text() bỏ BOM khi giải mã
-    expect(text.startsWith("file_name,attachments,title,category,document_code,validity,valid_until")).toBe(true);
-    expect(text).toContain(",HOP-DONG,");
+    const link = await screen.findByRole("link", { name: /Tải file mẫu/ });
+    expect(link.getAttribute("href")).toBe("/api/imports/template.zip");
+    expect(screen.queryByText(/document_code/)).not.toBeInTheDocument();
   });
 });
 

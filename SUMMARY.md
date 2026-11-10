@@ -49,13 +49,13 @@ PR (#1–#43). Việc còn lại chủ yếu cần **dữ liệu thật** để 
 | FR-19 | Hiệu lực tài liệu: khai báo khi gửi duyệt, Kiểm duyệt sửa khi duyệt, đổi kèm lý do sau duyệt/xuất bản, hết hạn sau 23:59, nhắc trước 7 ngày, ẩn mặc định (migration 0116) | #41 |
 | FR-20 | Duyệt / duyệt và xuất bản / từ chối hàng loạt tối đa 20 tài liệu, checklist, kết quả từng tài liệu; hàng chờ ẩn tài liệu hết hiệu lực | #42 |
 | Vận hành (v0.15) | Hàng đợi lưu 30 ngày; xóa vĩnh viễn không giữ nhật ký; nhập hàng loạt chỉ theo manifest.csv; trang Hướng dẫn sử dụng (FR-21) | #43 |
-| SDD v0.15 (đặc tả) | Đồng bộ đặc tả với bản hiện thực, D-16, FR-21, UC-37; script CSDL v0.15; README, GUIDE, SUMMARY | #44 |
+| SDD v0.15 (đặc tả + P2-08) | Đồng bộ đặc tả với bản hiện thực, D-16, FR-21, UC-37; script CSDL v0.15; README, GUIDE, SUMMARY. Kèm code: `file_name` ghi nhiều file (`;`) để gộp một PDF (tên file và tiêu đề theo `title`, trống thì theo file đầu tiên); nút Tải file mẫu trả ZIP `manifest.csv` + `HUONG-DAN.txt` | #44 |
 
 ### Kết quả kiểm thử (11/11/2026)
 
 | Bộ | Kết quả |
 |---|---|
-| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 505 passed, 1 skipped / 505 passed, 1 skipped |
+| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 507 passed, 1 skipped / 507 passed, 1 skipped |
 | CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#43) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (chạy khi PR đổi Docker/infra) |
 | Frontend Vitest | 80 passed (24 file) |
@@ -263,4 +263,4 @@ hàng chờ duyệt chỉ có cột hiệu lực (vị trí bản cứng ở tra
 | #41 | 11/11 | FR-19: hiệu lực tài liệu |
 | #42 | 11/11 | FR-20: duyệt, xuất bản, từ chối hàng loạt |
 | #43 | 11/11 | Hàng đợi lưu 30 ngày, xóa vĩnh viễn không giữ nhật ký, nhập hàng loạt chỉ theo manifest.csv, trang Hướng dẫn sử dụng |
-| #44 | 11/11 | Đặc tả v0.15 và cập nhật README, GUIDE, SUMMARY, script CSDL |
+| #44 | 11/11 | Đặc tả v0.15, README, GUIDE, SUMMARY, script CSDL; nhập hàng loạt gộp nhiều file qua `file_name`, file mẫu ZIP kèm hướng dẫn |

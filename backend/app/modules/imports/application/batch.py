@@ -18,6 +18,7 @@ bộ hồ sơ (file chính + tài liệu đi kèm FR-15, imports/domain/bundles.
 """
 
 import logging
+import re
 import uuid
 from dataclasses import dataclass
 from typing import Any, BinaryIO
@@ -29,7 +30,7 @@ from app.modules.categories.application import manage as categories
 from app.modules.documents.application import queries as documents
 from app.modules.documents.application import validity
 from app.modules.documents.application.attachments import IncomingFile
-from app.modules.documents.application.upload import create_document_from_bytes
+from app.modules.documents.application.upload import create_document_from_bytes, merge_files
 from app.modules.imports.domain.archive import MANIFEST_NAME, ArchiveError, Budget, Entry, expand_batch
 from app.modules.imports.domain.bundles import Bundle, group
 from app.modules.jobs.application import queries as jobs
@@ -155,6 +156,15 @@ def _unique_keys(names: list[str]) -> list[str]:
     return out
 
 
+_BAD_NAME_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]+')
+
+
+def _merged_name(title: str | None, fallback: str) -> str:
+    """Tên file PDF sau khi gộp: theo cột title của manifest; title trống thì theo tên file đầu tiên (fallback)."""
+    base = _BAD_NAME_CHARS.sub(" ", (title or "").strip()).strip(" .")[:200]
+    return f"{base}.pdf" if base else fallback
+
+
 def _file_category(db: Session, row: dict[str, str], p: dict[str, Any]) -> tuple[str, int | None]:
     """(category_mode, category_id) cho một file: cột category của manifest.csv ưu tiên hơn cấu hình cả lô."""
     code = row.get("category", "").strip()
@@ -214,7 +224,11 @@ def run_import(ctx: Any) -> None:
                 declared = (  # FR-19 (v0.14): cột validity, valid_until tùy chọn; sai -> lỗi riêng bộ này
                     validity.validate(row["validity"], row.get("valid_until")) if row.get("validity") else None
                 )
-                data, filename = first.data or b"", first.filename
+                if len(item.main) > 1:  # FR-16: file_name liệt kê nhiều file -> gộp một PDF theo thứ tự khai báo
+                    data, filename = merge_files([(e.filename, e.data or b"") for e in item.main])
+                    filename = _merged_name(row.get("title"), filename)
+                else:
+                    data, filename = first.data or b"", first.filename
                 doc, ocr_job = create_document_from_bytes(
                     db,
                     principal,
@@ -228,6 +242,7 @@ def run_import(ctx: Any) -> None:
                     ctx=job_ctx,
                     audit_action="import_document",
                     origin={"import_job_id": str(ctx.job_id)},
+                    merged_files=len(item.main) if len(item.main) > 1 else None,
                     attachments=[IncomingFile(a.filename, a.data or b"") for a in item.attachments],
                 )
                 if declared:

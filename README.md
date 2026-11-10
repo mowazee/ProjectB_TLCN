@@ -88,8 +88,8 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin là `
 
 | Bộ | Lệnh | Kết quả hiện tại (11/11/2026) |
 |---|---|---|
-| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 505 passed, 1 skipped |
-| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 505 passed, 1 skipped |
+| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 507 passed, 1 skipped |
+| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 507 passed, 1 skipped |
 | Backend trên PostgreSQL 18 + Redis | CI `backend.yml` (6 tổ hợp cờ) | xanh mỗi PR |
 | Frontend | `cd frontend; npm test` | 80 passed (24 file) |
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |

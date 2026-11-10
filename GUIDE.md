@@ -102,20 +102,21 @@ khi đã có một ít tài liệu được người dùng gán danh mục — c
 **Nhập hàng loạt** (`/imports`, P2-08; từ v0.15 chỉ theo `manifest.csv`): chọn **`manifest.csv` cùng các file**, hoặc
 **một file ZIP có `manifest.csv` ở gốc**. Lô không có manifest bị từ chối (`MANIFEST_REQUIRED`). Danh mục chọn cho **cả
 lô** giống khi tải lên: **Danh mục gợi ý** (mặc định khi bật `classification`, mỗi file tự phân loại sau OCR) hoặc một
-danh mục cụ thể. Nút **Tải manifest.csv mẫu** tạo sẵn file với mã danh mục thật. Mỗi dòng là **một tài liệu**:
+danh mục cụ thể. Nút **Tải file mẫu** tải về `mau-nhap-hang-loat.zip` gồm `manifest.csv` mẫu (mã danh mục thật) và
+`HUONG-DAN.txt` (cách điền từng cột) — trang web chỉ hiện một dòng nhắc để đỡ rối. Mỗi dòng là **một tài liệu**:
 
 ```
 file_name,attachments,title,category,document_code,validity,valid_until
 quyet-dinh-12.pdf,phu-luc-1.docx;bang-ke.xlsx,Quyết định số 12/2026,HOP-DONG,12/QĐ-UBND,effective,
-cong-van-07.pdf,,Công văn số 07,,07/CV,effective_until,31/12/2027
+trang-1.jpg;trang-2.jpg;trang-3.jpg,,Biên bản nghiệm thu,,05/BB,effective_until,31/12/2027
 scan-001.pdf,,,,,,
 ```
 
 | Cột | Ý nghĩa |
 |---|---|
-| `file_name` | **Bắt buộc** — file chính (được OCR), khớp tên file không phân biệt hoa/thường (trong ZIP chỉ cần đúng tên, không cần đường dẫn) |
+| `file_name` | **Bắt buộc** — file chính (được OCR), khớp tên file không phân biệt hoa/thường (trong ZIP chỉ cần đúng tên, không cần đường dẫn). Ghi **nhiều ảnh/PDF phân cách bằng `;`** thì gộp thành **một PDF** theo đúng thứ tự đã ghi (FR-16, tối đa `MAX_MERGE_FILES`); thiếu một file trong danh sách thì cả dòng lỗi `FILE_NOT_FOUND` |
 | `attachments` | Tài liệu đi kèm (FR-15, không OCR), nhiều file ngăn cách bằng `;` |
-| `title` | Tiêu đề; trống thì lấy tên file |
+| `title` | Tiêu đề; khi gộp nhiều file, **tên file PDF sau khi gộp** cũng lấy theo `title` (ký tự không hợp lệ trong tên file được thay bằng khoảng trắng). Trống thì lấy tên file đầu tiên trong `file_name` |
 | `category` | **Mã** danh mục (Quản trị → Danh mục), ưu tiên hơn lựa chọn của cả lô |
 | `document_code` | Số hiệu |
 | `validity`, `valid_until` | Hiệu lực (FR-19): `effective`, `effective_until` (kèm ngày `31/12/2027` hoặc `2027-12-31`), `expired`, `unspecified`; trống = Không quy định |
