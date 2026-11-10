@@ -227,7 +227,7 @@ quá hạn có thể nằm mãi trong thùng rác. Lượt dọn cũng xóa nh�
 
 **Nhật ký hệ thống** (Quản trị → Nhật ký): lọc theo khoảng ngày, **hành động** (gõ một phần, vd. `share`, `upload`,
 `ocr`), **người dùng** (tên đăng nhập hoặc họ tên) và **tài liệu** (tên tài liệu) — không cần biết ID. Mở từ trang
-Người dùng/Nhóm quyền thì trang tự lọc theo người đó, có nút **Bỏ lọc**.
+Người dùng/Nhóm quyền thì trang tự lọc theo người đó, có nút **Bỏ lọc**. Cột **Tên tài liệu** hiện tên (bấm để mở tài liệu); dòng không gắn tài liệu hoặc tài liệu đã xóa hiện "—".
 
 **Hướng dẫn sử dụng** (FR-21): menu **Hướng dẫn sử dụng** (`/guide`, mọi người dùng). Hiện để trống, sau này đặt tài liệu
 hướng dẫn tại đây.

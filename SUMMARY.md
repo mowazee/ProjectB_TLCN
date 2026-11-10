@@ -58,7 +58,7 @@ PR (#1–#43). Việc còn lại chủ yếu cần **dữ liệu thật** để 
 | Backend pytest (SQLite), cờ tắt / mọi cờ bật | 509 passed, 1 skipped / 509 passed, 1 skipped |
 | CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#43) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (chạy khi PR đổi Docker/infra) |
-| Frontend Vitest | 81 passed (25 file) |
+| Frontend Vitest | 82 passed (25 file) |
 | E2E Playwright trên demo thật, mọi cờ bật (local) | 13 passed, 1 skipped (14 test: 5 MVP + 9 P2; test bỏ qua chỉ dành cho chế độ cờ tắt) |
 | CI `e2e`: 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) | xanh trên mọi PR (ở chế độ MVP các test P2 tự bỏ qua) |
 | ruff, ruff format, mypy, lint-imports, ESLint, tsc, Prettier | sạch |
@@ -265,3 +265,4 @@ hàng chờ duyệt chỉ có cột hiệu lực (vị trí bản cứng ở tra
 | #43 | 11/11 | Hàng đợi lưu 30 ngày, xóa vĩnh viễn không giữ nhật ký, nhập hàng loạt chỉ theo manifest.csv, trang Hướng dẫn sử dụng |
 | #44 | 11/11 | Đặc tả v0.15, README, GUIDE, SUMMARY, script CSDL; nhập hàng loạt gộp nhiều file qua `file_name`, file mẫu ZIP kèm hướng dẫn |
 | #45 | 11/11 | Beat dọn mỗi giờ (thùng rác quá hạn không bị kẹt sau khi build lại), dọn nhật ký sót của tài liệu đã xóa; Nhật ký hệ thống lọc theo tên người dùng/tài liệu, hành động gần đúng; Hàng đợi ghi rõ lưu 30 ngày |
+| #46 | 11/11 | Nhật ký hệ thống: thêm cột Tên tài liệu (liên kết tới tài liệu), khớp với ô lọc Tài liệu |

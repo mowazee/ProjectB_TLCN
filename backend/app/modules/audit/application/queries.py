@@ -4,7 +4,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 
-from sqlalchemy import column, func, or_, select, table
+from sqlalchemy import Uuid, column, func, or_, select, table
 from sqlalchemy.orm import Session
 
 from app.modules.audit.infrastructure.models import AuditLog
@@ -14,8 +14,8 @@ from app.shared.errors import NotFoundError, PermissionDeniedError
 from app.shared.pagination import PageParams
 
 # Chỉ đọc vài cột để lọc theo tên, không phụ thuộc module users/documents (giữ ranh giới module)
-_users = table("users", column("id"), column("username"), column("full_name"))
-_documents = table("documents", column("id"), column("title"))
+_users = table("users", column("id", Uuid), column("username"), column("full_name"))
+_documents = table("documents", column("id", Uuid), column("title"))
 
 
 @dataclass
@@ -72,6 +72,14 @@ def list_logs(db: Session, actor: Principal, flt: AuditFilter, params: PageParam
         stmt.order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).offset(params.offset).limit(params.page_size)
     ).all()
     return list(rows), total
+
+
+def document_titles(db: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
+    """Tên tài liệu cho cột Đối tượng của nhật ký (chỉ đọc bảng documents, không phụ thuộc module documents)."""
+    if not ids:
+        return {}
+    rows = db.execute(select(_documents.c.id, _documents.c.title).where(_documents.c.id.in_(ids))).all()
+    return {doc_id: title for doc_id, title in rows}
 
 
 def get_log(db: Session, log_id: int) -> AuditLog:
