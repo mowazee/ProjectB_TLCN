@@ -1,6 +1,6 @@
 import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { mockFetch, renderWithProviders, SESSION } from "@/test/utils";
 
@@ -79,5 +79,28 @@ describe("UploadPage - cách chọn danh mục (D-10)", () => {
     submit();
     await screen.findByText("Đã tải lên thành công.");
     expect(sent(calls).get("category_mode")).toBe("user");
+  });
+});
+
+describe("UploadPage - gộp nhiều file (FR-16)", () => {
+  it("chọn nhiều file, đổi thứ tự rồi gửi files[] theo đúng thứ tự", async () => {
+    const user = userEvent.setup();
+    const calls = render([]);
+    const input = await screen.findByLabelText("File");
+    await user.upload(input, [
+      new File(["a"], "a.png", { type: "image/png" }),
+      new File(["b"], "b.png", { type: "image/png" }),
+    ]);
+    expect(screen.getByText(/Gộp 2 file thành một tài liệu PDF/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Đưa b.png lên" }));
+    await user.selectOptions(screen.getByLabelText("Danh mục"), "1");
+    submit();
+    const form = await vi.waitFor(() => {
+      const f = sent(calls);
+      if (!f) throw new Error("chưa gửi");
+      return f;
+    });
+    expect(form.get("file")).toBeNull();
+    expect((form.getAll("files") as File[]).map((f) => f.name)).toEqual(["b.png", "a.png"]);
   });
 });

@@ -141,3 +141,14 @@
   flex-shrink: 0;
   color: var(--c-muted);
 }
+.mergeList {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+.mergeList li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

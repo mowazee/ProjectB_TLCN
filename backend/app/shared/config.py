@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     # Upload (D-01: chốt sau khi đo)
     MAX_UPLOAD_MB: int = 25
     MAX_PAGES: int = 100
+    MAX_MERGE_FILES: int = 20  # FR-16 (v0.13): số file tối đa gộp thành một tài liệu
     MAX_IMAGE_PIXELS: int = 60_000_000
 
     # Xóa mềm (D-05)
