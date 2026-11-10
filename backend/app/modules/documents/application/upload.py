@@ -17,11 +17,12 @@ from app.modules.documents.domain import policies
 from app.modules.documents.domain.events import DocumentUploaded
 from app.modules.documents.domain.lifecycle import CategorySource
 from app.modules.documents.infrastructure import file_inspector
+from app.modules.documents.infrastructure.merge import merge_to_pdf
 from app.modules.documents.infrastructure.models import Document
 from app.modules.jobs.application.create import create_ocr_job
 from app.shared.config import settings
 from app.shared.context import Principal, RequestContext
-from app.shared.errors import PermissionDeniedError, UnprocessableError
+from app.shared.errors import AppError, PayloadTooLargeError, PermissionDeniedError, UnprocessableError
 from app.shared.events import publish
 from app.shared.storage import get_storage, original_key
 
@@ -40,6 +41,7 @@ def create_document_from_bytes(
     category_mode: str = "user",
     document_code: str | None = None,
     origin: dict[str, str] | None = None,
+    merged_files: int | None = None,
 ) -> tuple[Document, Any]:
     """Dùng chung cho UC-01 và từng file của bulk import (UC-23 include UC-01).
 
@@ -110,6 +112,7 @@ def create_document_from_bytes(
                 "pages": info.pages,
                 "job_id": str(job.id),
                 "is_handwritten": is_handwritten,
+                **({"merged_files": merged_files} if merged_files else {}),
             },
         )
         publish(db, DocumentUploaded(doc.id, principal.id))
@@ -144,4 +147,58 @@ def upload_document(
         is_handwritten=is_handwritten,
         ctx=ctx,
         category_mode=category_mode,
+    )
+
+
+def upload_merged(
+    db: Session,
+    principal: Principal,
+    *,
+    files: list[tuple[BinaryIO, str | None]],
+    title: str | None,
+    category_id: int | None,
+    is_handwritten: bool,
+    ctx: RequestContext,
+    category_mode: str = "user",
+) -> tuple[Document, Any]:
+    """FR-16 (SDD v0.13): nhiều ảnh/PDF theo thứ tự -> một PDF -> một tài liệu, một job OCR.
+
+    Từng file kiểm như FR-03; một file lỗi thì từ chối cả yêu cầu, lỗi chỉ rõ tên file. Tổng dung lượng và tổng số
+    trang theo MAX_UPLOAD_MB, MAX_PAGES; số file theo MAX_MERGE_FILES."""
+    if not policies.can_upload(principal):
+        raise PermissionDeniedError("Bạn không có quyền upload tài liệu")
+    if len(files) > settings.MAX_MERGE_FILES:
+        raise UnprocessableError(
+            f"Gộp tối đa {settings.MAX_MERGE_FILES} file một lần", code="TOO_MANY_FILES", fields={"files": "too_many"}
+        )
+    parts: list[tuple[bytes, str]] = []
+    total = 0
+    names: list[str] = []
+    for stream, filename in files:
+        name = file_inspector.safe_filename(filename)
+        try:
+            data = file_inspector.read_limited(stream, settings.max_upload_bytes)
+            info = file_inspector.inspect(data, name)
+        except AppError as exc:
+            raise type(exc)(f"{name}: {exc.message}", code=exc.code, fields={"files": name}) from exc
+        total += len(data)
+        if total > settings.max_upload_bytes:
+            raise PayloadTooLargeError(
+                f"Tổng dung lượng các file vượt quá {settings.MAX_UPLOAD_MB} MB", fields={"files": "too_large"}
+            )
+        parts.append((data, info.ext))
+        names.append(name)
+    merged = merge_to_pdf(parts)
+    first = names[0].rsplit(".", 1)[0]
+    return create_document_from_bytes(
+        db,
+        principal,
+        data=merged,
+        filename=f"{first}.pdf",
+        title=title,
+        category_id=category_id,
+        is_handwritten=is_handwritten,
+        ctx=ctx,
+        category_mode=category_mode,
+        merged_files=len(parts),
     )

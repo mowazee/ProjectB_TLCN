@@ -30,6 +30,7 @@ from app.modules.documents.presentation.schemas import (
     document_out,
     sharing_out,
 )
+from app.shared.errors import UnprocessableError
 from app.shared.http import page_params
 from app.shared.pagination import Page, PageParams
 
@@ -41,7 +42,11 @@ def upload_document(
     db: DbSession,
     principal: CurrentPrincipal,
     ctx: Ctx,
-    file: Annotated[UploadFile, File(description="PDF, PNG hoặc JPG")],
+    file: Annotated[UploadFile | None, File(description="PDF, PNG hoặc JPG")] = None,
+    files: Annotated[
+        list[UploadFile] | None,
+        File(description="FR-16 (v0.13): nhiều ảnh/PDF theo thứ tự, gộp thành một PDF (thay cho file)"),
+    ] = None,
     category_id: Annotated[int | None, Form(description="Bắt buộc khi category_mode = user")] = None,
     category_mode: Annotated[
         Literal["user", "auto"],
@@ -52,17 +57,33 @@ def upload_document(
     title: Annotated[str | None, Form(max_length=255)] = None,
     is_handwritten: Annotated[bool, Form(description="P2-03 (khi cờ handwriting bật)")] = False,
 ) -> UploadOut:
-    doc, job = upload.upload_document(
-        db,
-        principal,
-        stream=file.file,
-        filename=file.filename,
-        title=title,
-        category_id=category_id,
-        is_handwritten=is_handwritten,
-        ctx=ctx,
-        category_mode=category_mode,
-    )
+    if files and file is not None:
+        raise UnprocessableError("Chỉ gửi file hoặc files, không gửi cả hai", fields={"files": "conflict"})
+    if files:
+        doc, job = upload.upload_merged(
+            db,
+            principal,
+            files=[(f.file, f.filename) for f in files],
+            title=title,
+            category_id=category_id,
+            is_handwritten=is_handwritten,
+            ctx=ctx,
+            category_mode=category_mode,
+        )
+    elif file is not None:
+        doc, job = upload.upload_document(
+            db,
+            principal,
+            stream=file.file,
+            filename=file.filename,
+            title=title,
+            category_id=category_id,
+            is_handwritten=is_handwritten,
+            ctx=ctx,
+            category_mode=category_mode,
+        )
+    else:
+        raise UnprocessableError("Hãy chọn file để tải lên", code="FILE_REQUIRED", fields={"file": "required"})
     return UploadOut(
         document_id=doc.id, job_id=job.id, lifecycle_status=str(doc.lifecycle_status), job_status=str(job.status)
     )

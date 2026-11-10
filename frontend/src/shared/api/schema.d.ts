@@ -1179,7 +1179,12 @@ export interface components {
              * File
              * @description PDF, PNG hoặc JPG
              */
-            file: string;
+            file?: string | null;
+            /**
+             * Files
+             * @description FR-16 (v0.13): nhiều ảnh/PDF theo thứ tự, gộp thành một PDF (thay cho file)
+             */
+            files?: string[] | null;
             /**
              * Category Id
              * @description Bắt buộc khi category_mode = user
@@ -3065,7 +3070,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "multipart/form-data": components["schemas"]["Body_upload_document_api_documents_post"];
             };
