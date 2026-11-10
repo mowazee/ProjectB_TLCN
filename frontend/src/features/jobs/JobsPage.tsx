@@ -82,7 +82,7 @@ export function JobsPage() {
       <PageHeader
         icon={ListTodo}
         title="Hàng đợi xử lý"
-        subtitle="Job OCR, trích xuất, phân loại, nhập hàng loạt của tài liệu trong phạm vi của bạn"
+        subtitle="Job OCR, trích xuất, phân loại, nhập hàng loạt của tài liệu trong phạm vi của bạn. Lưu trữ log 30 ngày gần nhất."
       />
       <div className="row" style={{ marginBottom: 12 }}>
         <select

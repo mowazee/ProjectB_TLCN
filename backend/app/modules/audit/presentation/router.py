@@ -41,9 +41,12 @@ def get_audit(
     date_to: date | None = None,
     user_id: uuid.UUID | None = None,
     document_id: uuid.UUID | None = None,
-    action: Annotated[str | None, Query(max_length=100)] = None,
+    action: Annotated[str | None, Query(max_length=100, description="Gần đúng, vd. share, ocr")] = None,
+    user: Annotated[str | None, Query(max_length=100, description="Tên đăng nhập hoặc họ tên (gần đúng)")] = None,
+    document: Annotated[str | None, Query(max_length=200, description="Tên tài liệu (gần đúng)")] = None,
 ) -> Page[AuditLogOut]:
-    logs, total = list_logs(db, principal, AuditFilter(date_from, date_to, user_id, document_id, action), params)
+    flt = AuditFilter(date_from, date_to, user_id, document_id, action, user, document)
+    logs, total = list_logs(db, principal, flt, params)
     names = display_names(db, {x.user_id for x in logs if x.user_id})
     items = [
         AuditLogOut(

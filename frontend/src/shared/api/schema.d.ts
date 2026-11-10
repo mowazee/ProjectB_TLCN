@@ -4461,7 +4461,12 @@ export interface operations {
                 date_to?: string | null;
                 user_id?: string | null;
                 document_id?: string | null;
+                /** @description Gần đúng, vd. share, ocr */
                 action?: string | null;
+                /** @description Tên đăng nhập hoặc họ tên (gần đúng) */
+                user?: string | null;
+                /** @description Tên tài liệu (gần đúng) */
+                document?: string | null;
                 page?: number;
                 page_size?: number;
             };

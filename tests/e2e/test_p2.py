@@ -193,7 +193,7 @@ def test_rollback_from_audit(page: Page):
     # Chờ nút đổi thành "Dùng lại" (= PATCH xong). Chờ chữ "Ngừng dùng" thì khớp ngay chính cái nút vừa bấm.
     expect(row.get_by_role("button", name="Dùng lại")).to_be_visible()
     page.goto(f"{BASE_URL}/admin/audit")
-    page.get_by_placeholder("Hành động (vd. edit_ocr)").fill("deactivate_category")
+    page.get_by_label("Hành động").fill("deactivate_category")
     # Bảng giữ dữ liệu cũ (placeholderData) trong lúc lọc: chờ dòng đầu là kết quả lọc rồi mới bấm,
     # nếu không .first có thể là nút Khôi phục của một dòng nhật ký khác.
     first_row = page.locator("tbody tr").first
