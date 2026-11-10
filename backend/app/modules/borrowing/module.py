@@ -1,14 +1,16 @@
 """P2-07 mượn hồ sơ: cờ "borrowing" (thông báo cần thêm cờ "notifications")."""
 
-from app.modules.borrowing.application import requests
+from app.modules.borrowing.application import locations, requests
 from app.modules.borrowing.presentation.router import router
 from app.modules.dashboard.application.stats import register_contributor
+from app.shared import submit_hooks
 from app.shared.config import settings
 from app.shared.modules import ModuleSpec, Schedule
 
 
 def _setup() -> None:
     register_contributor(requests.dashboard_counts)
+    submit_hooks.register(locations.declare_on_submit)  # D-12: khai báo bản cứng khi gửi duyệt
 
 
 MODULE = ModuleSpec(

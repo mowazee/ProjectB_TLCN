@@ -23,6 +23,10 @@ router = APIRouter(tags=["workflow"], dependencies=[Depends(require_feature("wor
 
 class ApprovalIn(BaseModel):
     comments: str | None = Field(default=None, max_length=2000, description="Bắt buộc khi reject")
+    has_physical_copy: bool | None = Field(
+        default=None, description="submit khi bật borrowing (D-12): tài liệu có bản cứng không"
+    )
+    storage_location_id: int | None = Field(default=None, description="submit, has_physical_copy=true: kho/kệ")
 
 
 class ApprovalStateOut(BaseModel):
@@ -56,7 +60,10 @@ def do_action(
     ctx: Ctx,
     data: Annotated[ApprovalIn | None, Body()] = None,
 ) -> ApprovalStateOut:
-    approvals.transition(db, principal, document_id, action, comments=data.comments if data else None, ctx=ctx)
+    payload = data.model_dump(include={"has_physical_copy", "storage_location_id"}, exclude_none=True) if data else {}
+    approvals.transition(
+        db, principal, document_id, action, comments=data.comments if data else None, ctx=ctx, payload=payload
+    )
     return ApprovalStateOut(**approvals.state(db, principal, document_id))
 
 

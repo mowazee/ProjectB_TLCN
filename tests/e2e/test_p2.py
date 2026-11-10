@@ -26,6 +26,15 @@ def need(page: Page, *flags: str) -> None:
         pytest.skip(f"cờ tắt: {missing}")
 
 
+def submit_for_review(page: Page) -> None:
+    """Gửi duyệt; khi bật mượn hồ sơ (D-12) khai báo "không có bản cứng" (Kho chung)."""
+    page.get_by_role("button", name="Gửi duyệt").click()
+    dialog = page.get_by_role("dialog")
+    if "borrowing" in features(page):
+        dialog.get_by_label(re.compile("Không — đưa vào Kho chung")).check()
+    dialog.get_by_role("button", name="Xác nhận").click()
+
+
 def test_p2_flags_off_hide_screens(officer_page: Page):
     page = officer_page
     if "workflow" in features(page):
@@ -39,8 +48,7 @@ def test_workflow_submit_approve_publish(officer_page: Page, new_context_page, t
     doc_id = upload_and_wait(
         officer_page, make_pdf(tmp_path / "w.pdf", [f"Quyết định {uniq} ban hành"]), f"Duyệt {uniq}"
     )
-    officer_page.get_by_role("button", name="Gửi duyệt").click()
-    officer_page.get_by_role("button", name="Xác nhận").click()
+    submit_for_review(officer_page)
     expect(officer_page.get_by_text("Chờ duyệt").first).to_be_visible()
 
     approver = new_context_page(APPROVER)
@@ -62,8 +70,7 @@ def test_share_published_document_across_departments(officer_page: Page, new_con
     title = f"Chia sẻ {uniq}"
     doc_id = upload_and_wait(officer_page, make_pdf(tmp_path / "s.pdf", [f"Biên bản {uniq}"]), title)
     expect(officer_page.get_by_role("button", name="Chia sẻ", exact=True)).to_be_disabled()  # chưa xuất bản
-    officer_page.get_by_role("button", name="Gửi duyệt").click()
-    officer_page.get_by_role("button", name="Xác nhận").click()
+    submit_for_review(officer_page)
     approver = new_context_page(APPROVER)
     approver.goto(f"{BASE_URL}/documents/{doc_id}")
     for action in ("Duyệt", "Xuất bản"):
@@ -242,8 +249,7 @@ def test_review_locks_editing_d11(officer_page: Page, new_context_page, tmp_path
     doc_id = upload_and_wait(page, make_pdf(tmp_path / "d11.pdf", [f"Quyết định {uniq} về quyền sửa"]), f"D11 {uniq}")
     url = f"{BASE_URL}/documents/{doc_id}"
     expect(page.get_by_role("button", name="Sửa thông tin")).to_be_enabled()
-    page.get_by_role("button", name="Gửi duyệt").click()
-    page.get_by_role("dialog").get_by_role("button", name="Xác nhận").click()
+    submit_for_review(page)
     expect(page.get_by_role("note")).to_contain_text("Rút lại")
     expect(page.get_by_role("button", name=re.compile("Sửa thông tin"))).to_be_disabled()
     expect(page.get_by_role("button", name="Xóa")).to_have_count(0)

@@ -25,7 +25,8 @@ def _viewer(db, seed, username="viewer", dep="dep_a"):
 
 def _publish(officer, approver, doc_id):
     for c, action in ((officer, "submit"), (approver, "approve"), (approver, "publish")):
-        assert c.post(f"/api/documents/{doc_id}/approval/{action}").status_code == 200, action
+        body = {"has_physical_copy": False} if action == "submit" else None  # D-12 khi bật borrowing
+        assert c.post(f"/api/documents/{doc_id}/approval/{action}", json=body).status_code == 200, action
 
 
 def test_viewer_sees_only_published_documents_of_own_department(seed, login, db):

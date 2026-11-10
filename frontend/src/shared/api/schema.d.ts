@@ -1066,6 +1066,16 @@ export interface components {
              * @description Bắt buộc khi reject
              */
             comments?: string | null;
+            /**
+             * Has Physical Copy
+             * @description submit khi bật borrowing (D-12): tài liệu có bản cứng không
+             */
+            has_physical_copy?: boolean | null;
+            /**
+             * Storage Location Id
+             * @description submit, has_physical_copy=true: kho/kệ
+             */
+            storage_location_id?: number | null;
         };
         /** ApprovalStateOut */
         ApprovalStateOut: {
@@ -1449,11 +1459,18 @@ export interface components {
         /** DocLocationIn */
         DocLocationIn: {
             /** Storage Location Id */
-            storage_location_id: number | null;
+            storage_location_id?: number | null;
+            /**
+             * Has Physical Copy
+             * @description D-12: false → Kho chung; true → bắt buộc kho/kệ
+             */
+            has_physical_copy?: boolean | null;
         };
         /** DocLocationOut */
         DocLocationOut: {
             storage_location: components["schemas"]["LocationOut"] | null;
+            /** Has Physical Copy */
+            has_physical_copy?: boolean | null;
         };
         /** DocumentOut */
         DocumentOut: {
@@ -1827,6 +1844,12 @@ export interface components {
             name: string;
             /** Code */
             code: string;
+            /**
+             * Is Virtual
+             * @description Kho chung (D-12): tài liệu không có bản cứng
+             * @default false
+             */
+            is_virtual: boolean;
         };
         /** LocationPatch */
         LocationPatch: {

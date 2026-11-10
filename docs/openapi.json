@@ -3689,6 +3689,30 @@
             ],
             "title": "Comments",
             "description": "Bắt buộc khi reject"
+          },
+          "has_physical_copy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Physical Copy",
+            "description": "submit khi bật borrowing (D-12): tài liệu có bản cứng không"
+          },
+          "storage_location_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Location Id",
+            "description": "submit, has_physical_copy=true: kho/kệ"
           }
         },
         "type": "object",
@@ -4766,12 +4790,21 @@
               }
             ],
             "title": "Storage Location Id"
+          },
+          "has_physical_copy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Physical Copy",
+            "description": "D-12: false → Kho chung; true → bắt buộc kho/kệ"
           }
         },
         "type": "object",
-        "required": [
-          "storage_location_id"
-        ],
         "title": "DocLocationIn"
       },
       "DocLocationOut": {
@@ -4785,6 +4818,17 @@
                 "type": "null"
               }
             ]
+          },
+          "has_physical_copy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Physical Copy"
           }
         },
         "type": "object",
@@ -5851,6 +5895,12 @@
           "code": {
             "type": "string",
             "title": "Code"
+          },
+          "is_virtual": {
+            "type": "boolean",
+            "title": "Is Virtual",
+            "description": "Kho chung (D-12): tài liệu không có bản cứng",
+            "default": false
           }
         },
         "type": "object",

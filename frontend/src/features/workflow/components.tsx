@@ -15,7 +15,9 @@ import {
 import { APPROVAL_LABELS, formatDateTime } from "@/shared/lib/format";
 import type { DocumentSlotProps } from "@/shared/types/feature";
 
-import { useApprovalAction, useApprovalHistory, useApprovalState, useReviews } from "./api";
+import { useSession } from "@/shared/session";
+
+import { useApprovalAction, useApprovalHistory, useApprovalState, usePhysicalCopyChoices, useReviews } from "./api";
 
 const ACTION_LABELS: Record<string, string> = {
   submit: "Gửi duyệt",
@@ -41,15 +43,35 @@ export function ApprovalActions({ document }: DocumentSlotProps) {
   const action = useApprovalAction(document.id);
   const [pending, setPending] = useState<string | null>(null);
   const [comments, setComments] = useState("");
+  // D-12: khi bật mượn hồ sơ, gửi duyệt hỏi tài liệu có bản cứng không (có → chọn kho/kệ; không → Kho chung)
+  const { hasFeature } = useSession();
+  const askPhysical = pending === "submit" && hasFeature("borrowing");
+  const physical = usePhysicalCopyChoices(document.id, askPhysical);
+  const [hasCopy, setHasCopy] = useState<"yes" | "no" | null>(null);
+  const [locationId, setLocationId] = useState("");
   if (!state.data) return null;
 
+  const current = physical.current.data;
+  const declaredLoc = current?.storage_location ?? null;
+  const choice = hasCopy ?? (declaredLoc ? (declaredLoc.is_virtual ? "no" : "yes") : null);
+  const chosenLoc = locationId || (declaredLoc && !declaredLoc.is_virtual ? String(declaredLoc.id) : "");
+  const realLocations = physical.locations.data?.filter((l) => !l.is_virtual) ?? [];
+  const physicalMissing = askPhysical && (choice === null || (choice === "yes" && !chosenLoc));
+
   const run = (name: string) => {
+    const extra = askPhysical
+      ? choice === "no"
+        ? { has_physical_copy: false }
+        : { has_physical_copy: true, storage_location_id: Number(chosenLoc) }
+      : {};
     action.mutate(
-      { action: name, comments: comments.trim() || undefined },
+      { action: name, comments: comments.trim() || undefined, ...extra },
       {
         onSuccess: () => {
           setPending(null);
           setComments("");
+          setHasCopy(null);
+          setLocationId("");
         },
       },
     );
@@ -78,7 +100,7 @@ export function ApprovalActions({ document }: DocumentSlotProps) {
             <button
               className="btn btn-primary"
               onClick={() => run(pending)}
-              disabled={action.isPending || (NEEDS_COMMENT.has(pending) && !comments.trim())}
+              disabled={action.isPending || physicalMissing || (NEEDS_COMMENT.has(pending) && !comments.trim())}
             >
               Xác nhận
             </button>
@@ -86,6 +108,36 @@ export function ApprovalActions({ document }: DocumentSlotProps) {
         >
           <ErrorBox error={action.error} />
           {HINTS[pending] && <p className="muted">{HINTS[pending]}</p>}
+          {askPhysical && (
+            <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
+              <legend>
+                <strong>Tài liệu có bản cứng không?</strong>
+              </legend>
+              <label className="row">
+                <input type="radio" name="hc" checked={choice === "yes"} onChange={() => setHasCopy("yes")} />
+                Có — chọn kho/kệ lưu trữ
+              </label>
+              {choice === "yes" && (
+                <select
+                  className="select"
+                  aria-label="Kho/kệ lưu trữ"
+                  value={chosenLoc}
+                  onChange={(e) => setLocationId(e.target.value)}
+                >
+                  <option value="">— Chọn kho/kệ —</option>
+                  {realLocations.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.code} - {l.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <label className="row">
+                <input type="radio" name="hc" checked={choice === "no"} onChange={() => setHasCopy("no")} />
+                Không — đưa vào Kho chung (tài liệu không có bản cứng, không mượn được)
+              </label>
+            </fieldset>
+          )}
           <Field
             label={
               pending === "reject"

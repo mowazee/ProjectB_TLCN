@@ -40,13 +40,13 @@ def test_storage_locations_admin_only(seed, login):
     assert officer.post("/api/storage-locations", json={"name": "X", "code": "X"}).status_code == 403
     assert admin.post("/api/storage-locations", json={"name": "Y", "code": "kho-a1"}).status_code == 409
     assert admin.patch(f"/api/storage-locations/{loc['id']}", json={"name": "Kho A"}).json()["name"] == "Kho A"
-    assert [x["code"] for x in officer.get("/api/storage-locations").json()] == ["KHO-A1"]
+    assert [x["code"] for x in officer.get("/api/storage-locations").json()] == ["KHO-A1", "KHO-CHUNG"]
 
 
 def test_borrow_lifecycle(seed, login, db):
     admin, officer, loc, doc_id = _setup(seed, login)
     no_loc = _req(officer, doc_id, 1, 3)
-    assert no_loc.status_code == 422 and no_loc.json()["error"]["code"] == "NO_STORAGE_LOCATION"
+    assert no_loc.status_code == 422 and no_loc.json()["error"]["code"] == "NO_PHYSICAL_COPY"
     r = officer.put(f"/api/documents/{doc_id}/storage-location", json={"storage_location_id": loc["id"]})
     assert r.json()["storage_location"]["code"] == "KHO-A1"
     assert _req(officer, doc_id, 3, 1).status_code == 422
@@ -101,3 +101,64 @@ def test_flag_off(seed, login):
     c = login("admin", features="")
     assert c.get("/api/borrow-requests").status_code == 404
     assert c.get("/api/storage-locations").status_code == 404
+
+
+# ------------------------------------------------------------------ D-12 (SDD v0.13)
+FW = "workflow,borrowing,notifications"
+
+
+def _wf(seed, login):
+    admin = login("admin", features=FW)
+    loc = admin.post("/api/storage-locations", json={"name": "Kho B", "code": "kho-b"}).json()
+    owner, approver = login("officer", features=FW), login("approver", features=FW)
+    doc = upload(owner, seed["category"].id, make_pdf(["Ho so"]), "hs.pdf", title="Hồ sơ D12").json()["document_id"]
+    return admin, owner, approver, loc, doc
+
+
+def _publish(approver, doc):
+    assert approver.post(f"/api/documents/{doc}/approval/approve").status_code == 200
+    assert approver.post(f"/api/documents/{doc}/approval/publish").status_code == 200
+
+
+def test_submit_requires_physical_copy_declaration(seed, login):
+    admin, owner, approver, loc, doc = _wf(seed, login)
+    base = f"/api/documents/{doc}/approval/submit"
+    r = owner.post(base)
+    assert r.status_code == 422 and r.json()["error"]["code"] == "PHYSICAL_COPY_REQUIRED"
+    assert owner.post(base, json={"has_physical_copy": True}).status_code == 422  # thiếu kho/kệ
+    general = next(x for x in admin.get("/api/storage-locations").json() if x["is_virtual"])
+    assert owner.post(base, json={"has_physical_copy": True, "storage_location_id": general["id"]}).status_code == 422
+    r = owner.post(base, json={"has_physical_copy": True, "storage_location_id": loc["id"]})
+    assert r.status_code == 200 and r.json()["approval_status"] == "pending_review"
+    got = owner.get(f"/api/documents/{doc}/storage-location").json()
+    assert got["has_physical_copy"] is True and got["storage_location"]["code"] == "KHO-B"
+
+
+def test_no_physical_copy_goes_to_general_store_and_cannot_be_borrowed(seed, login):
+    admin, owner, approver, loc, doc = _wf(seed, login)
+    owner.post(f"/api/documents/{doc}/approval/submit", json={"has_physical_copy": False})
+    got = owner.get(f"/api/documents/{doc}/storage-location").json()
+    assert got["has_physical_copy"] is False and got["storage_location"]["is_virtual"] is True
+    _publish(approver, doc)
+    r = _req(owner, doc, 1, 3)
+    assert r.status_code == 422 and r.json()["error"]["code"] == "NO_PHYSICAL_COPY"
+    general_id = got["storage_location"]["id"]
+    assert admin.patch(f"/api/storage-locations/{general_id}", json={"name": "X"}).status_code == 409
+
+
+def test_draft_cannot_be_borrowed_and_location_editable_after_publish(seed, login):
+    admin, owner, approver, loc, doc = _wf(seed, login)
+    owner.put(f"/api/documents/{doc}/storage-location", json={"storage_location_id": loc["id"]})
+    r = _req(owner, doc, 1, 3)
+    assert r.status_code == 409 and r.json()["error"]["code"] == "DOCUMENT_NOT_PUBLISHED"
+    assert owner.post(f"/api/documents/{doc}/approval/submit").status_code == 200  # đã khai báo trước đó
+    _publish(approver, doc)
+    assert _req(owner, doc, 1, 3).status_code == 201
+    other = admin.post("/api/storage-locations", json={"name": "Kho C", "code": "kho-c"}).json()
+    body = {"has_physical_copy": True, "storage_location_id": other["id"]}
+    for who in (owner, approver, admin):  # D-12: sửa vị trí sau xuất bản
+        assert who.put(f"/api/documents/{doc}/storage-location", json=body).status_code == 200
+    assert login("officerb", features=FW).put(f"/api/documents/{doc}/storage-location", json=body).status_code in (
+        403,
+        404,
+    )
