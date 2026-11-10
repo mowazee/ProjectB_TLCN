@@ -116,8 +116,75 @@ danh mục (xem Quản trị → Danh mục), ưu tiên hơn lựa chọn của 
 (kèm nguồn Người dùng chọn / Tự động / Chờ phân loại, tự cập nhật khi phân loại xong). Lô không gửi thông báo phân loại
 cho từng tài liệu, chỉ một thông báo "Nhập hàng loạt xong" dẫn tới báo cáo.
 
+### Chức năng bổ sung v0.13 (SDD v0.13, sau buổi demo 09/11/2026)
+
+**Tìm kiếm theo nội dung khớp cả tên tài liệu** (FR-06): gõ từ khóa ở **Tìm kiếm**, tài liệu có *tên* chứa từ khóa
+(không phân biệt hoa thường, có dấu hay không) cũng hiện ra, kèm nhãn **Khớp tên tài liệu** (không có đoạn trích).
+Tài liệu khớp cả tên lẫn nội dung xếp đầu.
+
+**Bản cứng và Kho chung** (D-12, cần cờ `workflow` + `borrowing`): bấm **Gửi duyệt** sẽ hỏi *"Tài liệu có bản cứng
+không?"* — **Có**: chọn kho/kệ (bắt buộc); **Không**: tài liệu vào **Kho chung (không có bản cứng)**. Chỉ mượn được tài
+liệu **đã xuất bản** có bản cứng ở kho/kệ thật (bản nháp và tài liệu ở Kho chung không hiện form mượn). Sau khi xuất
+bản, người tải lên, Kiểm duyệt viên phòng ban và Admin vẫn đổi được vị trí ở tab **Mượn hồ sơ**. Kho chung là vị trí hệ
+thống (nhãn "Hệ thống" ở Quản trị → Kho lưu trữ), không sửa được.
+
+**Cấu hình thời gian lưu trữ** (FR-14, Admin): **Quản trị → Cấu hình** — số ngày giữ tài liệu trong thùng rác (1–365)
+và số ngày lưu audit log (tối thiểu 180, tối đa 3650). Beat xóa dữ liệu quá hạn ở lượt chạy kế tiếp; mỗi lần đổi và
+mỗi lượt dọn audit đều ghi nhật ký. Thống kê (FR-17) không bị mất khi audit cũ bị xóa.
+
+**OCR Editor** (FR-05 mức 1): đặt con trỏ vào một dòng chữ → khung dòng đó sáng lên trên ảnh (dòng đã sửa khác bản
+OCR thì không tô); phóng to ảnh 100–300%; **Tới dòng tin cậy thấp kế tiếp**; **Tìm / Thay / Thay tất cả**; **Hoàn tác /
+Làm lại**; phím tắt **Ctrl+S** lưu, **Ctrl+Z / Ctrl+Y**, **Ctrl+F**; nút **Trang trước / Trang sau**; **Xem khác biệt
+với bản OCR**. Nháp tự lưu trong trình duyệt (không tạo phiên bản) — mở lại trang sẽ hỏi có khôi phục không.
+
+**Tải lên nhiều file gộp thành một tài liệu** (FR-16): ở **Tải lên** chọn nhiều ảnh/PDF (tối đa `MAX_MERGE_FILES`,
+mặc định 20), sắp thứ tự bằng nút lên/xuống → hệ thống gộp thành một PDF (ảnh chuẩn về khổ A4) và OCR một lần. Một
+file lỗi thì cả lượt bị từ chối, thông báo ghi rõ tên file. Tích **Giữ các file gốc riêng lẻ làm tài liệu đi kèm** nếu
+muốn giữ bản gốc.
+
+**Tài liệu đi kèm** (FR-15): tài liệu chính (OCR) kèm thêm file khác không OCR — Word, Excel, PowerPoint, ODT/ODS, PDF,
+ảnh, TXT/CSV (không nhận file thực thi, file nén). Thêm khi tải lên (ô **Tài liệu đi kèm**) hoặc ở tab **Tài liệu đi
+kèm** trên trang chi tiết. Ai xem được tài liệu thì tải được; thêm/xóa theo quyền sửa (D-11 — tài liệu đã xuất bản phải
+hủy xuất bản/rút lại trước). **Tải cả bộ** tạo file .zip gồm file gốc và thư mục `di-kem/`. Giới hạn: 20 file/bộ, 25
+MB/file, tổng 200 MB (`MAX_ATTACHMENTS`, `MAX_ATTACHMENT_MB`, `MAX_BUNDLE_MB`).
+
+**Nhập hàng loạt theo bộ hồ sơ** (FR-15 + P2-08), hai cách:
+
+1. *Thư mục trong ZIP* — thư mục con cấp 1 là một bộ khi có thư mục `dinh-kem/` hoặc file `main.*`. File chính là
+   `main.*` (hoặc file duy nhất ở gốc thư mục); thư mục chỉ có ảnh thì gộp theo thứ tự tên (đặt `01.jpg`, `02.jpg`…);
+   mọi file trong `dinh-kem/` là tài liệu đi kèm. Thư mục không có `dinh-kem/`/`main.*` vẫn nhập từng file như trước.
+
+   ```
+   lo.zip
+   ├── QD-12/ main.pdf, dinh-kem/phu-luc.docx      → 1 tài liệu + 1 đi kèm
+   ├── Scan-07/ 01.jpg, 02.jpg, dinh-kem/ghi-chu.txt → 2 ảnh gộp thành 1 PDF + 1 đi kèm
+   └── Loi/ a.pdf, b.pdf, dinh-kem/x.docx          → lỗi BUNDLE_NO_MAIN (không biết file nào chính)
+   ```
+
+2. *`manifest.csv`* (chọn cùng các file hoặc đặt ở gốc ZIP; nút **Tải manifest.csv mẫu**) — mỗi dòng một bộ:
+
+   ```
+   file_name,attachments,title,category,document_code
+   quyet-dinh-12.pdf,phu-luc-1.docx;bang-ke.xlsx,Quyết định số 12/2026,HOP-DONG,12/QĐ-UBND
+   ```
+
+   `attachments` ngăn cách bằng `;`. File đi kèm khai báo mà thiếu thì chỉ bộ đó lỗi (`ATTACHMENT_NOT_FOUND`).
+   Có `manifest.csv` thì không áp dụng cách 1. Báo cáo lô ghi số tài liệu đi kèm của từng bộ.
+
+**Thống kê hoạt động** (FR-17, Admin): **Quản trị → Thống kê** — lọc khoảng thời gian (tối đa 366 ngày), gom theo
+ngày/tuần/tháng, phòng ban, người dùng; thẻ số liệu tổng, biểu đồ xu hướng, biểu đồ so sánh phòng ban/người dùng, bảng
+chi tiết, **Xuất CSV** (mở được bằng Excel). Số liệu tổng hợp theo ngày vào bảng `daily_activity_stats` (beat chạy mỗi
+giờ, lần đầu tính bù 90 ngày); hôm nay tính trực tiếp.
+
+**Chia sẻ ra ngoài bằng link + OTP** (FR-18, D-13; cần cấu hình SMTP — mục 4.4): trên tài liệu **đã xuất bản**, người
+tải lên, Kiểm duyệt viên phòng ban hoặc Admin bấm **Chia sẻ ra ngoài** → nhập email người nhận, thời hạn (tối đa 24
+giờ), có cho tải không → hệ thống gửi link `/s/…` qua email. Người nhận mở link, bấm **Gửi mã xác thực**, nhập mã 6 số
+trong email (hiệu lực 10 phút; sai 5 lần khóa 15 phút) rồi xem trang, tải file gốc/tài liệu đi kèm/cả bộ nếu được
+phép. Link mất hiệu lực khi hết hạn, bị thu hồi (nút **Thu hồi** trong hộp thoại) hoặc tài liệu bị hủy xuất bản, rút
+lại, xóa. Mọi lượt tạo, xác thực, xem, tải ghi nhật ký.
+
 Menu bên trái gom theo nhóm **Tài liệu / Quy trình / Quản trị / Cá nhân** (chỉ hiện mục vai trò đó dùng được).
-**Hàng đợi xử lý** (`/jobs`, Nghiệp vụ và Admin, FR-11) liệt kê job OCR, trích xuất, phân loại, nhập hàng loạt; job lỗi
+**Hàng đợi xử lý** (`/jobs`, Nghiệp vụ và Admin, FR-11) liệt kê job OCR, trích xuất, phân loại, nhập hàng loạt, gửi email (`EMAIL`, v0.13); job lỗi
 có nút "Chạy lại". Job của tài liệu trong thùng rác không hiện (không chạy lại được); khôi phục tài liệu thì job hiện
 lại. Nhãn **"Chờ quá lâu"** nghĩa là job đang chờ quá `JOB_REQUEUE_AFTER_SECONDS` (mặc định 10 phút) hoặc
 đã bị beat gửi lại mà vẫn chưa chạy — thường do worker chưa bật hoặc không nghe hàng đợi đó (worker phải nghe
@@ -127,6 +194,8 @@ có nút **Quay lại** giữ nguyên bộ lọc đang dùng.
 Gợi ý kịch bản demo: đăng nhập `nhanvien` → Tài liệu → mở hợp đồng mẫu → xem trang/sửa OCR (thử mở 2 tab để thấy 409) →
 Tìm kiếm "nghiem thu" → mở kết quả (khung highlight) → gửi duyệt → đăng nhập `kiemduyet` (tab ẩn danh) → Duyệt tài liệu →
 xuất bản; Mượn hồ sơ; Nhập hàng loạt (ZIP); `admin` → Nhật ký → Khôi phục.
+Bổ sung v0.13: gửi duyệt khai báo bản cứng; tab Tài liệu đi kèm + Tải cả bộ; tải lên gộp nhiều ảnh; `admin` → Thống
+kê, Cấu hình; Chia sẻ ra ngoài (cần SMTP hoặc Mailpit, mục 4.4).
 
 ## 4. Phát triển hằng ngày
 
@@ -208,6 +277,30 @@ mở OCR Editor, sửa text cho **đúng hoàn toàn** với bản gốc (cả d
 Script so text OCR thô với bản đã sửa, in độ chính xác từng trang và theo engine, ghi JSON vào `eval\reports\`.
 Chưa đạt thì thử engine/cấu hình khác (`OCR_HW_ENGINE`, `VIETOCR_CONFIG`), chạy lại OCR các tài liệu đó
 ("Chạy lại OCR – chữ viết tay"), sửa lại và đo lại — script chỉ tính bản sửa mới hơn lần OCR gần nhất.
+
+### 4.4 Gửi email: Gmail hoặc Mailpit (FR-18, v0.13)
+
+Chia sẻ ra ngoài cần SMTP. Chưa đặt `SMTP_HOST` thì hộp thoại **Chia sẻ ra ngoài** báo "chưa cấu hình gửi email".
+Email gửi bằng **job `EMAIL` trên worker chính** (hàng đợi `default`), nên worker phải đang chạy; thư có thể chờ khi
+worker đang OCR tài liệu dài. Gửi lỗi → job `EMAIL_FAILED` ở Hàng đợi xử lý, danh sách link hiện "Gửi lỗi".
+
+**Gmail** (gửi thật): bật xác minh 2 bước cho tài khoản Google → <https://myaccount.google.com/apppasswords> tạo
+*App password* (16 ký tự) → thêm vào `.env` (Docker: thư mục gốc; demo/dev: `backend/.env`), rồi khởi động lại
+API và worker:
+
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=ten.ban@gmail.com
+SMTP_PASSWORD=abcdabcdabcdabcd     # app password, viết liền
+SMTP_FROM=ten.ban@gmail.com
+SMTP_STARTTLS=true
+PUBLIC_BASE_URL=http://127.0.0.1:8080   # địa chỉ NGƯỜI NHẬN mở được (máy khác: IP/tên miền của server)
+```
+
+**Mailpit** (thử local, không gửi thật): `docker compose --profile tools up -d mailpit`, đặt `SMTP_HOST=mailpit`
+(bản Docker) hoặc `127.0.0.1` (demo/dev), `SMTP_PORT=1025`, `SMTP_STARTTLS=false`; xem thư ở http://127.0.0.1:8025.
+Không commit `.env` (có mật khẩu); mật khẩu SMTP chỉ ở backend, không bao giờ trả ra trình duyệt.
 
 ## 5. Kiểm thử và chất lượng
 
@@ -418,6 +511,13 @@ sửa phiên bản trong file, chạy test, để CI xác nhận.
 | API trả 503 `SERVICE_UNAVAILABLE` | Redis không truy cập được: `docker compose ps redis`, `docker compose restart redis`. |
 | Sửa frontend nhưng demo vẫn hiện giao diện cũ | Demo phục vụ bản build: `.\demo-start.cmd -Rebuild` (hoặc `cd frontend; npm run build`) rồi Ctrl+F5. Bản Docker: `.\docker-start.cmd -Build`. |
 | Một phần giao diện vẫn sáng khi bật nền tối | Màu bị viết cứng trong CSS/TSX: đổi sang biến (mục 4.2). Tìm nhanh: `grep -rnE "#[0-9a-fA-F]{3,6}" frontend/src --include=*.css`. |
+| Chia sẻ ra ngoài báo "chưa cấu hình gửi email" | Chưa đặt `SMTP_HOST` trong `.env` (mục 4.4); đặt xong khởi động lại API và worker. |
+| Danh sách link hiện "Đang gửi" mãi | Worker chưa chạy hoặc đang bận OCR — email là job `EMAIL` trên hàng đợi `default` (mục 4.4). |
+| Link hiện "Gửi lỗi" / job `EMAIL_FAILED` | Sai `SMTP_USER`/`SMTP_PASSWORD` (Gmail phải dùng app password, không phải mật khẩu đăng nhập), sai cổng/STARTTLS, hoặc máy không ra được Internet. |
+| Người nhận mở link báo "Link không còn hiệu lực" | Link hết hạn, đã thu hồi, tài liệu bị hủy xuất bản/rút lại/xóa — tạo link mới. Link trỏ về `127.0.0.1`: sửa `PUBLIC_BASE_URL` thành địa chỉ người nhận truy cập được. |
+| Gửi duyệt báo "cần khai báo tài liệu có bản cứng hay không" | Bật `borrowing` (D-12): chọn Có (kèm kho/kệ) hoặc Không (Kho chung) trong hộp thoại Gửi duyệt. |
+| Nhập hàng loạt báo `BUNDLE_NO_MAIN` | Thư mục có `dinh-kem/` nhưng gốc có nhiều file: đặt tên file chính là `main.*` (mục 3, Nhập hàng loạt theo bộ hồ sơ). |
+| Trang Thống kê toàn số 0 cho các ngày trước | Beat chưa chạy lần nào (tổng hợp mỗi giờ, lần đầu tính bù 90 ngày); hôm nay vẫn tính trực tiếp. |
 | npm báo xung đột TypeScript | Giữ `typescript ~5.9` (typescript-eslint và openapi-typescript chưa hỗ trợ TS 6/7). |
 
 ## 9. Cải thiện OCR tiếng Việt có dấu (đã làm 21/10/2026, phương án 1 + 2 + 3)

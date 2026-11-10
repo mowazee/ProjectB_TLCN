@@ -1,11 +1,11 @@
 -- =====================================================================
--- DATABASE SCHEMA - MVP + P2, phiên bản 0.12 (27/10/2026)
--- Sinh tự động từ Alembic (0001_core → 0110), KHÔNG sửa tay.
--- Đồng bộ: "0 - Đặc tả SDD v0.12" mục 6 và
---          "3 - Các lược đồ usecase_sequence_erd_database v0.12" (ERD, 17 bảng)
+-- DATABASE SCHEMA - MVP + P2, phiên bản 0.13 (10/11/2026)
+-- Sinh tự động từ Alembic (0001_core → 0115), KHÔNG sửa tay.
+-- Đồng bộ: "0 - Đặc tả SDD v0.13" mục 6 và
+--          "3 - Các lược đồ usecase_sequence_erd_database v0.13" (ERD, 21 bảng)
 -- Tạo lại (trong backend/, PowerShell):
 --   $env:DATABASE_URL="postgresql+psycopg://u:p@localhost/db"
---   .venv\Scripts\alembic.exe upgrade head --sql > "..\document\4 - Scrip Dtabase PostrgreeSQL_v0.12.sql"
+--   .venv\Scripts\alembic.exe upgrade head --sql > "..\document\4 - Scrip Dtabase PostrgreeSQL_v0.13.sql"
 --   (rồi chép lại khối chú thích này lên đầu file)
 -- Thay đổi so với bản v0.5 (bản đó chỉ có phần MVP, revision 0001):
 --   + 5 bảng P2: document_approvals (0101), notifications (0102),
@@ -21,6 +21,12 @@
 --   (user | auto | pending, mặc định user) và danh mục hệ thống CHUA-PHAN-LOAI "Chưa phân loại".
 -- v0.12: D-11 - document_approvals.action thêm 'withdraw' (chủ sở hữu rút lại) và 'return' (trả lại
 --   chủ sở hữu) (0110, chỉ đổi ràng buộc CHECK).
+-- v0.13 (bổ sung sau demo 09/11):
+--   D-12 (0111): storage_locations.is_virtual + dòng hệ thống KHO-CHUNG; documents.has_physical_copy.
+--   FR-14 (0112): bảng system_settings (thời gian lưu thùng rác, audit log).
+--   FR-17 (0113): bảng daily_activity_stats + index audit_logs(action, created_at).
+--   FR-15 (0114): bảng document_attachments (tài liệu đi kèm).
+--   FR-18 (0115): bảng share_links (chia sẻ ra ngoài bằng link + OTP); processing_jobs.kind thêm EMAIL. (21 bảng)
 -- Toàn bộ chạy trong một transaction (BEGIN … COMMIT).
 -- =====================================================================
 BEGIN;
@@ -119,15 +125,15 @@ CREATE TABLE documents (
     CONSTRAINT ck_documents_approval_status CHECK (approval_status IN ('draft', 'pending_review', 'approved', 'rejected', 'published', 'unpublished'))
 );
 
-CREATE INDEX ix_documents_owner_id ON documents (owner_id);
-
-CREATE INDEX ix_documents_category_id ON documents (category_id);
+CREATE INDEX ix_documents_department_id ON documents (department_id);
 
 CREATE INDEX ix_documents_lifecycle_status ON documents (lifecycle_status);
 
-CREATE INDEX ix_documents_department_id ON documents (department_id);
+CREATE INDEX ix_documents_category_id ON documents (category_id);
 
 CREATE INDEX ix_documents_created_at ON documents (created_at);
+
+CREATE INDEX ix_documents_owner_id ON documents (owner_id);
 
 CREATE TABLE document_pages (
     id UUID NOT NULL, 
@@ -436,6 +442,99 @@ ALTER TABLE document_approvals DROP CONSTRAINT ck_document_approvals_action;
 ALTER TABLE document_approvals ADD CONSTRAINT ck_document_approvals_action CHECK (action IN ('submit', 'approve', 'reject', 'publish', 'unpublish', 'withdraw', 'return'));
 
 UPDATE alembic_version SET version_num='0110' WHERE alembic_version.version_num = '0109';
+
+-- Running upgrade 0110 -> 0111
+
+ALTER TABLE storage_locations ADD COLUMN is_virtual BOOLEAN DEFAULT false NOT NULL;
+
+ALTER TABLE documents ADD COLUMN has_physical_copy BOOLEAN;
+
+INSERT INTO storage_locations (name, code, is_virtual) VALUES ('Kho chung (không có bản cứng)', 'KHO-CHUNG', true);
+
+UPDATE documents SET has_physical_copy = true WHERE storage_location_id IS NOT NULL;
+
+UPDATE alembic_version SET version_num='0111' WHERE alembic_version.version_num = '0110';
+
+-- Running upgrade 0111 -> 0112
+
+CREATE TABLE system_settings (
+    key VARCHAR(100) NOT NULL, 
+    value JSONB NOT NULL, 
+    updated_by UUID, 
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
+    PRIMARY KEY (key), 
+    FOREIGN KEY(updated_by) REFERENCES users (id) ON DELETE SET NULL
+);
+
+UPDATE alembic_version SET version_num='0112' WHERE alembic_version.version_num = '0111';
+
+-- Running upgrade 0112 -> 0113
+
+CREATE TABLE daily_activity_stats (
+    day DATE NOT NULL, 
+    user_id UUID NOT NULL, 
+    metric VARCHAR(50) NOT NULL, 
+    department_id INTEGER, 
+    value FLOAT NOT NULL, 
+    PRIMARY KEY (day, user_id, metric), 
+    FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE, 
+    FOREIGN KEY(department_id) REFERENCES departments (id) ON DELETE SET NULL
+);
+
+CREATE INDEX ix_daily_activity_stats_department_id ON daily_activity_stats (department_id);
+
+CREATE INDEX idx_audit_logs_action_created_at ON audit_logs (action, created_at);
+
+UPDATE alembic_version SET version_num='0113' WHERE alembic_version.version_num = '0112';
+
+-- Running upgrade 0113 -> 0114
+
+CREATE TABLE document_attachments (
+    id UUID NOT NULL, 
+    document_id UUID NOT NULL, 
+    file_name VARCHAR(255) NOT NULL, 
+    storage_key VARCHAR(500) NOT NULL, 
+    mime_type VARCHAR(100) NOT NULL, 
+    bytes BIGINT NOT NULL, 
+    uploaded_by UUID, 
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
+    PRIMARY KEY (id), 
+    FOREIGN KEY(document_id) REFERENCES documents (id) ON DELETE CASCADE, 
+    FOREIGN KEY(uploaded_by) REFERENCES users (id) ON DELETE SET NULL
+);
+
+CREATE INDEX ix_document_attachments_document_id ON document_attachments (document_id);
+
+UPDATE alembic_version SET version_num='0114' WHERE alembic_version.version_num = '0113';
+
+-- Running upgrade 0114 -> 0115
+
+CREATE TABLE share_links (
+    id UUID NOT NULL, 
+    document_id UUID NOT NULL, 
+    token_hash VARCHAR(64) NOT NULL, 
+    recipient_email VARCHAR(255) NOT NULL, 
+    allow_download BOOLEAN NOT NULL, 
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+    revoked_at TIMESTAMP WITH TIME ZONE, 
+    email_status VARCHAR(20) NOT NULL, 
+    created_by UUID, 
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, 
+    last_accessed_at TIMESTAMP WITH TIME ZONE, 
+    access_count INTEGER NOT NULL, 
+    PRIMARY KEY (id), 
+    FOREIGN KEY(document_id) REFERENCES documents (id) ON DELETE CASCADE, 
+    UNIQUE (token_hash), 
+    FOREIGN KEY(created_by) REFERENCES users (id) ON DELETE SET NULL
+);
+
+CREATE INDEX ix_share_links_document_id ON share_links (document_id);
+
+ALTER TABLE processing_jobs DROP CONSTRAINT ck_jobs_kind;
+
+ALTER TABLE processing_jobs ADD CONSTRAINT ck_jobs_kind CHECK (kind IN ('OCR', 'EXTRACT', 'CLASSIFY', 'BULK_IMPORT', 'EMAIL'));
+
+UPDATE alembic_version SET version_num='0115' WHERE alembic_version.version_num = '0114';
 
 COMMIT;
 
