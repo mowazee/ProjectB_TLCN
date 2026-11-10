@@ -7,7 +7,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
-from app.modules.audit.application.queries import AuditFilter, list_logs
+from app.modules.audit.application.queries import AuditFilter, document_titles, list_logs
 from app.modules.auth.presentation.deps import CurrentPrincipal, DbSession, require_roles
 from app.modules.users.application.queries import display_names
 from app.shared.http import page_params
@@ -26,6 +26,7 @@ class AuditLogOut(BaseModel):
     entity_type: str | None
     entity_id: str | None
     document_id: uuid.UUID | None
+    document_title: str | None = None  # tên tài liệu (v0.15), None nếu tài liệu không còn
     result: str
     ip_address: str | None
     state_before: dict[str, Any] | None
@@ -48,6 +49,7 @@ def get_audit(
     flt = AuditFilter(date_from, date_to, user_id, document_id, action, user, document)
     logs, total = list_logs(db, principal, flt, params)
     names = display_names(db, {x.user_id for x in logs if x.user_id})
+    titles = document_titles(db, {x.document_id for x in logs if x.document_id})
     items = [
         AuditLogOut(
             id=x.id,
@@ -59,6 +61,7 @@ def get_audit(
             entity_type=x.entity_type,
             entity_id=x.entity_id,
             document_id=x.document_id,
+            document_title=titles.get(x.document_id) if x.document_id else None,
             result=str(x.result),
             ip_address=x.ip_address,
             state_before=x.state_before,

@@ -21,6 +21,7 @@ def test_audit_filters_by_user_document_and_partial_action(seed, login):
 
     by_doc = items(document="bổ nhiệm")
     assert by_doc and all(x["action"] == "upload_document" for x in by_doc) and len(by_doc) == 1
+    assert by_doc[0]["document_title"] == "Quyết định bổ nhiệm"  # cột Tên tài liệu
     username = seed["officer"].username
     assert {x["user_id"] for x in items(user=username[:3])} == {str(seed["officer"].id)}
     assert items(user="khong-co-ai-ten-nay") == []

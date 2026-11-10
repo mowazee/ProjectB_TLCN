@@ -5119,6 +5119,17 @@
             ],
             "title": "Document Id"
           },
+          "document_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Title"
+          },
           "result": {
             "type": "string",
             "title": "Result"

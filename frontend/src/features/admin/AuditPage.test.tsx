@@ -25,4 +25,38 @@ describe("AuditPage - bộ lọc theo tên (v0.15)", () => {
     });
     expect(screen.queryByPlaceholderText(/ID/)).toBeNull();
   });
+
+  it("cột Tên tài liệu hiện tên và liên kết tới tài liệu", async () => {
+    mockFetch({
+      "GET /api/auth/me": { body: SESSION },
+      "GET /api/audit": {
+        body: {
+          items: [
+            {
+              id: 1,
+              created_at: "2026-11-11T03:00:00Z",
+              user_id: null,
+              user_name: "Nhân viên A",
+              action: "upload_document",
+              module: "documents",
+              entity_type: "document",
+              entity_id: "d1",
+              document_id: "d1",
+              document_title: "Quyết định 12",
+              result: "success",
+              ip_address: null,
+              state_before: null,
+              state_after: null,
+            },
+          ],
+          total: 1,
+          page: 1,
+          page_size: 25,
+        },
+      },
+    });
+    renderWithProviders(<AuditPage />);
+    expect(await screen.findByRole("columnheader", { name: "Tên tài liệu" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Quyết định 12" }).getAttribute("href")).toBe("/documents/d1");
+  });
 });

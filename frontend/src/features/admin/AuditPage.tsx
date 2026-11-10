@@ -136,6 +136,7 @@ export function AuditPage() {
                 <th>Người thực hiện</th>
                 <th>Hành động</th>
                 <th>Đối tượng</th>
+                <th>Tên tài liệu</th>
                 <th>Kết quả</th>
                 <th>IP</th>
                 <th />
@@ -151,12 +152,12 @@ export function AuditPage() {
                       <code>{log.action}</code>
                       <div className="muted">{log.module}</div>
                     </td>
+                    <td>{log.entity_type ?? "—"}</td>
                     <td>
-                      {log.entity_type ?? "—"}
-                      {log.document_id && (
-                        <div>
-                          <Link to={`/documents/${log.document_id}`}>tài liệu</Link>
-                        </div>
+                      {log.document_id && log.document_title ? (
+                        <Link to={`/documents/${log.document_id}`}>{log.document_title}</Link>
+                      ) : (
+                        <span className="muted">—</span>
                       )}
                     </td>
                     <td>
@@ -178,7 +179,7 @@ export function AuditPage() {
                   </tr>
                   {open === log.id && (
                     <tr>
-                      <td colSpan={7}>
+                      <td colSpan={8}>
                         <div className="row" style={{ alignItems: "flex-start" }}>
                           <div className="grow">
                             <strong>Trước</strong>

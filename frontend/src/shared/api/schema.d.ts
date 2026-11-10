@@ -1512,6 +1512,8 @@ export interface components {
             entity_id: string | null;
             /** Document Id */
             document_id: string | null;
+            /** Document Title */
+            document_title?: string | null;
             /** Result */
             result: string;
             /** Ip Address */
