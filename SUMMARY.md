@@ -1,25 +1,25 @@
-# Tóm tắt trạng thái ProjectB (baseline SDD v0.12) — cập nhật 02/11/2026
+# Tóm tắt trạng thái ProjectB (baseline SDD v0.13) — cập nhật 10/11/2026
 
-Trạng thái chung: **MVP + toàn bộ P2 (P2-01…P2-09) + phân hệ quản trị/tài khoản (FR-09…FR-13) đã hiện thực và chạy
-được end to end** trên demo Windows và Docker; đặc tả v0.12 khớp với code; CI xanh trên mọi PR (#1–#27). Việc còn lại
-chủ yếu cần **dữ liệu thật** của nhóm để đo chất lượng (mục 4).
+Trạng thái chung: **MVP + toàn bộ P2 (P2-01…P2-09) + phân hệ quản trị/tài khoản (FR-09…FR-13) + các bổ sung sau
+demo 09/11 (SDD v0.13: FR-14…FR-18, D-12, D-13) đã hiện thực**; đặc tả v0.13 khớp với code; CI xanh trên mọi PR
+(#1–#37). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng và thử gửi email thật qua Gmail (mục 4).
 
 ## 1. Đã hoàn thành
 
 | Hạng mục | Nội dung | Bằng chứng |
 |---|---|---|
-| Backend MVP | 9 module lõi (auth, users, categories, documents, jobs, ocr, search, dashboard, audit), 4 lớp mỗi module | test API/unit trong `backend/tests/` |
+| Backend MVP | 9 module lõi (auth, users, categories, documents, jobs, ocr, search, dashboard, audit), 4 lớp mỗi module; v0.13 thêm 3 module lõi settings, analytics, sharing | test API/unit trong `backend/tests/` |
 | Backend P2 | P2-01…P2-09 (10 module/file bổ sung), cờ `FEATURES_ENABLED`, router tắt → 404 | test_p2_*.py |
 | Quản trị và tài khoản | FR-09 tài khoản của tôi, FR-10 phòng ban, FR-11 hàng đợi xử lý, FR-12 vai trò Người dùng thông thường + nhóm quyền, FR-13 chia sẻ | test_v07_*.py, test_v08_sharing.py |
 | Quyền sửa (D-11) | Policy ở `documents/domain/policies.py`, `DocumentOut.permissions` + `edit_lock_reason`, action `withdraw`/`return` | test_v012_permissions.py (ma trận 288 trường hợp); e2e test_review_locks_editing_d11 |
-| Điểm mở rộng | ModuleSpec + registry, job kind registry (`jobs.run`), event sau commit, port OcrEngine/Storage/Notifier, API truy vấn công khai, UI registry + slot | import-linter 5 contract KEPT; ESLint chặn import sai ranh giới |
-| CSDL | Alembic `0001_core` + `0101…0106` (mỗi module P2 một revision) + `0107` vai trò Người dùng thông thường, `0108` chia sẻ, `0109` nguồn danh mục, `0110` rút lại/trả lại; trigger audit append-only (cho phép ON DELETE SET NULL) | `alembic check` sạch trên SQLite và PostgreSQL; upgrade/downgrade/upgrade (CI mỗi PR) |
-| Đặc tả | `document/` v0.12: SDD (file 0), Đặc tả đề tài (file 2), Use Case/Sequence/ERD (file 3), script CSDL (file 4, sinh từ Alembic, 17 bảng); file 1 (khảo sát) không đánh số phiên bản | script file 4 chạy sạch trên PostgreSQL 18 |
-| Frontend | React 19 + TS + Vite 8, React Router 7, TanStack Query 5, CSS Modules, Chart.js; 18 feature (8 lõi + 10 P2, lazy); types sinh từ OpenAPI | 57 test Vitest; tsc/eslint/prettier sạch |
+| Điểm mở rộng | ModuleSpec + registry, job kind registry (`jobs.run`), event sau commit, port OcrEngine/Storage/Notifier/EmailSender (v0.13), hook trước khi gửi duyệt (`shared/submit_hooks`, v0.13), API truy vấn công khai, UI registry + slot | import-linter 5 contract KEPT; ESLint chặn import sai ranh giới |
+| CSDL | Alembic `0001_core` + `0101…0106` (mỗi module P2 một revision) + `0107` vai trò Người dùng thông thường, `0108` chia sẻ, `0109` nguồn danh mục, `0110` rút lại/trả lại, `0111…0115` bổ sung v0.13 (bản cứng/Kho chung, cấu hình hệ thống, thống kê theo ngày, tài liệu đi kèm, link chia sẻ ra ngoài); trigger audit append-only (cho phép ON DELETE SET NULL) | `alembic check` sạch trên SQLite và PostgreSQL; upgrade/downgrade/upgrade (CI mỗi PR) |
+| Đặc tả | `document/` v0.13: SDD (file 0), Đặc tả đề tài (file 2), Use Case/Sequence/ERD (file 3, vẽ lại Hình 1, Hình 8, thêm Hình 2b), script CSDL (file 4, sinh từ Alembic `0001…0115`, 21 bảng); file 1 (khảo sát) không đánh số phiên bản | script file 4 chạy sạch trên PostgreSQL 18 |
+| Frontend | React 19 + TS + Vite 8, React Router 7, TanStack Query 5, CSS Modules, Chart.js; 18 feature (8 lõi + 10 P2, lazy); types sinh từ OpenAPI; v0.13 thêm trang Thống kê, Cấu hình, tab Tài liệu đi kèm, hộp thoại Chia sẻ ra ngoài, trang công khai `/s/:token` | 75 test Vitest (21 file); tsc/eslint/prettier sạch |
 | Giao diện | Design token + component dùng chung; icon `lucide-react`; sidebar gom nhóm, ô tìm nhanh, avatar; đăng nhập chia đôi; dashboard theo nhóm + biểu đồ; **nền sáng/tối** (theo hệ thống / sáng / tối, lưu lựa chọn); nút theo quyền D-11 | E2E trên giao diện mới; soát ảnh chụp desktop 1440px + mobile 390px, sáng và tối |
 | OCR | Chữ in: VietOCR `vgg_seq2seq` (PaddleOCR dò dòng), chia dòng dài, chống nghiêng, lọc ký tự lạ, OCR vùng ảnh trong PDF có lớp chữ, dừng OCR. Chữ viết tay: VietOCR `vgg_transformer` trên hàng đợi `ocr_hw`, chia dòng, dùng chung model dò dòng | scan thật 87,7% → 98,2% (GUIDE 9.1); test_ocr_vietnamese.py, test_worker_profiles.py |
 | Sao lưu (NFR-03) | Service `backup` hằng ngày (database + storage), mỗi bản tự thử khôi phục → OK/WARN/FAILED; `restore` có chốt an toàn | thử thật trên Docker; CI `compose` chạy vòng sao lưu → xóa → khôi phục |
-| Hạ tầng | Nginx (SPA + /api, CSP), Dockerfile backend/frontend, compose (một `worker` nghe `default,ocr,ocr_hw` bằng image `docso-backend-hw`; profile rag, tools), compose.dev, Makefile; CI 4 workflow (ma trận cờ P2); ruleset `protect-main` | — |
+| Hạ tầng | Nginx (SPA + /api, CSP), Dockerfile backend/frontend, compose (một `worker` nghe `default,ocr,ocr_hw` bằng image `docso-backend-hw`, xử lý cả job gửi email `EMAIL`; profile rag, tools — tools có Mailpit thử email), compose.dev, Makefile; CI 4 workflow (ma trận cờ P2); ruleset `protect-main` | — |
 | Đánh giá | `backend/eval/`: CER/WER/độ chính xác ký tự, hiệu chỉnh ngưỡng, precision/recall trích xuất, top-1 phân loại, đo chữ viết tay từ bản sửa trong app | chạy với OCR thật trên scan thật (3 trang) và dữ liệu tổng hợp |
 | Demo | `demo-start.cmd` / `demo-stop.cmd` (PostgreSQL riêng `.demo\`, worker, beat, API, React :8080 hoặc `-Port`) | đã chạy end-to-end với OCR thật |
 
@@ -35,15 +35,24 @@ chủ yếu cần **dữ liệu thật** của nhóm để đo chất lượng (
 | SDD v0.12 — D-11 | Quyền sửa theo người tải lên và trạng thái duyệt; Rút lại, Trả lại (migration 0110); giao diện nút theo quyền | #24, #25 |
 | P2-03 vận hành | Worker chính nhận cả `ocr_hw` (bỏ `worker-hw` / `-Hw` — trước đây quên `-Hw` thì job chữ viết tay chờ mãi); engine chữ viết tay chia dòng, dùng chung model dò dòng (45–100 → 22–27 s/trang); Nhập hàng loạt có ô Tài liệu viết tay | #26 |
 | FR-11 | Hàng đợi xử lý không hiện job của tài liệu trong thùng rác (trước đây hiện và cho Chạy lại → lỗi không tìm thấy tài liệu); khôi phục thì job hiện lại | #27 |
+| SDD v0.13 (đặc tả) | Bổ sung sau demo 09/11: FR-14…FR-18, D-12, D-13; UC-30…UC-33; ERD 21 bảng; vẽ lại Hình 1, Hình 8, thêm Hình 2b | #29 |
+| FR-06 | Tìm theo nội dung khớp cả tên tài liệu (không dấu), nhãn "Khớp tên tài liệu" | #30 |
+| D-12 | Gửi duyệt khai báo bản cứng (kho/kệ hoặc Kho chung), chặn mượn bản nháp và Kho chung, sửa vị trí sau xuất bản (migration 0111) | #31 |
+| FR-14 | Admin cấu hình thời gian lưu thùng rác (1–365 ngày) và audit log (180–3650 ngày), beat dọn audit (migration 0112) | #32 |
+| FR-05 | OCR Editor mức 1: tô sáng dòng trên ảnh, dòng tin cậy thấp, tìm/thay, hoàn tác, phím tắt, chuyển trang, nháp tự lưu, xem khác biệt | #33 |
+| FR-16 | Tải lên nhiều ảnh/PDF gộp thành một PDF, một job OCR | #34 |
+| FR-17 | Thống kê hoạt động theo người dùng/phòng ban/thời gian, biểu đồ, xuất CSV; bảng tổng hợp theo ngày (migration 0113) | #35 |
+| FR-15 | Tài liệu đi kèm, tải cả bộ (.zip), giữ file gốc khi gộp; nhập hàng loạt theo thư mục/manifest.csv (migration 0114) | #36 |
+| FR-18 | Chia sẻ ra ngoài bằng link + OTP email, tối đa 24 giờ, thu hồi; trang công khai `/s/:token`; job `EMAIL` (migration 0115) | #37 |
 
-### Kết quả kiểm thử (02/11/2026)
+### Kết quả kiểm thử (10/11/2026)
 
 | Bộ | Kết quả |
 |---|---|
-| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 468 passed, 1 skipped / 468 passed, 1 skipped |
-| CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#27) |
+| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 491 passed, 1 skipped / 491 passed, 1 skipped |
+| CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#37) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (chạy khi PR đổi Docker/infra) |
-| Frontend Vitest | 57 passed (16 file) |
+| Frontend Vitest | 75 passed (21 file) |
 | E2E Playwright trên demo thật, mọi cờ bật (local) | 13 passed, 1 skipped (14 test: 5 MVP + 9 P2; test bỏ qua chỉ dành cho chế độ cờ tắt) |
 | CI `e2e`: 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) | xanh trên mọi PR (ở chế độ MVP các test P2 tự bỏ qua) |
 | ruff, ruff format, mypy, lint-imports, ESLint, tsc, Prettier | sạch |
@@ -56,8 +65,8 @@ chủ yếu cần **dữ liệu thật** của nhóm để đo chất lượng (
 | FR-02 | categories | admin/CategoriesPage | test_admin.py (ngừng dùng không chọn được, tài liệu cũ vẫn hiển thị) |
 | FR-03 | documents/upload, file_inspector | documents/UploadPage | test_documents.py (415, 413, lỗi storage không tạo job) |
 | FR-04 | jobs/runner, ocr/run_ocr, beat requeue, dừng job, OCR vùng ảnh | jobs/JobStatus (poll 2s), nút Dừng | test_ocr_jobs.py (retry không trùng, needs_review, engine lỗi, job treo); test_v010_cancel_job.py; test_v09_ocr_regions.py; test_ocr_vietnamese.py |
-| FR-05 | ocr/editor | ocr/EditorPage (409 giữ draft) | test_editor_search.py; EditorForm.test.tsx; e2e 409 |
-| FR-06 | search (FTS PostgreSQL / substring SQLite, không dấu) | search/SearchPage | test_editor_search.py; e2e |
+| FR-05 | ocr/editor | ocr/EditorPage (409 giữ draft; v0.13 mức 1: editorUtils, tô sáng dòng, tìm/thay, hoàn tác, nháp tự lưu) | test_editor_search.py; EditorForm.test.tsx, editorUtils.test.ts; e2e 409 |
+| FR-06 | search (FTS PostgreSQL / substring SQLite, không dấu; v0.13 khớp cả tên, `title_match`) | search/SearchPage | test_editor_search.py (test_search_matches_title); e2e |
 | FR-07 | documents/manage (lọc approval_status), purge (beat) | documents/TrashPage; DocumentsListPage (cột/lọc duyệt khi workflow bật); BackToList (quay lại giữ bộ lọc) | test_documents.py (410 quá hạn, purge giữ audit, bỏ qua job đang chạy); test_v07_jobs_documents.py; DocumentsListPage.test.tsx |
 | FR-08 | dashboard, audit | dashboard (Chart.js), admin/AuditPage | test_editor_search.py, test_admin.py |
 | FR-09 | users/application/account, auth/presentation/account_router (`/api/account`) | features/account (/account), notifications/NotificationsPage (/notifications) | test_v07_admin_account.py (sai mật khẩu 400, 429 kể cả khi đúng, xoay phiên + thu hồi phiên khác); AccountPage.test.tsx |
@@ -76,6 +85,12 @@ chủ yếu cần **dữ liệu thật** của nhóm để đo chất lượng (
 | P2-07 | borrowing + notifications (beat nhắc quá hạn) | borrowing, notifications (chuông) | test_p2_borrowing.py, test_p2_workflow.py |
 | P2-08 | imports (job BULK_IMPORT, ZIP an toàn, metadata.csv) | imports | test_p2_imports.py, test_imports_auto_category.py; e2e |
 | P2-09 | rollback | rollback (auditRowActions) | test_p2_rollback.py; e2e |
+| FR-14 | settings (system_settings, beat purge_audit); documents đọc thời hạn thùng rác | admin/SettingsPage (/admin/settings) | test_v013_retention.py; SettingsPage.test.tsx |
+| FR-15 | documents/application/attachments, domain/attachments (loại file); imports/domain/bundles (thư mục, manifest.csv) | documents/AttachmentsTab, UploadPage, imports | test_v013_attachments.py, test_v013_import_bundles.py; AttachmentsTab.test.tsx |
+| FR-16 | documents/upload (upload_merged, merge_files), infrastructure/merge (PyMuPDF) | documents/UploadPage (chọn nhiều, sắp thứ tự) | test_v013_merge_upload.py; UploadPage.test.tsx |
+| FR-17 | analytics (daily_activity_stats, beat refresh_activity_stats, export CSV) | admin/AnalyticsPage (/admin/analytics, Chart.js) | test_v013_analytics.py; AnalyticsPage.test.tsx |
+| FR-18 | sharing (share_links, OTP + phiên xem trong session store, job EMAIL), shared/email (EmailSender SMTP) | documents/sharing/ExternalShareDialog, PublicSharePage (/s/:token) | test_v013_external_share.py; ExternalShare.test.tsx |
+| D-12 | borrowing/locations (Kho chung, declare_on_submit), shared/submit_hooks; requests chặn bản nháp | workflow (hộp thoại bản cứng khi Gửi duyệt), borrowing (tab, Kho lưu trữ) | test_p2_borrowing.py (3 test D-12); components.test.tsx |
 | NFR-09 | registry + cờ | registry.ts | toàn bộ test chạy lại với `TEST_FEATURES=all`; test_p2_flags.py; registry.test.ts |
 | NFR-03 | `infra/backup/backup.sh` (service `backup`, `restore`) | — | CI `compose`: sao lưu → xóa tài liệu và file → khôi phục → app chạy lại |
 
@@ -100,7 +115,7 @@ một PR riêng trước PR hiện thực.
 | 10 | Phạm vi rollback P2-09 | Ghi rõ loại hỗ trợ + 422 `ROLLBACK_NOT_SUPPORTED` + API xem trước | SDD P2-09, §7.2; file 3 UC-08b |
 | + | `documents.department_id` có trong DB nhưng ERD v0.5 không vẽ | Vẽ lên ERD (căn cứ của D-02) | file 3 Hình 8 |
 
-Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); từ v0.6 script sinh lại từ Alembic (v0.12: `0001…0110`, 17 bảng).
+Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); từ v0.6 script sinh lại từ Alembic (v0.13: `0001…0115`, 21 bảng).
 
 ### 3.2 Quyết định chốt sau v0.6
 
@@ -111,6 +126,11 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); từ v0.6 scrip
 | D-10 | Mặc định Danh mục gợi ý khi tải lên; "Chưa phân loại" là danh mục hệ thống, không chọn tay, không bao giờ được gợi ý | v0.9 |
 | D-11 | Nháp/Bị từ chối: người tải lên sửa; Chờ duyệt/Đã duyệt/Đã hủy xuất bản: Kiểm duyệt viên phòng ban hoặc Admin sửa, không chạy lại OCR; Đã xuất bản: không ai sửa; Khôi phục từ nhật ký (P2-09) không bị giới hạn | v0.12 |
 | FR-11 | Hàng đợi xử lý không hiện job của tài liệu trong thùng rác (trước ghi "kể cả trong thùng rác") | v0.12 (sửa 02/11) |
+| D-12 | Gửi duyệt hỏi bản cứng (có → kho/kệ; không → Kho chung, không mượn được); chỉ mượn tài liệu đã xuất bản; chủ sở hữu, Kiểm duyệt viên, Admin sửa vị trí sau xuất bản | v0.13 |
+| D-13 | Chia sẻ ra ngoài: chỉ tài liệu đã xuất bản, link ≤ 24 giờ, OTP gửi tới email người nhận, thu hồi được; email qua SMTP (Gmail app password) | v0.13 |
+
+Khác đặc tả có chủ đích ở v0.13 (ghi trong PR #36): quy ước thư mục khi nhập hàng loạt chỉ áp dụng cho thư mục có
+`dinh-kem/` hoặc `main.*`; thư mục thường vẫn nhập từng file như trước để không phá các lô ZIP đang dùng.
 
 ## 4. Việc còn lại
 
@@ -120,7 +140,10 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); từ v0.6 scrip
 | Hiệu chỉnh `NEEDS_REVIEW_THRESHOLD` | ≥ 30 trang thật (độ tin cậy VietOCR ~86, thấp hơn PaddleOCR dù đúng hơn) | `eval/calibrate_threshold.py` |
 | **P2-03** kiểm chứng chữ viết tay > 70% (D-06) | mẫu chữ viết tay thật: tải lên (tick "Tài liệu viết tay"), sửa text cho đúng trong OCR Editor | VietOCR đã sẵn trên demo và Docker (GUIDE 4.3); đo bằng `eval/handwriting_from_app.py` |
 | **P2-04, P2-05** precision/recall trích xuất, top-1 phân loại | tập mẫu có nhãn | `eval/extraction_eval.py`, `eval/classification_eval.py` |
-| **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB` (25), `MAX_PAGES` (100) |
+| **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB` (25), `MAX_PAGES` (100), `MAX_MERGE_FILES` (20), `MAX_ATTACHMENTS` (20) |
+| **FR-18** thử gửi email thật | tài khoản Gmail + app password trong `.env` (GUIDE 4.4); `PUBLIC_BASE_URL` trỏ đúng địa chỉ người nhận mở được | đã test bằng sender giả; Mailpit cho thử local |
+| Email chờ OCR | job `EMAIL` dùng chung worker với OCR nên thư/OTP có thể đến chậm khi đang OCR tài liệu dài | tách hàng đợi `mail` + worker nhẹ nếu cần |
+| Ngưỡng "dòng tin cậy thấp" trong OCR Editor | cố định 0,8 — cần dữ liệu thật để chỉnh | `editorUtils.ts` (`LOW_SCORE`) |
 | Bắt buộc CI xanh trước khi merge | sửa ruleset (GUIDE 7.1) — đến 02/11 vẫn chưa bật | không còn test chập chờn đã biết |
 | Chép bản sao lưu ra ngoài máy | tùy nơi triển khai (ổ ngoài, cloud) | `BACKUP_DIR` (GUIDE 6.4) |
 | CD (tự triển khai) | server | chưa làm |
@@ -207,3 +230,13 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); từ v0.6 scrip
 | #25 | 26/10 | D-11: quyền sửa theo chủ sở hữu và trạng thái duyệt; Rút lại, Trả lại |
 | #26 | 02/11 | P2-03: worker chính nhận `ocr_hw`, bỏ `-Hw`; engine chữ viết tay chia dòng, dùng chung model dò dòng |
 | #27 | 02/11 | FR-11: Hàng đợi xử lý không hiện job của tài liệu trong thùng rác |
+| #28 | 02/11 | Cập nhật README, GUIDE, SUMMARY; Dockerfile dùng chung lớp thư viện cho api và worker |
+| #29 | 10/11 | Đặc tả v0.13: FR-14…FR-18, D-12, D-13; vẽ lại Hình 1, Hình 8, thêm Hình 2b |
+| #30 | 10/11 | FR-06: tìm theo nội dung khớp cả tên tài liệu |
+| #31 | 10/11 | D-12: khai báo bản cứng khi gửi duyệt, Kho chung, chặn mượn bản nháp |
+| #32 | 10/11 | FR-14: cấu hình thời gian lưu thùng rác và audit log |
+| #33 | 10/11 | FR-05: OCR Editor mức 1 |
+| #34 | 10/11 | FR-16: tải lên nhiều ảnh/PDF gộp thành một tài liệu |
+| #35 | 10/11 | FR-17: thống kê hoạt động theo người dùng, phòng ban, thời gian |
+| #36 | 10/11 | FR-15: tài liệu đi kèm, tải cả bộ, nhập hàng loạt theo bộ hồ sơ |
+| #37 | 10/11 | FR-18: chia sẻ ra ngoài bằng link + OTP email |
