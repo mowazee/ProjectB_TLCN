@@ -128,6 +128,7 @@ def test_import_zip_report(officer_page: Page, tmp_path, uniq):
         # nội dung khớp nhãn Hợp đồng: tài liệu nguồn user là mẫu huấn luyện phân loại trên dữ liệu demo
         zf.write(make_pdf(tmp_path / "a.pdf", [f"Hợp đồng mua bán lô {uniq}, bên A và bên B"]), "a.pdf")
         zf.writestr("../evil.pdf", b"x")
+        zf.writestr("manifest.csv", "file_name\na.pdf\n")  # v0.14: lô bắt buộc có manifest.csv
     archive = tmp_path / f"lo-{uniq}.zip"
     archive.write_bytes(buf.getvalue())
     page = officer_page
@@ -139,8 +140,8 @@ def test_import_zip_report(officer_page: Page, tmp_path, uniq):
     expect(page.get_by_text("UNSAFE_PATH")).to_be_visible()
 
 
-def test_import_auto_category_with_metadata(officer_page: Page, tmp_path, uniq):
-    """P2-08 + D-10: lô Danh mục gợi ý; metadata.csv ghi đè danh mục (mã) và số hiệu của một file."""
+def test_import_auto_category_with_manifest(officer_page: Page, tmp_path, uniq):
+    """P2-08 + D-10: lô Danh mục gợi ý; manifest.csv ghi đè danh mục (mã) và số hiệu của một file."""
     need(officer_page, "imports", "classification")
     contract = [  # cùng nội dung test_auto_category_on_upload: đủ tin cậy để tự áp dụng Hợp đồng
         "HỢP ĐỒNG KINH TẾ MUA BÁN HÀNG HÓA",
@@ -154,7 +155,7 @@ def test_import_auto_category_with_metadata(officer_page: Page, tmp_path, uniq):
         zf.write(make_pdf(tmp_path / "a.pdf", contract), "a.pdf")
         zf.write(make_pdf(tmp_path / "b.pdf", [f"Biên bản {uniq}"]), "b.pdf")
         zf.writestr(
-            "metadata.csv", f"file_name,title,category,document_code\nb.pdf,Biên bản {uniq},BAO-CAO,{uniq}/BB\n"
+            "manifest.csv", f"file_name,title,category,document_code\na.pdf,,,\nb.pdf,Biên bản {uniq},BAO-CAO,{uniq}/BB\n"
         )
     archive = tmp_path / f"auto-{uniq}.zip"
     archive.write_bytes(buf.getvalue())

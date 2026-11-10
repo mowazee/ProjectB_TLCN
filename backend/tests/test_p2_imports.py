@@ -46,7 +46,7 @@ def test_import_batch_report_and_idempotent_rerun(seed, login, db, enqueued):
             "../evil.pdf": make_pdf(["x"]),
             "gia.pdf": make_png(),  # sai phần mở rộng -> lỗi như FR-03
             "long.zip": b"PK",
-            "metadata.csv": "file_name,title\na.pdf,Hợp đồng A (từ CSV)\n".encode(),
+            "manifest.csv": "file_name,title\na.pdf,Hợp đồng A (từ CSV)\nb.png,\ngia.pdf,\nc.jpg,\n".encode(),
         }
     )
     r = c.post(
@@ -91,7 +91,13 @@ def test_import_permissions_and_limits(seed, login, monkeypatch):
     two = files + [("files", ("b.pdf", make_pdf(["b"]), "application/pdf"))]
     r = officer.post("/api/imports", data={"category_id": str(seed["category"].id)}, files=two)
     assert r.status_code == 413 and r.json()["error"]["code"] == "TOO_MANY_FILES"
-    job_id = officer.post("/api/imports", data={"category_id": str(seed["category"].id)}, files=files).json()["job_id"]
+    r = officer.post("/api/imports", data={"category_id": str(seed["category"].id)}, files=files)
+    assert r.status_code == 422 and r.json()["error"]["code"] == "MANIFEST_REQUIRED"  # v0.14: bắt buộc manifest
+    monkeypatch.setattr(settings, "IMPORT_MAX_FILES", 5)
+    with_manifest = files + [("files", ("manifest.csv", b"file_name\na.pdf\n", "text/csv"))]
+    job_id = officer.post("/api/imports", data={"category_id": str(seed["category"].id)}, files=with_manifest).json()[
+        "job_id"
+    ]
     assert login("officerb", features=F).get(f"/api/imports/{job_id}").status_code == 403
     assert login("admin", features=F).get(f"/api/imports/{job_id}").status_code == 200
     assert login("officer", features="").post("/api/imports", data={}, files=files).status_code == 404

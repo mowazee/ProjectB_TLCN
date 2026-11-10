@@ -43,30 +43,15 @@ function remember(jobId: string) {
 const AUTO_HINT =
   "Mỗi file vào “Chưa phân loại”, hệ thống tự chọn danh mục sau khi OCR xong. Kết quả từng file xem ở báo cáo lô.";
 
-/** metadata.csv mẫu: UTF-8 có BOM để Excel mở đúng tiếng Việt; mã danh mục lấy từ danh sách thật. */
-function downloadTemplate(categories: Category[]) {
-  const code = categories[0]?.code ?? "HOP-DONG";
-  const rows = [
-    "file_name,title,category,document_code",
-    `hop-dong-45.pdf,Hợp đồng mua bán số 45/2026,${code},45/2026/HĐMB`,
-    "cong-van-12.pdf,Công văn số 12 về số hóa hồ sơ,,12/CV-HCTH",
-    "scan-001.pdf,,,",
-  ];
-  const url = URL.createObjectURL(new Blob(["\uFEFF" + rows.join("\r\n") + "\r\n"], { type: "text/csv" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "metadata.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-/** manifest.csv mẫu (FR-15, v0.13): mỗi dòng một bộ hồ sơ - file chính + tài liệu đi kèm. */
+/** manifest.csv mẫu (v0.14 - cách khai báo lô duy nhất): mỗi dòng một bộ hồ sơ - file chính + tài liệu đi kèm.
+ *  UTF-8 có BOM để Excel mở đúng tiếng Việt; mã danh mục lấy từ danh sách thật. */
 function downloadManifest(categories: Category[]) {
   const code = categories[0]?.code ?? "HOP-DONG";
   const rows = [
-    "file_name,attachments,title,category,document_code",
-    `quyet-dinh-12.pdf,phu-luc-1.docx;bang-ke.xlsx,Quyết định số 12/2026,${code},12/QĐ-UBND`,
-    "cong-van-07.pdf,,Công văn số 07,,07/CV",
+    "file_name,attachments,title,category,document_code,validity,valid_until",
+    `quyet-dinh-12.pdf,phu-luc-1.docx;bang-ke.xlsx,Quyết định số 12/2026,${code},12/QĐ-UBND,effective,`,
+    "cong-van-07.pdf,,Công văn số 07,,07/CV,effective_until,31/12/2027",
+    "scan-001.pdf,,,,,,",
   ];
   const url = URL.createObjectURL(new Blob(["\uFEFF" + rows.join("\r\n") + "\r\n"], { type: "text/csv" }));
   const a = document.createElement("a");
@@ -76,7 +61,8 @@ function downloadManifest(categories: Category[]) {
   URL.revokeObjectURL(url);
 }
 
-/** UC-23 (P2-08): tải nhiều file hoặc ZIP + cách gán danh mục (+ metadata.csv) -> job BULK_IMPORT. */
+/** UC-23 (P2-08, v0.14): tải các file + manifest.csv (hoặc ZIP chứa manifest.csv ở gốc) + cách gán danh mục -> job
+ *  BULK_IMPORT. Chỉ file khai báo trong manifest.csv được nhập. */
 export function ImportPage() {
   const categories = useCategories(true, { selectable: true });
   const { hasFeature } = useSession();
@@ -98,8 +84,6 @@ export function ImportPage() {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     form.set("category_mode", categoryMode);
-    const meta = form.get("metadata");
-    if (meta instanceof File && meta.size === 0) form.delete("metadata");
     start.mutate(form);
   };
   const history = recent();
@@ -114,7 +98,7 @@ export function ImportPage() {
       <form className="card stack" onSubmit={submit}>
         <ErrorBox error={start.error} />
         <Field
-          label="Các file (PDF/PNG/JPG) hoặc file ZIP"
+          label="Các file kèm manifest.csv, hoặc một file ZIP"
           htmlFor="files"
           error={errors.files}
           hint={count ? `${count} file đã chọn` : undefined}
@@ -124,7 +108,6 @@ export function ImportPage() {
             name="files"
             type="file"
             multiple
-            accept=".pdf,.png,.jpg,.jpeg,.zip"
             required
             onChange={(e) => setCount(e.target.files?.length ?? 0)}
           />
@@ -152,35 +135,15 @@ export function ImportPage() {
             </select>
           </Field>
         )}
-        <Field
-          label="metadata.csv (tùy chọn)"
-          htmlFor="meta"
-          hint={
-            <>
-              Thông tin riêng cho từng file, khỏi sửa tay sau khi nhập. Cột <code>file_name</code> (bắt buộc),{" "}
-              <code>title</code> (tiêu đề; trống = tên file), <code>category</code> (mã danh mục, ưu tiên hơn lựa chọn ở
-              trên), <code>document_code</code> (số hiệu). Có thể đặt sẵn trong file ZIP.{" "}
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => downloadTemplate(categories.data ?? [])}
-                style={{ marginLeft: 4 }}
-              >
-                <Download size={14} aria-hidden /> Tải file mẫu
-              </button>
-            </>
-          }
-        >
-          <input id="meta" name="metadata" type="file" accept=".csv,text/csv" />
-        </Field>
         <div className="card stack">
-          <strong>Bộ hồ sơ có tài liệu đi kèm (v0.13)</strong>
+          <strong>manifest.csv (bắt buộc)</strong>
           <span className="muted">
-            Cách 1 — trong file ZIP, mỗi thư mục con là một bộ: file chính đặt tên <code>main.*</code> (hoặc là file duy
-            nhất ở gốc thư mục; thư mục chỉ có ảnh sẽ được gộp theo thứ tự tên file), tài liệu đi kèm đặt trong thư mục
-            con <code>dinh-kem/</code>. Cách 2 — thêm <code>manifest.csv</code> (trong ZIP hoặc chọn cùng các file) với
-            cột <code>file_name</code>, <code>attachments</code> (phân cách bằng <code>;</code>), <code>title</code>,{" "}
-            <code>category</code>, <code>document_code</code>.
+            Chọn <code>manifest.csv</code> cùng các file, hoặc đặt nó ở gốc file ZIP. Mỗi dòng là một tài liệu: cột{" "}
+            <code>file_name</code> (bắt buộc, file chính được OCR), <code>attachments</code> (tài liệu đi kèm, phân cách
+            bằng <code>;</code>), <code>title</code> (trống = tên file), <code>category</code> (mã danh mục, ưu tiên hơn
+            lựa chọn ở trên), <code>document_code</code> (số hiệu), <code>validity</code> (<code>effective</code>,{" "}
+            <code>effective_until</code>, <code>expired</code>, <code>unspecified</code>) và <code>valid_until</code>{" "}
+            (ngày hết hiệu lực). File không có trong manifest sẽ bị bỏ qua.
           </span>
           <div>
             <button type="button" className="btn btn-sm" onClick={() => downloadManifest(categories.data ?? [])}>

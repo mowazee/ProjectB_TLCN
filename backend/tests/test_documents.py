@@ -13,7 +13,7 @@ from app.modules.jobs.infrastructure.models import ProcessingJob
 from app.shared.config import settings
 from app.shared.db import utcnow
 from app.shared.errors import StorageError
-from app.shared.storage import LocalStorage
+from app.shared.storage import LocalStorage, document_prefix, get_storage
 from tests.conftest import make_pdf, make_png, upload
 
 
@@ -139,7 +139,7 @@ def test_soft_delete_trash_restore(seed, login, db):
     assert {"delete_document", "restore_document"} <= actions
 
 
-def test_restore_expired_410_and_purge_keeps_audit(seed, login, db):
+def test_restore_expired_410_and_purge_removes_files_and_logs(seed, login, db):
     c = login("officer")
     doc_id = upload(c, seed["category"].id, make_pdf(["a"]), "a.pdf").json()["document_id"]
     c.delete(f"/api/documents/{doc_id}")
@@ -153,9 +153,10 @@ def test_restore_expired_410_and_purge_keeps_audit(seed, login, db):
     db.expire_all()
     assert db.get(Document, UUID(doc_id)) is None
     assert c.post(f"/api/documents/{doc_id}/restore").status_code == 404
-    purge_log = db.scalar(select(AuditLog).where(AuditLog.action == "purge"))
-    assert purge_log.state_before["document_id"] == doc_id
-    assert db.scalar(select(func.count(AuditLog.id)).where(AuditLog.action == "upload_document")) == 1
+    # v0.14: không giữ nhật ký của tài liệu đã xóa vĩnh viễn, không ghi dòng audit cho lượt xóa
+    assert db.scalar(select(func.count(AuditLog.id)).where(AuditLog.action.in_(["purge", "upload_document"]))) == 0
+    assert db.scalar(select(func.count(AuditLog.id)).where(AuditLog.document_id == UUID(doc_id))) == 0
+    assert not any(get_storage().root.joinpath(document_prefix(UUID(doc_id))).rglob("*"))
 
 
 def test_purge_skips_document_with_running_job(seed, login, db):

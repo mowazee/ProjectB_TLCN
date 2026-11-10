@@ -5149,7 +5149,7 @@
             },
             "type": "array",
             "title": "Files",
-            "description": "PDF/PNG/JPG hoặc ZIP"
+            "description": "manifest.csv (bắt buộc, hoặc ở gốc ZIP) + file chính/đi kèm, hoặc ZIP chứa tất cả"
           },
           "category_id": {
             "anyOf": [
@@ -5172,19 +5172,6 @@
             "title": "Category Mode",
             "description": "D-10: auto = Danh mục gợi ý cho cả lô (cần P2-05)",
             "default": "user"
-          },
-          "metadata": {
-            "anyOf": [
-              {
-                "type": "string",
-                "contentMediaType": "application/octet-stream"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Metadata",
-            "description": "metadata.csv: file_name, title, category (mã), document_code"
           },
           "is_handwritten": {
             "type": "boolean",
