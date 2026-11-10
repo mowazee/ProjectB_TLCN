@@ -55,7 +55,10 @@ def world(seed, db, login):
 
 def _approve_publish(w):
     c, doc = w["c"], w["doc"]
-    assert c["owner"].post(f"/api/documents/{doc}/approval/submit").status_code == 200
+    # D-12 (v0.13): gửi duyệt khai báo bản cứng nếu chưa có vị trí lưu trữ
+    declared = c["owner"].get(f"/api/documents/{doc}/storage-location").json()["storage_location"]
+    body = None if declared else {"has_physical_copy": False}
+    assert c["owner"].post(f"/api/documents/{doc}/approval/submit", json=body).status_code == 200
     assert c["approver"].post(f"/api/documents/{doc}/approval/approve").status_code == 200
     assert c["approver"].post(f"/api/documents/{doc}/approval/publish").status_code == 200
 

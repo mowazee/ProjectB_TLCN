@@ -12,7 +12,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.modules.audit.application.recorder import record
-from app.modules.borrowing.application.locations import document_location_id
+from app.modules.borrowing.application.locations import document_location_id, physical_state
 from app.modules.borrowing.domain.rules import (
     APPROVED,
     PENDING,
@@ -136,8 +136,12 @@ def create_request(
         raise UnprocessableError("Ngày bắt đầu phải trước ngày kết thúc", fields={"to_date": "before_from_date"})
     if to_date < today():
         raise UnprocessableError("Thời gian mượn đã qua", fields={"to_date": "in_past"})
-    if document_location_id(db, doc.id) is None:
-        raise UnprocessableError("Hồ sơ chưa có vị trí lưu trữ bản cứng", code="NO_STORAGE_LOCATION")
+    # D-12 (v0.13): chỉ mượn tài liệu đã xuất bản (khi bật workflow) có bản cứng ở kho/kệ thật
+    if "workflow" in settings.features_enabled and str(doc.approval_status) != "published":
+        raise ConflictError("Chỉ mượn được tài liệu đã xuất bản", code="DOCUMENT_NOT_PUBLISHED")
+    _, loc = physical_state(db, doc.id)
+    if loc is None or loc.is_virtual:
+        raise UnprocessableError("Hồ sơ không có bản cứng ở kho/kệ lưu trữ", code="NO_PHYSICAL_COPY")
     if _overlapping_approved(db, doc.id, from_date, to_date, None):
         raise ConflictError("Hồ sơ đã được duyệt cho mượn trong khoảng thời gian này", code="BORROW_OVERLAP")
     req = BorrowRequest(

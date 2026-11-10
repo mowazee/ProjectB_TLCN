@@ -48,13 +48,17 @@ export function useSaveLocation() {
 export function useDocLocation(docId: string) {
   return useQuery({
     queryKey: ["doc-location", docId],
-    queryFn: () => api<{ storage_location: StorageLocation | null }>(`/api/documents/${docId}/storage-location`),
+    queryFn: () =>
+      api<{ storage_location: StorageLocation | null; has_physical_copy?: boolean | null }>(
+        `/api/documents/${docId}/storage-location`,
+      ),
   });
 }
 
 export function useSetDocLocation(docId: string) {
   const client = useQueryClient();
   return useMutation({
+    // D-12: chọn Kho chung (is_virtual) → server ghi has_physical_copy = false; kho/kệ thật → true
     mutationFn: (locationId: number | null) =>
       api(`/api/documents/${docId}/storage-location`, { method: "PUT", json: { storage_location_id: locationId } }),
     onSuccess: () => client.invalidateQueries({ queryKey: ["doc-location", docId] }),

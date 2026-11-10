@@ -26,6 +26,7 @@ from app.modules.workflow.domain.state_machine import (
     next_status,
 )
 from app.modules.workflow.infrastructure.models import DocumentApproval
+from app.shared import submit_hooks
 from app.shared.context import Principal, RequestContext
 from app.shared.db import aware, utcnow
 from app.shared.errors import ConflictError, PermissionDeniedError, UnprocessableError
@@ -79,6 +80,7 @@ def transition(
     *,
     comments: str | None,
     ctx: RequestContext,
+    payload: dict[str, Any] | None = None,
 ) -> str:
     """Thực hiện action; trả approval_status mới."""
     if not principal.roles & ACTION_ROLES[action]:
@@ -103,6 +105,8 @@ def transition(
         raise ConflictError(
             str(exc), code="INVALID_TRANSITION", details={"current_status": current, "action": action.value}
         ) from exc
+    if action == Action.SUBMIT:  # D-12: module khác (borrowing) kiểm/ghi dữ liệu đi kèm trong cùng transaction
+        submit_hooks.run(db, principal, doc.id, payload or {}, ctx)
     if not documents.set_approval_status(db, doc.id, step.to_status, expected=step.from_status):
         raise ConflictError("Trạng thái tài liệu vừa được người khác thay đổi", code="INVALID_TRANSITION")
     # created_at tăng nghiêm ngặt theo tài liệu: đồng hồ hệ thống có thể trùng giá trị giữa hai thao tác liên tiếp

@@ -1,7 +1,8 @@
 """API borrowing (SDD 7.2, P2-07):
 GET/POST /api/borrow-requests; POST /api/borrow-requests/{id}/{approve|reject|return}  (trùng thời gian 409)
 GET/POST /api/storage-locations; PATCH /api/storage-locations/{id}                   (ghi chỉ Admin)
-GET/PUT  /api/documents/{id}/storage-location   vị trí bản cứng của hồ sơ (bổ sung, cần cho UC-11)
+GET/PUT  /api/documents/{id}/storage-location   vị trí bản cứng của hồ sơ (bổ sung, cần cho UC-11); D-12 v0.13:
+         has_physical_copy, Kho chung; sau xuất bản: chủ sở hữu, Kiểm duyệt viên phòng ban, Admin
 """
 
 import uuid
@@ -34,14 +35,17 @@ class LocationOut(BaseModel):
     id: int
     name: str
     code: str
+    is_virtual: bool = Field(default=False, description="Kho chung (D-12): tài liệu không có bản cứng")
 
 
 class DocLocationIn(BaseModel):
-    storage_location_id: int | None
+    storage_location_id: int | None = None
+    has_physical_copy: bool | None = Field(default=None, description="D-12: false → Kho chung; true → bắt buộc kho/kệ")
 
 
 class DocLocationOut(BaseModel):
     storage_location: LocationOut | None
+    has_physical_copy: bool | None = None
 
 
 class BorrowIn(BaseModel):
@@ -130,13 +134,17 @@ def update_location(
 
 @router.get("/api/documents/{document_id}/storage-location", response_model=DocLocationOut)
 def get_doc_location(document_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal) -> DocLocationOut:
-    loc = locations.get_document_location(db, principal, document_id)
-    return DocLocationOut(storage_location=_loc(loc) if loc else None)
+    locations.get_document_location(db, principal, document_id)
+    has, loc = locations.physical_state(db, document_id)
+    return DocLocationOut(storage_location=_loc(loc) if loc else None, has_physical_copy=has)
 
 
 @router.put("/api/documents/{document_id}/storage-location", response_model=DocLocationOut)
 def set_doc_location(
     document_id: uuid.UUID, data: DocLocationIn, db: DbSession, principal: CurrentPrincipal, ctx: Ctx
 ) -> DocLocationOut:
-    loc = locations.set_document_location(db, principal, document_id, data.storage_location_id, ctx)
-    return DocLocationOut(storage_location=_loc(loc) if loc else None)
+    locations.set_document_location(
+        db, principal, document_id, data.storage_location_id, ctx, has_physical_copy=data.has_physical_copy
+    )
+    has, loc = locations.physical_state(db, document_id)
+    return DocLocationOut(storage_location=_loc(loc) if loc else None, has_physical_copy=has)

@@ -1,17 +1,19 @@
 """Bảng P2-07 (ERD file 3 v0.5): storage_locations, borrow_requests và cột documents.storage_location_id.
 
-- storage_locations: id, name, code.
+- storage_locations: id, name, code (+ is_virtual, v0.13 D-12: dòng hệ thống KHO-CHUNG cho tài liệu không có bản cứng).
 - borrow_requests: id, document_id, requester_id, approver_id, status, from_date, to_date
   (+ purpose, created_at: UC-11 yêu cầu nhập mục đích và cần sắp xếp theo thời gian tạo; ghi nhận
   chênh lệch với ERD trong SUMMARY.md). "Quá hạn" được tính từ to_date, không lưu cột.
 - documents.storage_location_id "chỉ thêm khi P2-07 triển khai" (SDD mục 6): module này gắn cột
   vào bảng documents của lõi (không sửa model lõi) và migration P2-07 tạo cột trong CSDL.
+- documents.has_physical_copy (v0.13, D-12): true/false/NULL = chưa khai báo; gắn cùng cách, migration 0111.
 """
 
 import uuid
 from datetime import date, datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Column,
     Date,
@@ -25,6 +27,9 @@ from sqlalchemy import (
     column,
     func,
     table,
+)
+from sqlalchemy import (
+    false as sa_false,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -40,6 +45,7 @@ class StorageLocation(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(150))
     code: Mapped[str] = mapped_column(String(50), unique=True)
+    is_virtual: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa_false())
 
 
 class BorrowRequest(Base):
@@ -73,9 +79,17 @@ def _attach_document_column() -> None:
                 index=True,
             )
         )
+    if "has_physical_copy" not in documents.c:
+        documents.append_column(Column("has_physical_copy", Boolean, nullable=True))
 
 
 _attach_document_column()
 
 # Projection để đọc/ghi cột vừa gắn mà không import model của module documents (R5)
-documents_location = table("documents", column("id", Uuid), column("storage_location_id", Integer))
+documents_location = table(
+    "documents",
+    column("id", Uuid),
+    column("storage_location_id", Integer),
+    column("has_physical_copy", Boolean),
+    column("approval_status", String),
+)

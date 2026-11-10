@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 
 import type { StorageLocation } from "@/shared/api/types";
 import {
+  Badge,
   EmptyState,
   ErrorBox,
   Field,
@@ -103,8 +104,13 @@ export function BorrowTab({ document }: DocumentSlotProps) {
   const locations = useLocations();
   const setLocation = useSetDocLocation(document.id);
   const { create } = useBorrowMutations();
-  const { hasRole } = useSession();
+  const { hasRole, hasFeature, session } = useSession();
   const canBorrow = hasRole("OFFICER", "APPROVER"); // FR-12: Người dùng thông thường không mượn hồ sơ
+  // D-12: chỉ mượn tài liệu đã xuất bản (khi bật workflow); sau xuất bản chủ sở hữu, KDV, Admin sửa được vị trí
+  const published = !hasFeature("workflow") || document.approval_status === "published";
+  const isOwner = document.owner?.id === session?.user.id;
+  const canEditLocation =
+    document.can_edit || (document.approval_status === "published" && (isOwner || hasRole("APPROVER", "ADMIN")));
   const list = useBorrows({ page: 1, document_id: document.id });
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({ from_date: today, to_date: today, purpose: "" });
@@ -124,7 +130,7 @@ export function BorrowTab({ document }: DocumentSlotProps) {
     <div className="stack">
       <div className="row">
         <strong>Vị trí bản cứng:</strong>
-        {document.can_edit ? (
+        {canEditLocation ? (
           <select
             className="select"
             style={{ maxWidth: 280 }}
@@ -132,19 +138,23 @@ export function BorrowTab({ document }: DocumentSlotProps) {
             onChange={(e) => setLocation.mutate(e.target.value ? Number(e.target.value) : null)}
             aria-label="Vị trí lưu trữ"
           >
-            <option value="">— Chưa có —</option>
+            <option value="">— Chưa khai báo —</option>
             {locations.data?.map((l) => (
               <option key={l.id} value={l.id}>
-                {l.code} - {l.name}
+                {l.is_virtual ? l.name : `${l.code} - ${l.name}`}
               </option>
             ))}
           </select>
         ) : (
-          <span>{loc ? `${loc.code} - ${loc.name}` : "Chưa có"}</span>
+          <span>{loc ? (loc.is_virtual ? loc.name : `${loc.code} - ${loc.name}`) : "Chưa khai báo"}</span>
         )}
       </div>
+      {loc?.is_virtual && <p className="muted">Tài liệu không có bản cứng nên không mượn được (D-12).</p>}
+      {loc && !loc.is_virtual && canBorrow && !published && (
+        <p className="muted">Chỉ mượn được tài liệu đã xuất bản.</p>
+      )}
       <ErrorBox error={setLocation.error} />
-      {loc && canBorrow && (
+      {loc && !loc.is_virtual && canBorrow && published && (
         <form className="row" onSubmit={submit} style={{ alignItems: "flex-end" }}>
           <Field label="Từ ngày" htmlFor="fd" error={errors.from_date}>
             <input
@@ -255,9 +265,13 @@ export function StorageLocationsPage() {
                 <td>{l.code}</td>
                 <td>{l.name}</td>
                 <td>
-                  <button className="btn btn-sm" onClick={() => setEditing(l)}>
-                    Sửa
-                  </button>
+                  {l.is_virtual ? (
+                    <Badge tone="info">Hệ thống</Badge>
+                  ) : (
+                    <button className="btn btn-sm" onClick={() => setEditing(l)}>
+                      Sửa
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

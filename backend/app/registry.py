@@ -58,7 +58,7 @@ def activate(s: Settings = settings) -> list[ModuleSpec]:
     from app.modules.dashboard.application import stats
     from app.modules.jobs.application import registry as job_registry
     from app.modules.ocr.application import engines
-    from app.shared import notify
+    from app.shared import notify, submit_hooks
     from app.shared.events import bus
 
     bus.clear()
@@ -66,6 +66,7 @@ def activate(s: Settings = settings) -> list[ModuleSpec]:
     engines.reset()
     stats.reset()
     notify.reset_notifier()
+    submit_hooks.reset()
     modules = enabled_modules(s)
     for m in modules:
         for kind, handler in m.job_handlers.items():
