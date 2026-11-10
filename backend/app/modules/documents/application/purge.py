@@ -12,7 +12,7 @@ from datetime import timedelta
 
 from sqlalchemy import select
 
-from app.modules.audit.application.retention import delete_for_document
+from app.modules.audit.application.retention import delete_for_document, delete_orphaned_document_logs
 from app.modules.documents.domain.events import DocumentPurged
 from app.modules.documents.domain.lifecycle import LifecycleStatus
 from app.modules.documents.infrastructure.models import Document
@@ -46,4 +46,6 @@ def purge_expired() -> int:
             db.delete(doc)
             db.commit()
             purged += 1
+        delete_orphaned_document_logs(db)  # nhật ký sót của tài liệu đã xóa trước v0.15
+        db.commit()
     return purged

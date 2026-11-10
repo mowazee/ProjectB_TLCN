@@ -221,6 +221,14 @@ bảng kết quả ghi số thành công, lỗi và lý do. Vị trí bản cứ
 | Nhật ký vận hành | theo Cấu hình (180–3650 ngày) | đăng nhập, quản trị, lượt tải, xem/tải qua link ngoài |
 | Hàng đợi xử lý (job đã xong/lỗi) | 30 ngày (`JOB_RETENTION_DAYS`) | giữ job mới nhất của mỗi tài liệu; báo cáo lô nhập hàng loạt cũ hơn 30 ngày không còn xem được |
 
+Beat chạy các tác vụ dọn (thùng rác, audit, hàng đợi) **mỗi giờ** (`PURGE_INTERVAL_SECONDS=3600`). Trước đây chu kỳ là
+24 giờ, mà beat lưu lịch trong container nên mỗi lần build lại/khởi động lại bộ đếm chạy lại từ đầu; vì vậy tài liệu
+quá hạn có thể nằm mãi trong thùng rác. Lượt dọn cũng xóa nhật ký còn sót của tài liệu đã xóa vĩnh viễn trước v0.15.
+
+**Nhật ký hệ thống** (Quản trị → Nhật ký): lọc theo khoảng ngày, **hành động** (gõ một phần, vd. `share`, `upload`,
+`ocr`), **người dùng** (tên đăng nhập hoặc họ tên) và **tài liệu** (tên tài liệu) — không cần biết ID. Mở từ trang
+Người dùng/Nhóm quyền thì trang tự lọc theo người đó, có nút **Bỏ lọc**.
+
 **Hướng dẫn sử dụng** (FR-21): menu **Hướng dẫn sử dụng** (`/guide`, mọi người dùng). Hiện để trống, sau này đặt tài liệu
 hướng dẫn tại đây.
 
@@ -549,6 +557,7 @@ sửa phiên bản trong file, chạy test, để CI xác nhận.
 | Đổi hiệu lực báo `REASON_REQUIRED` | Tài liệu đã duyệt/xuất bản: nhập lý do ít nhất 5 ký tự. |
 | Không thấy tài liệu trong danh sách/tìm kiếm | Có thể đã hết hiệu lực (ẩn mặc định): tích **Hiện tài liệu hết hiệu lực**. |
 | Báo cáo lô nhập cũ / job cũ biến mất | Hàng đợi chỉ giữ 30 ngày (`JOB_RETENTION_DAYS`). |
+| Thùng rác còn tài liệu "đã quá hạn" | Lượt dọn chạy mỗi giờ, trong vòng 1 giờ sau khi beat khởi động sẽ xóa (tài liệu còn job đang chạy thì để lượt sau). Bản trước 11/11/2026 dọn 24 giờ/lần nên sau mỗi lần build lại phải chờ đủ 24 giờ: cập nhật code và `.\docker-start.cmd -Build`. |
 | Trang Thống kê toàn số 0 cho các ngày trước | Beat chưa chạy lần nào (tổng hợp mỗi giờ, lần đầu tính bù 90 ngày); hôm nay vẫn tính trực tiếp. |
 | npm báo xung đột TypeScript | Giữ `typescript ~5.9` (typescript-eslint và openapi-typescript chưa hỗ trợ TS 6/7). |
 

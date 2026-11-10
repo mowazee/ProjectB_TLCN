@@ -2,29 +2,52 @@ import { ScrollText } from "lucide-react";
 import { Fragment, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
-import { Badge, EmptyState, ErrorBox, Loading, PageHeader, Pagination } from "@/shared/components/ui";
+import { Badge, EmptyState, ErrorBox, Field, Loading, PageHeader, Pagination } from "@/shared/components/ui";
+import { useDebounce } from "@/shared/hooks/useDebounce";
 import { formatDateTime } from "@/shared/lib/format";
 import { SlotList, useSlots } from "@/shared/slots";
 
 import { useAudit } from "./api";
 
-/** UC-08 (FR-08): chỉ Admin; lọc theo ngày/người/tài liệu/hành động; log chỉ đọc (P2-09 rollback cắm vào slot). */
+/** UC-08 (FR-08): chỉ Admin; lọc theo ngày, hành động (gần đúng), tên người dùng, tên tài liệu; log chỉ đọc (P2-09 rollback cắm vào slot). */
 export function AuditPage() {
-  // Bộ lọc ban đầu lấy từ URL: vd. /admin/audit?user_id=… từ trang Người dùng/Nhóm quyền (FR-01)
-  const [params] = useSearchParams();
+  // Bộ lọc ban đầu lấy từ URL: vd. /admin/audit?user_id=… từ trang Người dùng/Nhóm quyền (FR-01). Ô nhập dùng tên
+  // (người dùng, tài liệu) và tìm gần đúng - người dùng không cần biết ID (v0.15).
+  const [params, setParams] = useSearchParams();
   const [filters, setFilters] = useState({
     date_from: "",
     date_to: "",
-    user_id: params.get("user_id") ?? "",
-    document_id: params.get("document_id") ?? "",
     action: params.get("action") ?? "",
+    user: "",
+    document: "",
   });
+  const userId = params.get("user_id") ?? "";
+  const documentId = params.get("document_id") ?? "";
+  const action = useDebounce(filters.action.trim());
+  const user = useDebounce(filters.user.trim());
+  const document = useDebounce(filters.document.trim());
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState<number | null>(null);
-  const audit = useAudit({ ...filters, page });
+  const audit = useAudit({
+    page,
+    date_from: filters.date_from,
+    date_to: filters.date_to,
+    action,
+    user,
+    document,
+    user_id: userId,
+    document_id: documentId,
+  });
   const { auditRowActions } = useSlots();
   const set = (k: keyof typeof filters, v: string) => {
     setFilters((f) => ({ ...f, [k]: v }));
+    setPage(1);
+  };
+  const clearLinked = () => {
+    const next = new URLSearchParams(params);
+    next.delete("user_id");
+    next.delete("document_id");
+    setParams(next, { replace: true });
     setPage(1);
   };
 
@@ -35,47 +58,70 @@ export function AuditPage() {
         title="Nhật ký hệ thống"
         subtitle="Nhật ký chỉ ghi thêm, không sửa/xóa từ giao diện."
       />
-      <div className="row" style={{ marginBottom: 12 }}>
-        <label className="row">
-          Từ{" "}
+      <div
+        className="card"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+          gap: 12,
+          alignItems: "end",
+          marginBottom: 12,
+        }}
+      >
+        <Field label="Từ ngày" htmlFor="af-from">
           <input
+            id="af-from"
             className="input"
             type="date"
             value={filters.date_from}
             onChange={(e) => set("date_from", e.target.value)}
           />
-        </label>
-        <label className="row">
-          Đến{" "}
+        </Field>
+        <Field label="Đến ngày" htmlFor="af-to">
           <input
+            id="af-to"
             className="input"
             type="date"
             value={filters.date_to}
             onChange={(e) => set("date_to", e.target.value)}
           />
-        </label>
-        <input
-          className="input"
-          style={{ maxWidth: 200 }}
-          placeholder="Hành động (vd. edit_ocr)"
-          value={filters.action}
-          onChange={(e) => set("action", e.target.value)}
-        />
-        <input
-          className="input"
-          style={{ maxWidth: 300 }}
-          placeholder="ID người dùng"
-          value={filters.user_id}
-          onChange={(e) => set("user_id", e.target.value.trim())}
-        />
-        <input
-          className="input"
-          style={{ maxWidth: 300 }}
-          placeholder="ID tài liệu"
-          value={filters.document_id}
-          onChange={(e) => set("document_id", e.target.value.trim())}
-        />
+        </Field>
+        <Field label="Hành động" htmlFor="af-action">
+          <input
+            id="af-action"
+            className="input"
+            placeholder="vd. upload, share, ocr"
+            value={filters.action}
+            onChange={(e) => set("action", e.target.value)}
+          />
+        </Field>
+        <Field label="Người dùng" htmlFor="af-user">
+          <input
+            id="af-user"
+            className="input"
+            placeholder="Tên đăng nhập hoặc họ tên"
+            value={filters.user}
+            onChange={(e) => set("user", e.target.value)}
+          />
+        </Field>
+        <Field label="Tài liệu" htmlFor="af-doc">
+          <input
+            id="af-doc"
+            className="input"
+            placeholder="Tên tài liệu"
+            value={filters.document}
+            onChange={(e) => set("document", e.target.value)}
+          />
+        </Field>
       </div>
+      {(userId || documentId) && (
+        <p className="row muted" style={{ marginBottom: 12 }}>
+          Đang lọc theo {userId ? "người dùng" : "tài liệu"} được chọn từ trang trước.
+          <button className="btn btn-sm" onClick={clearLinked}>
+            Bỏ lọc
+          </button>
+        </p>
+      )}
       <ErrorBox error={audit.error} />
       {audit.isPending ? (
         <Loading />

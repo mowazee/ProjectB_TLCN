@@ -4,7 +4,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import column, func, or_, select, table
 from sqlalchemy.orm import Session
 
 from app.modules.audit.infrastructure.models import AuditLog
@@ -12,6 +12,10 @@ from app.shared.config import settings
 from app.shared.context import Principal
 from app.shared.errors import NotFoundError, PermissionDeniedError
 from app.shared.pagination import PageParams
+
+# Chỉ đọc vài cột để lọc theo tên, không phụ thuộc module users/documents (giữ ranh giới module)
+_users = table("users", column("id"), column("username"), column("full_name"))
+_documents = table("documents", column("id"), column("title"))
 
 
 @dataclass
@@ -21,6 +25,8 @@ class AuditFilter:
     user_id: uuid.UUID | None = None
     document_id: uuid.UUID | None = None
     action: str | None = None
+    user: str | None = None  # tên đăng nhập hoặc họ tên (gần đúng)
+    document: str | None = None  # tên tài liệu (gần đúng)
 
 
 def _day_start_utc(day: date) -> datetime:
@@ -40,8 +46,27 @@ def list_logs(db: Session, actor: Principal, flt: AuditFilter, params: PageParam
         stmt = stmt.where(AuditLog.user_id == flt.user_id)
     if flt.document_id:
         stmt = stmt.where(AuditLog.document_id == flt.document_id)
-    if flt.action:
-        stmt = stmt.where(AuditLog.action == flt.action.strip().lower())
+    if flt.action:  # gần đúng: "share" khớp create_external_share, update_sharing...
+        stmt = stmt.where(func.lower(AuditLog.action).contains(flt.action.strip().lower(), autoescape=True))
+    if flt.user and flt.user.strip():
+        q = flt.user.strip().lower()
+        stmt = stmt.where(
+            AuditLog.user_id.in_(
+                select(_users.c.id).where(
+                    or_(
+                        func.lower(_users.c.username).contains(q, autoescape=True),
+                        func.lower(_users.c.full_name).contains(q, autoescape=True),
+                    )
+                )
+            )
+        )
+    if flt.document and flt.document.strip():
+        q = flt.document.strip().lower()
+        stmt = stmt.where(
+            AuditLog.document_id.in_(
+                select(_documents.c.id).where(func.lower(_documents.c.title).contains(q, autoescape=True))
+            )
+        )
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = db.scalars(
         stmt.order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).offset(params.offset).limit(params.page_size)

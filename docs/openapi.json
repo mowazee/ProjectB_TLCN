@@ -2265,8 +2265,48 @@
                   "type": "null"
                 }
               ],
+              "description": "Gần đúng, vd. share, ocr",
               "title": "Action"
-            }
+            },
+            "description": "Gần đúng, vd. share, ocr"
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tên đăng nhập hoặc họ tên (gần đúng)",
+              "title": "User"
+            },
+            "description": "Tên đăng nhập hoặc họ tên (gần đúng)"
+          },
+          {
+            "name": "document",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Tên tài liệu (gần đúng)",
+              "title": "Document"
+            },
+            "description": "Tên tài liệu (gần đúng)"
           },
           {
             "name": "page",

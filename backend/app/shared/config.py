@@ -79,7 +79,9 @@ class Settings(BaseSettings):
 
     # Xóa mềm (D-05)
     SOFT_DELETE_RETENTION_DAYS: int = 30
-    PURGE_INTERVAL_SECONDS: int = 24 * 3600
+    # Beat lưu lịch trong container (/tmp) nên mỗi lần khởi động lại bộ đếm chạy lại từ đầu: chu kỳ ngắn (1 giờ) để
+    # dọn thùng rác/audit/job vẫn chạy dù hệ thống được build lại thường xuyên. Các tác vụ đều idempotent.
+    PURGE_INTERVAL_SECONDS: int = 3600
     # FR-14 (v0.13): giá trị mặc định ban đầu; Admin đổi trên giao diện (bảng system_settings)
     AUDIT_RETENTION_DAYS: int = 365
 
