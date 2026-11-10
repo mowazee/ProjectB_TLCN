@@ -1,6 +1,7 @@
-import { Building2, FolderTree, ScrollText, Settings, ShieldCheck, Users } from "lucide-react";
+import { BarChart3, Building2, FolderTree, ScrollText, Settings, ShieldCheck, Users } from "lucide-react";
 import type { FeatureManifest } from "@/shared/types/feature";
 
+import { AnalyticsPage } from "./AnalyticsPage";
 import { AuditPage } from "./AuditPage";
 import { RolesPage } from "./RolesPage";
 import { SettingsPage } from "./SettingsPage";
@@ -45,6 +46,14 @@ export const adminManifest: FeatureManifest = {
       ),
     },
     {
+      path: "admin/analytics",
+      element: (
+        <AdminOnly>
+          <AnalyticsPage />
+        </AdminOnly>
+      ),
+    },
+    {
       path: "admin/settings",
       element: (
         <AdminOnly>
@@ -74,6 +83,7 @@ export const adminManifest: FeatureManifest = {
     },
     { to: "/admin/categories", label: "Danh mục", roles: ["ADMIN"], group: "admin", order: 91, icon: FolderTree },
     { to: "/admin/audit", label: "Nhật ký", roles: ["ADMIN"], group: "admin", order: 93, icon: ScrollText },
+    { to: "/admin/analytics", label: "Thống kê", roles: ["ADMIN"], group: "admin", order: 89, icon: BarChart3 },
     { to: "/admin/settings", label: "Cấu hình", roles: ["ADMIN"], group: "admin", order: 95, icon: Settings },
   ],
 };

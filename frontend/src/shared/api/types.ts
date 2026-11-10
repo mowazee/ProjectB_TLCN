@@ -66,3 +66,4 @@ export interface Paged<T> {
   page_size: number;
 }
 export type SystemSettings = S["SettingsOut"];
+export type Analytics = S["AnalyticsOut"];
