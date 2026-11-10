@@ -68,7 +68,10 @@ def update_retention(db: Session, actor: Principal, changes: dict[str, Any], ctx
 
 
 def purge_audit() -> int:
-    """Celery beat: xóa audit log cũ hơn thời hạn (FR-14). Trả số dòng đã xóa."""
+    """Celery beat: xóa audit log vận hành cũ hơn thời hạn (FR-14).
+
+    Lịch sử thay đổi của tài liệu giữ vĩnh viễn (D-15). Trả số dòng đã xóa.
+    """
     with SessionLocal() as db:
         days = get_retention(db)[AUDIT_KEY]
         cutoff = utcnow() - timedelta(days=days)

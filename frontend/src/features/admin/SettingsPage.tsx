@@ -59,7 +59,7 @@ export function SettingsPage() {
         <Field
           label="Lưu audit log (ngày)"
           htmlFor="audit"
-          hint="Tối thiểu 180, tối đa 3650 ngày. Số liệu thống kê không bị mất khi audit log cũ bị xóa."
+          hint="Tối thiểu 180, tối đa 3650 ngày. Chỉ xóa log vận hành (đăng nhập, quản trị, lượt xem/tải); lịch sử thay đổi của tài liệu được lưu vĩnh viễn. Số liệu thống kê không bị mất."
         >
           <input
             id="audit"

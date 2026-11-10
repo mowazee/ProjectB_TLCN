@@ -53,3 +53,29 @@ def test_purge_audit_keeps_recent_and_logs_itself(seed, login, db):
     actions = set(db.scalars(select(AuditLog.action)).all())
     assert "old_action" not in actions and "recent_action" in actions
     assert {"purge_audit", "update_settings"} <= actions
+
+
+def test_purge_audit_keeps_document_history_d15(seed, login, db):
+    """D-15 (SDD v0.14): lịch sử thay đổi của tài liệu không bị dọn; chỉ xóa log vận hành (không gắn tài liệu, nhóm đọc)."""
+    admin, officer = login("admin"), login("officer")
+    doc_id = uuid.UUID(upload(officer, seed["category"].id, make_pdf(["a"]), "a.pdf").json()["document_id"])
+    admin.put("/api/admin/settings", json={"audit_retention_days": 180})
+    old = utcnow() - timedelta(days=400)
+    for action, document_id in [
+        ("update_document", doc_id),
+        ("approval_publish", doc_id),
+        ("download_document", doc_id),
+        ("external_view", doc_id),
+        ("login", None),
+    ]:
+        db.add(AuditLog(action=action, module="test", document_id=document_id, created_at=old))
+    db.commit()
+    purge_audit()
+    db.expire_all()
+    rows = {
+        (a, d)
+        for a, d in db.execute(
+            select(AuditLog.action, AuditLog.document_id).where(AuditLog.created_at < utcnow() - timedelta(days=300))
+        )
+    }
+    assert rows == {("update_document", doc_id), ("approval_publish", doc_id)}
