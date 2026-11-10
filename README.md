@@ -1,7 +1,7 @@
 # Hệ thống số hóa hồ sơ tài liệu doanh nghiệp (ProjectB — SDD v0.13)
 
 Tiểu luận chuyên ngành — UTE, Nhóm 3. Mọi yêu cầu, tên dữ liệu và hợp đồng API bám theo
-**SDD v0.13** (`document/0 -Dac_ta_SDD_v0.13.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
+**SDD v0.13** (`document/0 -Dac_ta_SDD_v0.14.docx`; v0.14 đã chốt đặc tả, đang hiện thực). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
 
 **Trạng thái (10/11/2026):** MVP + P2 + phân hệ quản trị/tài khoản + bổ sung sau demo (SDD v0.13: FR-14…FR-18,
 D-12, D-13) đã hiện thực; đặc tả v0.13 khớp với code; CI xanh trên mọi PR (#1–#37). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng OCR,
@@ -20,6 +20,7 @@ ProjectA (`D:\ProjectA_TLCN`) giữ lại làm tham chiếu bản MVP cũ (Jinja
 | v0.11 | 21/10/2026 | OCR chữ in tiếng Việt bằng VietOCR, chống nghiêng, lọc ký tự lạ (GUIDE mục 9) |
 | v0.12 | 26/10/2026 | D-11 quyền sửa theo chủ sở hữu và trạng thái duyệt (Rút lại / Trả lại); nhập hàng loạt có Danh mục gợi ý |
 | v0.13 | 10/11/2026 | Bổ sung sau demo: cấu hình thời gian lưu trữ (FR-14), tài liệu đi kèm (FR-15), gộp nhiều file (FR-16), thống kê (FR-17), chia sẻ ra ngoài bằng link + OTP (FR-18), bản cứng/Kho chung (D-12), tìm theo tên, OCR Editor |
+| v0.14 | 11/11/2026 | Hiệu lực tài liệu (FR-19, D-14), duyệt/xuất bản/từ chối hàng loạt (FR-20), lịch sử thay đổi tài liệu không bị dọn theo thời hạn audit (D-15) — **đang hiện thực** |
 
 ## Kiến trúc
 
