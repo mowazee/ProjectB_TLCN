@@ -17,9 +17,12 @@ from app.modules.documents.application.queries import (
     ensure_can_edit,
     ensure_can_view,
     ensure_permission,
+    expired_clause,
     scope_of,
     shared_with_me_clause,
+    validity_clause,
 )
+from app.modules.documents.application.validity import today
 from app.modules.documents.domain import policies
 from app.modules.documents.domain.events import DocumentDeleted, DocumentRestored
 from app.modules.documents.domain.lifecycle import (
@@ -137,6 +140,8 @@ def list_documents(
     lifecycle_status: LifecycleStatus = LifecycleStatus.ACTIVE,
     approval_status: ApprovalStatus | None = None,
     shared_with_me: bool = False,
+    include_expired: bool = False,
+    validity: str | None = None,
 ) -> tuple[list[DocumentView], int]:
     """status: trạng thái job OCR mới nhất (queued/processing/completed/failed) hoặc
     'needs_review' (có trang cần xem lại). lifecycle_status=deleted là thùng rác. approval_status: FR-07 (v0.7).
@@ -155,6 +160,10 @@ def list_documents(
         stmt = stmt.where(Document.category_id == category_id)
     if approval_status is not None:
         stmt = stmt.where(Document.approval_status == approval_status)
+    if validity:  # FR-19: lọc theo trạng thái đã tính hết hạn
+        stmt = stmt.where(validity_clause(validity, today()))
+    elif not include_expired and lifecycle_status == LifecycleStatus.ACTIVE:
+        stmt = stmt.where(~expired_clause(today()))
     if status == PageOcrStatus.NEEDS_REVIEW.value:
         stmt = stmt.where(
             select(DocumentPage.id)

@@ -46,6 +46,14 @@ def display_names(db: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
     return {uid: name for uid, name in rows}
 
 
+def active_emails(db: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
+    """Email của người dùng đang hoạt động (gửi nhắc hiệu lực FR-19)."""
+    if not ids:
+        return {}
+    rows = db.execute(select(User.id, User.email).where(User.id.in_(ids), User.is_active.is_(True))).all()
+    return {uid: email for uid, email in rows if email}
+
+
 def user_ids_with_roles(db: Session, roles: set[str], department_id: int | None = None) -> list[uuid.UUID]:
     """Người nhận thông báo theo vai trò (Admin luôn được tính)."""
     stmt = select(User.id).join(User.roles).where(User.is_active.is_(True), Role.name.in_(roles | {"ADMIN"})).distinct()

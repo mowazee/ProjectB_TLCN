@@ -12,7 +12,7 @@ from app.modules.audit.infrastructure.models import AuditLog
 from app.modules.sharing.infrastructure.models import ShareLink
 from app.shared import email
 from app.shared.db import utcnow
-from tests.conftest import make_pdf, run_all_jobs, upload
+from tests.conftest import VALID, make_pdf, run_all_jobs, upload
 
 WF = "workflow,notifications"
 
@@ -38,7 +38,7 @@ def _published(seed, login, enqueued):
     doc = upload(owner, seed["category"].id, make_pdf(["Noi dung"]), "qd.pdf", title="Quyết định").json()["document_id"]
     run_all_jobs(enqueued)
     for c, a in ((owner, "submit"), (approver, "approve"), (approver, "publish")):
-        assert c.post(f"/api/documents/{doc}/approval/{a}").status_code == 200, a
+        assert c.post(f"/api/documents/{doc}/approval/{a}", json=VALID if a == "submit" else None).status_code == 200, a
     return owner, approver, doc
 
 

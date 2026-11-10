@@ -218,3 +218,7 @@ def run_all_jobs(enqueued: list) -> list:
         job_id, _ = enqueued.pop(0)
         outcomes.append(run_job(job_id))
     return outcomes
+
+
+# FR-19 (SDD v0.14): gửi duyệt bắt buộc chọn hiệu lực
+VALID = {"validity_status": "effective"}

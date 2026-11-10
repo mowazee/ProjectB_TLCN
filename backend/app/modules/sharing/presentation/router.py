@@ -6,7 +6,7 @@ Công khai (không đăng nhập, NFR-02): /api/public/shares/{token} [/otp, /ve
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any
 from urllib.parse import quote
 
@@ -17,6 +17,8 @@ from pydantic import BaseModel, Field
 from app.modules.auth.presentation.deps import Ctx, CurrentPrincipal, DbSession, check_origin
 from app.modules.documents.application import attachments as attachments_app
 from app.modules.documents.application import queries as documents
+from app.modules.documents.application.validity import today
+from app.modules.documents.domain.validity import effective_status
 from app.modules.sharing.application import links
 from app.shared.config import settings
 from app.shared.email import email_enabled
@@ -121,6 +123,8 @@ class PublicShareOut(BaseModel):
     recipient: str = Field(description="Email đã che một phần")
     allow_download: bool
     verified: bool
+    validity_status: str = Field(default="unspecified", description="FR-19 (v0.14): hiệu lực đã tính hết hạn")
+    valid_until: date | None = None
     file_name: str | None = None
     pages: list[PublicPage] = []
     attachments: list[PublicAttachment] = []
@@ -147,6 +151,8 @@ def public_share(token: Token, request: Request, response: Response, db: DbSessi
         "expires_at": link.expires_at,
         "recipient": links._mask(link.recipient_email),
         "allow_download": link.allow_download,
+        "validity_status": effective_status(str(doc.validity_status), doc.valid_until, today()).value,
+        "valid_until": doc.valid_until,
     }
     try:
         links.require_view(db, token, _sid(request), None)

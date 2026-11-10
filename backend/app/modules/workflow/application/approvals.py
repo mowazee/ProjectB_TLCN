@@ -7,7 +7,7 @@ một transaction. Sửa OCR không đổi approval_status (lõi không gọi mo
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -15,6 +15,8 @@ from sqlalchemy.orm import Session
 
 from app.modules.audit.application.recorder import record
 from app.modules.documents.application import queries as documents
+from app.modules.documents.application import validity
+from app.modules.documents.domain.validity import effective_status
 from app.modules.users.application.queries import display_names, user_ids_with_roles
 from app.modules.workflow.domain.state_machine import (
     ACTION_ROLES,
@@ -61,6 +63,8 @@ class ReviewItem:
     category_id: int
     submitted_by: str | None
     submitted_at: datetime | None
+    validity_status: str = "unspecified"  # FR-19 (v0.14): đã tính hết hạn
+    valid_until: date | None = None
 
 
 def _last_submitter(db: Session, document_id: uuid.UUID) -> uuid.UUID | None:
@@ -105,8 +109,10 @@ def transition(
         raise ConflictError(
             str(exc), code="INVALID_TRANSITION", details={"current_status": current, "action": action.value}
         ) from exc
-    if action == Action.SUBMIT:  # D-12: module khác (borrowing) kiểm/ghi dữ liệu đi kèm trong cùng transaction
+    if action == Action.SUBMIT:  # D-12, FR-19: hiệu lực, bản cứng kiểm/ghi trong cùng transaction
         submit_hooks.run(db, principal, doc.id, payload or {}, ctx)
+    elif action == Action.APPROVE:  # FR-19: Kiểm duyệt viên xác nhận/sửa hiệu lực khi duyệt
+        validity.apply_review(db, principal, doc, {**(payload or {}), "comments": comments}, ctx)
     if not documents.set_approval_status(db, doc.id, step.to_status, expected=step.from_status):
         raise ConflictError("Trạng thái tài liệu vừa được người khác thay đổi", code="INVALID_TRANSITION")
     # created_at tăng nghiêm ngặt theo tài liệu: đồng hồ hệ thống có thể trùng giá trị giữa hai thao tác liên tiếp
@@ -213,7 +219,15 @@ def review_queue(db: Session, principal: Principal, params: PageParams) -> tuple
             continue
         sub = submitters.get(r.document_id)
         items.append(
-            ReviewItem(r.document_id, b["title"], b["category_id"], names.get(sub) if sub else None, r.submitted_at)
+            ReviewItem(
+                r.document_id,
+                b["title"],
+                b["category_id"],
+                names.get(sub) if sub else None,
+                r.submitted_at,
+                effective_status(b["validity_status"], b["valid_until"], validity.today()).value,
+                b["valid_until"],
+            )
         )
     return items, total
 

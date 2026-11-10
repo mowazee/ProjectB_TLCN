@@ -3,7 +3,9 @@
 Mỗi bộ = một tài liệu chính (OCR) + tài liệu đi kèm (không OCR). Hai cách khai báo:
 
 1. manifest.csv (ưu tiên khi có): cột file_name (file chính), attachments (tên file đi kèm, phân cách ";"),
-   title, category, document_code. File đi kèm khai báo mà không có trong lô → lỗi riêng bộ đó.
+   title, category, document_code; từ v0.14 (FR-19) thêm validity (effective | effective_until | expired |
+   unspecified) và valid_until (yyyy-mm-dd hoặc dd/mm/yyyy).
+   File đi kèm khai báo mà không có trong lô → lỗi riêng bộ đó.
 2. Quy ước thư mục trong ZIP: thư mục con cấp 1 là một bộ khi có thư mục "dinh-kem/" hoặc file "main.*":
    - file chính = "main.*", hoặc file duy nhất ở gốc thư mục;
    - gốc thư mục chỉ có nhiều ảnh, không có main.* → gộp các ảnh theo thứ tự tên file thành một tài liệu (FR-16);

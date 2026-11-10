@@ -14,6 +14,7 @@ import {
 } from "@/shared/components/ui";
 import { APPROVAL_LABELS, formatDateTime } from "@/shared/lib/format";
 import type { DocumentSlotProps } from "@/shared/types/feature";
+import { ValidityBadge, ValidityPicker, validityIncomplete, type ValidityValue } from "@/shared/components/validity";
 
 import { useSession } from "@/shared/session";
 
@@ -49,7 +50,19 @@ export function ApprovalActions({ document }: DocumentSlotProps) {
   const physical = usePhysicalCopyChoices(document.id, askPhysical);
   const [hasCopy, setHasCopy] = useState<"yes" | "no" | null>(null);
   const [locationId, setLocationId] = useState("");
+  // FR-19: gửi duyệt bắt buộc chọn hiệu lực; Kiểm duyệt viên xác nhận/sửa khi duyệt
+  const [validity, setValidity] = useState<ValidityValue | null>(null);
   if (!state.data) return null;
+
+  const askValidity = pending === "submit" || pending === "approve";
+  const docValidity: ValidityValue = {
+    status: pending === "submit" && document.validity_status === "unspecified" ? null : document.validity_status,
+    validUntil: document.valid_until ?? "",
+  };
+  const chosenValidity = validity ?? docValidity;
+  const validityMissing = askValidity && validityIncomplete(chosenValidity);
+  const validityChanged =
+    chosenValidity.status !== document.validity_status || chosenValidity.validUntil !== (document.valid_until ?? "");
 
   const current = physical.current.data;
   const declaredLoc = current?.storage_location ?? null;
@@ -59,11 +72,21 @@ export function ApprovalActions({ document }: DocumentSlotProps) {
   const physicalMissing = askPhysical && (choice === null || (choice === "yes" && !chosenLoc));
 
   const run = (name: string) => {
-    const extra = askPhysical
+    const physicalExtra = askPhysical
       ? choice === "no"
         ? { has_physical_copy: false }
         : { has_physical_copy: true, storage_location_id: Number(chosenLoc) }
       : {};
+    const sendValidity = name === "submit" || (name === "approve" && validityChanged);
+    const extra = {
+      ...physicalExtra,
+      ...(sendValidity && chosenValidity.status
+        ? {
+            validity_status: chosenValidity.status,
+            valid_until: chosenValidity.status === "effective_until" ? chosenValidity.validUntil : null,
+          }
+        : {}),
+    };
     action.mutate(
       { action: name, comments: comments.trim() || undefined, ...extra },
       {
@@ -72,6 +95,7 @@ export function ApprovalActions({ document }: DocumentSlotProps) {
           setComments("");
           setHasCopy(null);
           setLocationId("");
+          setValidity(null);
         },
       },
     );
@@ -94,13 +118,19 @@ export function ApprovalActions({ document }: DocumentSlotProps) {
           title={`${ACTION_LABELS[pending]}: ${document.title}`}
           onClose={() => {
             setPending(null);
+            setValidity(null);
             action.reset();
           }}
           actions={
             <button
               className="btn btn-primary"
               onClick={() => run(pending)}
-              disabled={action.isPending || physicalMissing || (NEEDS_COMMENT.has(pending) && !comments.trim())}
+              disabled={
+                action.isPending ||
+                physicalMissing ||
+                validityMissing ||
+                (NEEDS_COMMENT.has(pending) && !comments.trim())
+              }
             >
               Xác nhận
             </button>
@@ -108,6 +138,18 @@ export function ApprovalActions({ document }: DocumentSlotProps) {
         >
           <ErrorBox error={action.error} />
           {HINTS[pending] && <p className="muted">{HINTS[pending]}</p>}
+          {askValidity && (
+            <>
+              {pending === "approve" && (
+                <p className="muted">
+                  Người gửi khai báo:{" "}
+                  <ValidityBadge status={document.validity_status} validUntil={document.valid_until} />. Kiểm tra và sửa
+                  nếu cần.
+                </p>
+              )}
+              <ValidityPicker value={chosenValidity} onChange={setValidity} />
+            </>
+          )}
           {askPhysical && (
             <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
               <legend>
@@ -212,6 +254,7 @@ export function ReviewsPage() {
             <thead>
               <tr>
                 <th>Tài liệu</th>
+                <th>Hiệu lực</th>
                 <th>Người gửi</th>
                 <th>Gửi lúc</th>
               </tr>
@@ -223,6 +266,9 @@ export function ReviewsPage() {
                     <Link to={`/documents/${r.document_id}`} state={{ from: "/reviews", fromLabel: "hàng chờ duyệt" }}>
                       {r.title}
                     </Link>
+                  </td>
+                  <td>
+                    <ValidityBadge status={r.validity_status} validUntil={r.valid_until} />
                   </td>
                   <td>{r.submitted_by ?? "—"}</td>
                   <td>{formatDateTime(r.submitted_at)}</td>

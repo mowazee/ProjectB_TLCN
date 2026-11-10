@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.modules.audit.infrastructure.models import AuditLog
 from app.modules.users.application.manage import create_user
-from tests.conftest import CTX, PASSWORD, make_pdf, upload
+from tests.conftest import CTX, PASSWORD, VALID, make_pdf, upload
 
 WF = "workflow"
 
@@ -25,7 +25,7 @@ def _viewer(db, seed, username="viewer", dep="dep_a"):
 
 def _publish(officer, approver, doc_id):
     for c, action in ((officer, "submit"), (approver, "approve"), (approver, "publish")):
-        body = {"has_physical_copy": False} if action == "submit" else None  # D-12 khi bật borrowing
+        body = {**VALID, "has_physical_copy": False} if action == "submit" else None  # D-12 khi bật borrowing
         assert c.post(f"/api/documents/{doc_id}/approval/{action}", json=body).status_code == 200, action
 
 

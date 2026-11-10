@@ -27,11 +27,12 @@ def need(page: Page, *flags: str) -> None:
 
 
 def submit_for_review(page: Page) -> None:
-    """Gửi duyệt; khi bật mượn hồ sơ (D-12) khai báo "không có bản cứng" (Kho chung)."""
+    """Gửi duyệt: chọn hiệu lực (FR-19); khi bật mượn hồ sơ (D-12) khai báo "không có bản cứng" (Kho chung)."""
     page.get_by_role("button", name="Gửi duyệt").click()
     dialog = page.get_by_role("dialog")
     if "borrowing" in features(page):
         dialog.get_by_label(re.compile("Không — đưa vào Kho chung")).check()
+    dialog.get_by_label("Còn hiệu lực", exact=True).check()  # FR-19: bắt buộc chọn hiệu lực
     dialog.get_by_role("button", name="Xác nhận").click()
 
 

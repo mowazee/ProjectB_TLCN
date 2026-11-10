@@ -290,6 +290,26 @@ export interface paths {
         patch: operations["update_document_api_documents__document_id__patch"];
         trace?: never;
     };
+    "/api/documents/{document_id}/validity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Validity
+         * @description FR-19: đổi hiệu lực; đã duyệt/xuất bản bắt buộc lý do (422 REASON_REQUIRED).
+         */
+        put: operations["update_validity_api_documents__document_id__validity_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/documents/{document_id}/restore": {
         parameters: {
             query?: never;
@@ -1382,6 +1402,16 @@ export interface components {
              * @description submit, has_physical_copy=true: kho/kệ
              */
             storage_location_id?: number | null;
+            /**
+             * Validity Status
+             * @description FR-19: submit (bắt buộc), approve (tùy chọn): unspecified | effective | effective_until | expired
+             */
+            validity_status?: string | null;
+            /**
+             * Valid Until
+             * @description FR-19: bắt buộc khi effective_until, ≥ hôm nay
+             */
+            valid_until?: string | null;
         };
         /** ApprovalStateOut */
         ApprovalStateOut: {
@@ -1913,6 +1943,17 @@ export interface components {
              * @description D-11: vì sao người dùng không sửa được
              */
             edit_lock_reason?: string | null;
+            /**
+             * Validity Status
+             * @description FR-19: unspecified | effective | effective_until | expired (đã tính hết hạn theo ngày hệ thống)
+             * @default unspecified
+             */
+            validity_status: string;
+            /**
+             * Valid Until
+             * @description FR-19: ngày cuối còn hiệu lực
+             */
+            valid_until?: string | null;
         };
         /** DocumentPatch */
         DocumentPatch: {
@@ -2535,6 +2576,14 @@ export interface components {
             allow_download: boolean;
             /** Verified */
             verified: boolean;
+            /**
+             * Validity Status
+             * @description FR-19 (v0.14): hiệu lực đã tính hết hạn
+             * @default unspecified
+             */
+            validity_status: string;
+            /** Valid Until */
+            valid_until?: string | null;
             /** File Name */
             file_name?: string | null;
             /**
@@ -2584,6 +2633,13 @@ export interface components {
             submitted_by: string | null;
             /** Submitted At */
             submitted_at: string | null;
+            /**
+             * Validity Status
+             * @default unspecified
+             */
+            validity_status: string;
+            /** Valid Until */
+            valid_until?: string | null;
         };
         /**
          * RoleCode
@@ -2662,6 +2718,13 @@ export interface components {
              * @default false
              */
             title_match: boolean;
+            /**
+             * Validity Status
+             * @default unspecified
+             */
+            validity_status: string;
+            /** Valid Until */
+            valid_until?: string | null;
         };
         /** SessionOut */
         SessionOut: {
@@ -2891,6 +2954,24 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** ValidityIn */
+        ValidityIn: {
+            /**
+             * Validity Status
+             * @description FR-19: unspecified | effective | effective_until | expired
+             */
+            validity_status: string;
+            /**
+             * Valid Until
+             * @description Bắt buộc khi effective_until, ≥ hôm nay
+             */
+            valid_until?: string | null;
+            /**
+             * Reason
+             * @description Bắt buộc khi đã duyệt/xuất bản (5-500)
+             */
+            reason?: string | null;
         };
         /** VerifyIn */
         VerifyIn: {
@@ -3500,6 +3581,8 @@ export interface operations {
                 lifecycle_status?: components["schemas"]["LifecycleStatus"];
                 approval_status?: components["schemas"]["ApprovalStatus"] | null;
                 shared?: string | null;
+                include_expired?: boolean;
+                validity?: string | null;
                 page?: number;
                 page_size?: number;
             };
@@ -3634,6 +3717,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["DocumentPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_validity_api_documents__document_id__validity_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidityIn"];
             };
         };
         responses: {
@@ -4200,6 +4318,8 @@ export interface operations {
                 q?: string;
                 category_id?: number | null;
                 status?: string | null;
+                include_expired?: boolean;
+                validity?: string | null;
                 page?: number;
                 page_size?: number;
             };

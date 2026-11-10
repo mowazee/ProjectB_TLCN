@@ -6,7 +6,7 @@ GET  /api/reviews                            hàng chờ duyệt (Kiểm duyệt
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends
@@ -27,6 +27,14 @@ class ApprovalIn(BaseModel):
         default=None, description="submit khi bật borrowing (D-12): tài liệu có bản cứng không"
     )
     storage_location_id: int | None = Field(default=None, description="submit, has_physical_copy=true: kho/kệ")
+    validity_status: str | None = Field(
+        default=None,
+        description="FR-19: submit (bắt buộc), approve (tùy chọn): unspecified | effective | effective_until | expired",
+    )
+    valid_until: date | None = Field(default=None, description="FR-19: bắt buộc khi effective_until, ≥ hôm nay")
+
+
+PAYLOAD_FIELDS = {"has_physical_copy", "storage_location_id", "validity_status", "valid_until"}
 
 
 class ApprovalStateOut(BaseModel):
@@ -49,6 +57,8 @@ class ReviewItemOut(BaseModel):
     category_id: int
     submitted_by: str | None
     submitted_at: datetime | None
+    validity_status: str = "unspecified"
+    valid_until: date | None = None
 
 
 @router.post("/api/documents/{document_id}/approval/{action}", response_model=ApprovalStateOut)
@@ -60,7 +70,7 @@ def do_action(
     ctx: Ctx,
     data: Annotated[ApprovalIn | None, Body()] = None,
 ) -> ApprovalStateOut:
-    payload = data.model_dump(include={"has_physical_copy", "storage_location_id"}, exclude_none=True) if data else {}
+    payload = data.model_dump(include=PAYLOAD_FIELDS, exclude_none=True) if data else {}
     approvals.transition(
         db, principal, document_id, action, comments=data.comments if data else None, ctx=ctx, payload=payload
     )

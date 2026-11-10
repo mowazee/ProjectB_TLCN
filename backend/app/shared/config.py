@@ -135,6 +135,9 @@ class Settings(BaseSettings):
     CLASSIFY_MIN_SCORE: float = 0.3
     CLASSIFY_MAX_TRAINING_DOCS: int = 300
     BORROW_REMIND_INTERVAL_SECONDS: int = 24 * 3600
+    # FR-19 (SDD v0.14): hiệu lực tài liệu - chu kỳ beat chuyển hết hạn/nhắc và số ngày nhắc trước
+    VALIDITY_CHECK_INTERVAL_SECONDS: int = 3600
+    VALIDITY_REMIND_DAYS: int = 7
     IMPORT_MAX_FILES: int = 200
     IMPORT_MAX_TOTAL_MB: int = 500  # tổng dung lượng sau giải nén
     IMPORT_MAX_ZIP_RATIO: int = 100  # chặn zip bomb: tỉ lệ nén tối đa mỗi file

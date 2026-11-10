@@ -101,3 +101,25 @@ def test_import_folder_bundles_and_manifest(seed, login, db, enqueued):
     assert doc.title == "Quyết định 12" and doc.document_code == "12/QĐ"
     names = set(db.scalars(select(DocumentAttachment.file_name).where(DocumentAttachment.document_id == doc.id)))
     assert names == {"pl1.txt", "pl2.txt"}
+
+
+def test_manifest_validity_columns_fr19(seed, login, db, enqueued):
+    """FR-19 (SDD v0.14): manifest.csv có cột validity, valid_until; giá trị sai chỉ làm lỗi bộ đó."""
+    c = login("officer", features=F)
+    manifest = (
+        "file_name,title,validity,valid_until\n"
+        "a.pdf,Còn hiệu lực đến,effective_until,31/12/2099\n"
+        "b.pdf,Sai hiệu lực,khong-hop-le,\n"
+        "c.pdf,Không khai báo,,\n"
+    ).encode()
+    files = [("files", (n, make_pdf([n]), "x")) for n in ("a.pdf", "b.pdf", "c.pdf")]
+    files.append(("files", ("manifest.csv", manifest, "text/csv")))
+    r = c.post("/api/imports", data={"category_id": str(seed["category"].id)}, files=files)
+    job_id = UUID(r.json()["job_id"])
+    assert run_job(job_id).value == "completed"
+    by = {f["name"]: f for f in c.get(f"/api/imports/{job_id}").json()["files"]}
+    assert by["b.pdf"]["code"] == "VALIDITY_INVALID"
+    db.rollback()
+    a = db.get(Document, UUID(by["a.pdf"]["document_id"]))
+    assert str(a.validity_status) == "effective_until" and a.valid_until.isoformat() == "2099-12-31"
+    assert str(db.get(Document, UUID(by["c.pdf"]["document_id"])).validity_status) == "unspecified"

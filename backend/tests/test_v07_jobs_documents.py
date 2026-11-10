@@ -9,7 +9,7 @@ from app.modules.jobs.domain.model import JobStatus
 from app.modules.jobs.infrastructure.models import ProcessingJob
 from app.shared.config import settings
 from app.shared.db import utcnow
-from tests.conftest import make_png, run_all_jobs, upload
+from tests.conftest import VALID, make_png, run_all_jobs, upload
 
 WF = "workflow"
 
@@ -105,7 +105,7 @@ def test_document_list_filters_by_approval_status(seed, login):
     officer, approver = login("officer", features=WF), login("approver", features=WF)
     draft, _ = _doc(officer, seed, "Nhap")
     sent, _ = _doc(officer, seed, "Gui")
-    assert officer.post(f"/api/documents/{sent}/approval/submit").status_code == 200
+    assert officer.post(f"/api/documents/{sent}/approval/submit", json=VALID).status_code == 200
 
     def ids(status):
         resp = officer.get("/api/documents", params={"approval_status": status})

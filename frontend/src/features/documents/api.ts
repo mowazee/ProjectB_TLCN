@@ -23,6 +23,9 @@ export interface DocumentFilters {
   lifecycle_status?: "active" | "deleted";
   /** FR-13: "with_me" = tài liệu người khác chia sẻ tới mình */
   shared?: "with_me";
+  /** FR-19: mặc định ẩn tài liệu hết hiệu lực */
+  include_expired?: boolean;
+  validity?: string;
 }
 
 export const documentKeys = {
@@ -65,6 +68,25 @@ export function useUpdateDocument(id: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (patch: DocumentPatch) => api<DocumentOut>(`/api/documents/${id}`, { method: "PATCH", json: patch }),
+    onSuccess: (doc) => {
+      client.setQueryData(documentKeys.detail(id), doc);
+      client.invalidateQueries({ queryKey: documentKeys.all });
+    },
+  });
+}
+
+export interface ValidityInput {
+  validity_status: string;
+  valid_until?: string | null;
+  reason?: string;
+}
+
+/** FR-19: đổi hiệu lực (đã duyệt/xuất bản bắt buộc lý do). */
+export function useUpdateValidity(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ValidityInput) =>
+      api<DocumentOut>(`/api/documents/${id}/validity`, { method: "PUT", json: body }),
     onSuccess: (doc) => {
       client.setQueryData(documentKeys.detail(id), doc);
       client.invalidateQueries({ queryKey: documentKeys.all });

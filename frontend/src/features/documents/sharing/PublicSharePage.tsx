@@ -6,6 +6,7 @@ import { useParams } from "react-router";
 import { ApiError, api } from "@/shared/api/client";
 import type { PublicShare } from "@/shared/api/types";
 import { ErrorBox, Field, Loading } from "@/shared/components/ui";
+import { ValidityBadge } from "@/shared/components/validity";
 import { formatBytes, formatDateTime } from "@/shared/lib/format";
 
 import s from "./sharing.module.css";
@@ -91,7 +92,10 @@ export function PublicSharePage() {
             <h1>
               <FileText size={22} aria-hidden /> {d.title}
             </h1>
-            <p className="muted">Link hết hạn lúc {formatDateTime(d.expires_at)}.</p>
+            <p className="muted">
+              Hiệu lực tài liệu: <ValidityBadge status={d.validity_status} validUntil={d.valid_until} /> · Link hết hạn
+              lúc {formatDateTime(d.expires_at)}.
+            </p>
             {d.allow_download ? (
               <div className="row">
                 <a className="btn btn-primary" href={`${base}/file`} download>

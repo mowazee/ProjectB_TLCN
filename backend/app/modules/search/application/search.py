@@ -6,11 +6,14 @@ có pages rỗng và title_match; tài liệu khớp cả tên lẫn nội dung 
 
 import uuid
 from dataclasses import dataclass, field
+from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.modules.documents.application.queries import document_brief, document_titles, visible_document_ids
+from app.modules.documents.application.validity import today
+from app.modules.documents.domain.validity import effective_status
 from app.modules.jobs.application.queries import latest_status_subquery
 from app.modules.search.domain.normalize import fold, nfc, normalize_query
 from app.modules.search.infrastructure.tables import document_pages, ocr_corrections, ocr_results
@@ -37,6 +40,8 @@ class DocumentHit:
     category_id: int
     pages: list[PageHit] = field(default_factory=list)
     title_match: bool = False
+    validity_status: str = "unspecified"  # FR-19 (v0.14): đã tính hết hạn
+    valid_until: date | None = None
 
 
 def _snippet(page_number: int, text: str, nq: str) -> PageHit:
@@ -61,7 +66,10 @@ def search(
     *,
     category_id: int | None = None,
     status: str | None = None,
+    include_expired: bool = False,
+    validity: str | None = None,
 ) -> tuple[list[DocumentHit], int]:
+    """FR-19: mặc định không trả tài liệu hết hiệu lực (include_expired=True hoặc validity để hiện)."""
     nq = normalize_query(q)
     if not nq:
         return [], 0
@@ -70,7 +78,10 @@ def search(
         if is_postgres(db)
         else ocr_results.c.search_vector.contains(nq, autoescape=True)
     )
-    allowed = visible_document_ids(principal, category_id=category_id)
+    now = today()
+    allowed = visible_document_ids(
+        principal, category_id=category_id, today=now, include_expired=include_expired, validity=validity
+    )
     if status:
         latest = latest_status_subquery()
         allowed = allowed.where(
@@ -121,5 +132,10 @@ def search(
         both = h.title_match and bool(h.pages)
         return (1 if both else 0, briefs.get(h.document_id, {}).get("created_at") or "")
 
+    for h in groups.values():
+        b = briefs.get(h.document_id, {})
+        if b:
+            h.validity_status = effective_status(b["validity_status"], b["valid_until"], now).value
+            h.valid_until = b["valid_until"]
     ordered = sorted(groups.values(), key=rank, reverse=True)
     return ordered[params.offset : params.offset + params.page_size], len(ordered)

@@ -22,6 +22,8 @@ from sqlalchemy.orm import Session
 
 from app.modules.audit.application.recorder import record
 from app.modules.documents.application import queries as documents
+from app.modules.documents.application.validity import today
+from app.modules.documents.domain.validity import effective_status, label
 from app.modules.jobs.application.create import create_job
 from app.modules.jobs.domain.model import JobError
 from app.modules.sharing.infrastructure.models import ShareLink
@@ -158,7 +160,8 @@ def create_link(
     db.flush()
     url = f"{settings.PUBLIC_BASE_URL.rstrip('/')}/s/{token}"
     text = (
-        f'Bạn được chia sẻ tài liệu "{doc.title}".\n\n'
+        f'Bạn được chia sẻ tài liệu "{doc.title}".\n'
+        f"Hiệu lực: {label(effective_status(str(doc.validity_status), doc.valid_until, today()), doc.valid_until)}.\n\n"
         f"Mở link sau và nhập mã xác thực được gửi tới email này:\n{url}\n\n"
         f"Link hết hạn lúc {link.expires_at:%H:%M %d/%m/%Y} (UTC). "
         f"{'Được phép tải tài liệu.' if allow_download else 'Chỉ được xem, không tải.'}\n"
