@@ -6,6 +6,7 @@ Chỉ xóa log vận hành:
 - dòng thuộc nhóm đọc (xem, tải, xác thực/xem/tải qua link ngoài).
 """
 
+import uuid
 from datetime import datetime
 
 from sqlalchemy import delete, or_
@@ -32,4 +33,12 @@ def delete_older_than(db: Session, cutoff: datetime) -> int:
         or_(AuditLog.document_id.is_(None), AuditLog.action.in_(READ_ACTIONS)),
     )
     result = db.execute(stmt.execution_options(synchronize_session=False))
+    return int(getattr(result, "rowcount", 0) or 0)
+
+
+def delete_for_document(db: Session, document_id: uuid.UUID) -> int:
+    """Xóa toàn bộ nhật ký của một tài liệu khi tài liệu bị xóa vĩnh viễn (quá hạn thùng rác). Không commit."""
+    result = db.execute(
+        delete(AuditLog).where(AuditLog.document_id == document_id).execution_options(synchronize_session=False)
+    )
     return int(getattr(result, "rowcount", 0) or 0)

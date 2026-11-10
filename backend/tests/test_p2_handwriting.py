@@ -73,7 +73,11 @@ def test_bulk_import_handwritten_batch_goes_to_hw_queue(seed, login, db, enqueue
     r = c.post(
         "/api/imports",
         data={"category_id": str(seed["category"].id), "is_handwritten": "true"},
-        files=[("files", ("a.png", make_png(), "image/png")), ("files", ("b.png", make_png(), "image/png"))],
+        files=[
+            ("files", ("a.png", make_png(), "image/png")),
+            ("files", ("b.png", make_png(), "image/png")),
+            ("files", ("manifest.csv", b"file_name\na.png\nb.png\n", "text/csv")),
+        ],
     )
     assert r.status_code == 202, r.text
     import_job = UUID(r.json()["job_id"])

@@ -8,13 +8,13 @@ Chạy lại không tạo trùng: trạng thái từng file nằm trong job.resu
 với tài liệu tạo ra (create_document_from_bytes commit cả hai), nên file đã nhập sẽ được bỏ qua.
 
 Danh mục (D-10 mở rộng cho P2-08): cả lô chọn "Danh mục gợi ý" (category_mode = auto: mỗi tài liệu vào "Chưa phân
-loại", job CLASSIFY tự áp dụng sau OCR) hoặc một danh mục cụ thể. metadata.csv có thể ghi đè từng file: cột title,
+loại", job CLASSIFY tự áp dụng sau OCR) hoặc một danh mục cụ thể. manifest.csv có thể ghi đè từng file: cột title,
 category (mã danh mục) và document_code (số hiệu). Mã danh mục sai/ngừng dùng chỉ làm lỗi file đó. Tài liệu từ lô
 không gửi thông báo phân loại riêng từng tài liệu (tránh hàng trăm thông báo): một thông báo khi xong lô, kết quả
 danh mục từng file xem ở báo cáo lô.
 
-FR-15 (v0.13): file có thể gom thành bộ hồ sơ (file chính + tài liệu đi kèm) qua manifest.csv hoặc quy ước thư
-mục trong ZIP (imports/domain/bundles.py); bộ sai quy ước chỉ làm lỗi bộ đó, báo cáo ghi số tài liệu đi kèm.
+v0.14: manifest.csv là cách khai báo lô duy nhất và bắt buộc (bỏ quy ước thư mục và metadata.csv): mỗi dòng là một
+bộ hồ sơ (file chính + tài liệu đi kèm FR-15, imports/domain/bundles.py); dòng sai chỉ làm lỗi bộ đó.
 """
 
 import logging
@@ -29,8 +29,8 @@ from app.modules.categories.application import manage as categories
 from app.modules.documents.application import queries as documents
 from app.modules.documents.application import validity
 from app.modules.documents.application.attachments import IncomingFile
-from app.modules.documents.application.upload import create_document_from_bytes, merge_files
-from app.modules.imports.domain.archive import ArchiveError, Budget, Entry, expand_batch, parse_metadata
+from app.modules.documents.application.upload import create_document_from_bytes
+from app.modules.imports.domain.archive import MANIFEST_NAME, ArchiveError, Budget, Entry, expand_batch
 from app.modules.imports.domain.bundles import Bundle, group
 from app.modules.jobs.application import queries as jobs
 from app.modules.jobs.application.create import create_job
@@ -62,7 +62,6 @@ def start_import(
     principal: Principal,
     *,
     files: list[StagedFile],
-    metadata: StagedFile | None,
     category_id: int | None,
     is_handwritten: bool,
     ctx: RequestContext,
@@ -74,6 +73,13 @@ def start_import(
         raise UnprocessableError("Chưa chọn file", fields={"files": "required"})
     if len(files) > settings.IMPORT_MAX_FILES:
         raise PayloadTooLargeError(f"Lô vượt quá {settings.IMPORT_MAX_FILES} file", code="TOO_MANY_FILES")
+    names = [(f.name or "").lower() for f in files]
+    if MANIFEST_NAME not in names and not any(n.endswith(".zip") for n in names):
+        raise UnprocessableError(
+            "Lô phải có manifest.csv khai báo các file cần nhập (tải kèm hoặc đặt ở gốc file ZIP)",
+            code="MANIFEST_REQUIRED",
+            fields={"files": "manifest_required"},
+        )
     if category_mode == "auto":
         if "classification" not in settings.features_enabled:
             raise UnprocessableError(
@@ -92,14 +98,14 @@ def start_import(
     total = 0
     staged: list[dict[str, str]] = []
     try:
-        for i, f in enumerate([*files, *([metadata] if metadata else [])]):
+        for i, f in enumerate(files):
             data = bytearray()
             while chunk := f.stream.read(1024 * 1024):
                 data.extend(chunk)
                 total += len(chunk)
                 if total > limit:
                     raise PayloadTooLargeError("Tổng dung lượng lô vượt giới hạn", code="BATCH_TOO_LARGE")
-            name = "metadata.csv" if (metadata is not None and f is metadata) else (f.name or f"file{i}")
+            name = f.name or f"file{i}"
             key = f"{PREFIX}/{batch}/{i:04d}"
             storage.save_bytes(key, bytes(data))
             staged.append({"key": key, "name": name})
@@ -150,13 +156,13 @@ def _unique_keys(names: list[str]) -> list[str]:
 
 
 def _file_category(db: Session, row: dict[str, str], p: dict[str, Any]) -> tuple[str, int | None]:
-    """(category_mode, category_id) cho một file: cột category của metadata.csv ưu tiên hơn cấu hình cả lô."""
+    """(category_mode, category_id) cho một file: cột category của manifest.csv ưu tiên hơn cấu hình cả lô."""
     code = row.get("category", "").strip()
     if code:
         cid = categories.id_by_code(db, code)
         if cid is None:
             raise UnprocessableError(
-                f"Không có danh mục mã '{code}' (cột category của metadata.csv)", code="CATEGORY_NOT_FOUND"
+                f"Không có danh mục mã '{code}' (cột category của manifest.csv)", code="CATEGORY_NOT_FOUND"
             )
         return "user", cid  # ngừng dùng / danh mục hệ thống: create_document_from_bytes báo lỗi riêng file này
     if p.get("category_mode") == "auto":
@@ -177,7 +183,6 @@ def run_import(ctx: Any) -> None:
         raise JobError("FILE_NOT_FOUND", "Không đọc được file của lô") from exc
     try:
         expanded = expand_batch(raw, _budget())
-        meta = parse_metadata(expanded.metadata)
         bundles, loose = group(expanded.entries, expanded.manifest)
     except ArchiveError as exc:
         raise JobError(exc.code, str(exc)) from exc
@@ -203,16 +208,13 @@ def run_import(ctx: Any) -> None:
             # Đánh dấu "importing" trong cùng transaction tạo tài liệu: lỗi thì rollback cả hai
             save(key, {"status": "importing"})
             first: Entry = item.main[0]
-            row = item.row or meta.get(first.filename.lower(), {})
+            row = item.row
             try:
                 mode, category_id = _file_category(db, row, p)
                 declared = (  # FR-19 (v0.14): cột validity, valid_until tùy chọn; sai -> lỗi riêng bộ này
                     validity.validate(row["validity"], row.get("valid_until")) if row.get("validity") else None
                 )
-                if len(item.main) > 1:  # FR-16: thư mục chỉ có ảnh -> gộp theo thứ tự tên file
-                    data, filename = merge_files([(e.filename, e.data or b"") for e in item.main])
-                else:
-                    data, filename = first.data or b"", first.filename
+                data, filename = first.data or b"", first.filename
                 doc, ocr_job = create_document_from_bytes(
                     db,
                     principal,
@@ -226,7 +228,6 @@ def run_import(ctx: Any) -> None:
                     ctx=job_ctx,
                     audit_action="import_document",
                     origin={"import_job_id": str(ctx.job_id)},
-                    merged_files=len(item.main) if len(item.main) > 1 else None,
                     attachments=[IncomingFile(a.filename, a.data or b"") for a in item.attachments],
                 )
                 if declared:

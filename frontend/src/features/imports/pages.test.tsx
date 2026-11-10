@@ -75,11 +75,11 @@ describe("ImportPage - danh mục cho cả lô (P2-08, D-10)", () => {
     expect(sentForm(calls).get("category_id")).toBe("1");
   });
 
-  it("tải file metadata.csv mẫu có đủ cột và mã danh mục thật", async () => {
+  it("tải file manifest.csv mẫu có đủ cột và mã danh mục thật", async () => {
     const user = userEvent.setup();
     renderImport(["imports", "classification"]);
     await screen.findByRole("radio", { name: /Danh mục gợi ý/ });
-    await screen.findByText(/Thông tin riêng cho từng file/);
+    await screen.findByText(/File không có trong manifest sẽ bị bỏ qua/);
     let blob: Blob | undefined;
     URL.createObjectURL = vi.fn((b: Blob) => {
       blob = b;
@@ -87,13 +87,13 @@ describe("ImportPage - danh mục cho cả lô (P2-08, D-10)", () => {
     });
     URL.revokeObjectURL = vi.fn();
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Tải file mẫu/ })).toBeEnabled());
-    await user.click(screen.getByRole("button", { name: /Tải file mẫu/ }));
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Tải manifest.csv mẫu/ })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: /Tải manifest.csv mẫu/ }));
     expect(click).toHaveBeenCalled();
     const bytes = new Uint8Array(await blob!.arrayBuffer());
     expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]); // BOM: Excel mở đúng tiếng Việt
     const text = await blob!.text(); // text() bỏ BOM khi giải mã
-    expect(text.startsWith("file_name,title,category,document_code")).toBe(true);
+    expect(text.startsWith("file_name,attachments,title,category,document_code,validity,valid_until")).toBe(true);
     expect(text).toContain(",HOP-DONG,");
   });
 });

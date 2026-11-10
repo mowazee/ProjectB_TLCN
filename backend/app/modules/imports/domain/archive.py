@@ -1,18 +1,16 @@
-"""Giải nén ZIP an toàn và đọc metadata.csv cho bulk import (P2-08, NFR-01). Thư viện chuẩn, không I/O đĩa.
+"""Giải nén ZIP an toàn và tách manifest.csv cho bulk import (P2-08, NFR-01). Thư viện chuẩn, không I/O đĩa.
 
 Chặn: đường dẫn tuyệt đối / vượt thư mục (..), file mã hóa, ZIP lồng nhau, tỉ lệ nén bất thường
 (zip bomb), tổng dung lượng sau giải nén và số file vượt cấu hình; kích thước thật được đếm khi đọc,
 không tin header.
 """
 
-import csv
 import io
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 
-METADATA_NAME = "metadata.csv"
-MANIFEST_NAME = "manifest.csv"  # FR-15 (v0.13): bộ hồ sơ có tài liệu đi kèm
+MANIFEST_NAME = "manifest.csv"  # v0.14: cách khai báo lô duy nhất (bắt buộc)
 _CHUNK = 1024 * 1024
 
 
@@ -56,7 +54,6 @@ class Budget:
 @dataclass
 class Expanded:
     entries: list[Entry] = field(default_factory=list)
-    metadata: bytes | None = None
     manifest: bytes | None = None
 
 
@@ -101,11 +98,6 @@ def expand_zip(name: str, data: bytes, budget: Budget, out: Expanded) -> None:
             base = PurePosixPath(safe).name
             if safe.startswith("__MACOSX/") or base.startswith("."):
                 continue
-            if safe.lower() == METADATA_NAME:
-                if info.file_size > 5 * 1024 * 1024:
-                    raise ArchiveError("METADATA_TOO_LARGE", "metadata.csv quá lớn")
-                out.metadata = _read_member(zf, info, budget)
-                continue
             if PurePosixPath(safe).name.lower() == MANIFEST_NAME and "/" not in safe:
                 if info.file_size > 5 * 1024 * 1024:
                     raise ArchiveError("METADATA_TOO_LARGE", "manifest.csv quá lớn")
@@ -134,9 +126,7 @@ def expand_batch(files: list[tuple[str, bytes]], budget: Budget) -> Expanded:
     """files: (tên gốc, nội dung) theo thứ tự upload. ZIP được giải nén; file khác giữ nguyên."""
     out = Expanded()
     for name, data in files:
-        if name.lower() == METADATA_NAME:
-            out.metadata = data
-        elif name.lower() == MANIFEST_NAME:
+        if name.lower() == MANIFEST_NAME:
             out.manifest = data
         elif name.lower().endswith(".zip"):
             expand_zip(name, data, budget, out)
@@ -144,25 +134,4 @@ def expand_batch(files: list[tuple[str, bytes]], budget: Budget) -> Expanded:
             budget.take_file()
             budget.take_bytes(len(data))
             out.entries.append(Entry(name, data=data))
-    return out
-
-
-def parse_metadata(data: bytes | None) -> dict[str, dict[str, str]]:
-    """metadata.csv: cột file_name (bắt buộc); title, category (mã danh mục), document_code (số hiệu) tùy chọn.
-    Khóa = tên file chữ thường; tên cột chữ thường."""
-    if not data:
-        return {}
-    try:
-        text = data.decode("utf-8-sig")
-    except UnicodeDecodeError as exc:
-        raise ArchiveError("METADATA_INVALID", "metadata.csv phải mã hóa UTF-8") from exc
-    reader = csv.DictReader(io.StringIO(text))
-    if not reader.fieldnames or "file_name" not in [f.strip().lower() for f in reader.fieldnames]:
-        raise ArchiveError("METADATA_INVALID", "metadata.csv thiếu cột file_name")
-    out: dict[str, dict[str, str]] = {}
-    for row in reader:
-        clean = {(k or "").strip().lower(): (v or "").strip() for k, v in row.items()}
-        fname = PurePosixPath(clean.get("file_name", "").replace("\\", "/")).name.lower()
-        if fname:
-            out[fname] = clean
     return out

@@ -9,6 +9,7 @@ import { classificationManifest } from "@/features/classification";
 import { dashboardManifest } from "@/features/dashboard";
 import { documentsManifest } from "@/features/documents";
 import { extractionManifest } from "@/features/extraction";
+import { guideManifest } from "@/features/guide";
 import { handwritingManifest } from "@/features/handwriting";
 import { highlightManifest } from "@/features/highlight";
 import { importsManifest } from "@/features/imports";
@@ -32,6 +33,7 @@ export const manifests: FeatureManifest[] = [
   adminManifest, // lõi MVP
   accountManifest, // FR-09 (v0.7)
   jobsManifest, // FR-11 (v0.7)
+  guideManifest, // Hướng dẫn sử dụng (v0.14)
   workflowManifest, // P2-01
   highlightManifest, // P2-02
   handwritingManifest, // P2-03

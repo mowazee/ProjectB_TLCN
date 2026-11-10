@@ -1,4 +1,4 @@
-"""P2-08 + D-10: nhập hàng loạt với Danh mục gợi ý; metadata.csv ghi đè danh mục (mã) và số hiệu từng file."""
+"""P2-08 + D-10: nhập hàng loạt với Danh mục gợi ý; manifest.csv ghi đè danh mục (mã) và số hiệu từng file."""
 
 import io
 import uuid
@@ -16,6 +16,7 @@ from tests.test_v09_auto_category import _train
 F = "imports,classification,notifications"
 CSV = (
     "file_name,title,category,document_code\n"
+    "a.png,,,\n"
     "b.png,Hợp đồng số 12,hop-dong,12/2026/HĐMB\n"  # mã không phân biệt hoa/thường
     "c.png,,KHONG-CO,\n"
     "d.png,,CHUA-PHAN-LOAI,\n"
@@ -45,7 +46,7 @@ def test_auto_mode_batch_with_metadata_overrides(seed, login, db, fake_engine, e
     unclassified_id(db)
     db.commit()
     fake_engine.lines = _lines(HOP_DONG[:1] + HOP_DONG[2:])
-    archive = _zip({n: make_png() for n in ("a.png", "b.png", "c.png", "d.png")} | {"metadata.csv": CSV.encode()})
+    archive = _zip({n: make_png() for n in ("a.png", "b.png", "c.png", "d.png")} | {"manifest.csv": CSV.encode()})
     r = _start(c, {"category_mode": "auto"}, archive)
     assert r.status_code == 202, r.text
     job_id = r.json()["job_id"]
@@ -86,8 +87,8 @@ def test_import_category_validation(seed, login, db, fake_engine, enqueued):
 
 def test_user_mode_batch_keeps_category_and_document_code_too_long(seed, login, db, fake_engine, enqueued):
     c = login("officer", features=F)
-    csv = f"file_name,document_code\nb.png,{'x' * 101}\n"
-    archive = _zip({"a.png": make_png(), "b.png": make_png(), "metadata.csv": csv.encode()})
+    csv = f"file_name,document_code\na.png,\nb.png,{'x' * 101}\n"
+    archive = _zip({"a.png": make_png(), "b.png": make_png(), "manifest.csv": csv.encode()})
     job_id = _start(c, {"category_id": str(seed["category"].id)}, archive).json()["job_id"]
     run_all_jobs(enqueued)
     report = {f["name"].removeprefix("lo.zip/"): f for f in c.get(f"/api/imports/{job_id}").json()["files"]}

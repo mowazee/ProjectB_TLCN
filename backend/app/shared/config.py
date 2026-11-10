@@ -140,6 +140,8 @@ class Settings(BaseSettings):
     VALIDITY_REMIND_DAYS: int = 7
     # FR-20 (SDD v0.14): số tài liệu tối đa mỗi lần duyệt/xuất bản/từ chối hàng loạt
     BULK_REVIEW_MAX: int = 20
+    # Hàng đợi xử lý chỉ lưu 30 ngày (job đã kết thúc; giữ job mới nhất của mỗi tài liệu và loại job)
+    JOB_RETENTION_DAYS: int = 30
     IMPORT_MAX_FILES: int = 200
     IMPORT_MAX_TOTAL_MB: int = 500  # tổng dung lượng sau giải nén
     IMPORT_MAX_ZIP_RATIO: int = 100  # chặn zip bomb: tỉ lệ nén tối đa mỗi file

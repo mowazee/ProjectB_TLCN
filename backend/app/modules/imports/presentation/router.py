@@ -1,5 +1,5 @@
 """API imports (SDD 7.2, P2-08):
-POST /api/imports            multipart nhiều file/ZIP + category_mode/category_id (+ metadata.csv) -> 202 job_id
+POST /api/imports            multipart nhiều file/ZIP kèm manifest.csv (bắt buộc) + category_mode/category_id -> 202
 GET  /api/imports/{job_id}   tiến độ + báo cáo từng file
 """
 
@@ -52,21 +52,20 @@ def start_import(
     db: DbSession,
     principal: CurrentPrincipal,
     ctx: Ctx,
-    files: Annotated[list[UploadFile], File(description="PDF/PNG/JPG hoặc ZIP")],
+    files: Annotated[
+        list[UploadFile],
+        File(description="manifest.csv (bắt buộc, hoặc ở gốc ZIP) + file chính/đi kèm, hoặc ZIP chứa tất cả"),
+    ],
     category_id: Annotated[int | None, Form(description="Bắt buộc khi category_mode = user")] = None,
     category_mode: Annotated[
         Literal["user", "auto"], Form(description="D-10: auto = Danh mục gợi ý cho cả lô (cần P2-05)")
     ] = "user",
-    metadata: Annotated[
-        UploadFile | None, File(description="metadata.csv: file_name, title, category (mã), document_code")
-    ] = None,
     is_handwritten: Annotated[bool, Form()] = False,
 ) -> ImportAccepted:
     job = batch.start_import(
         db,
         principal,
         files=[batch.StagedFile(f.filename or "", f.file) for f in files],
-        metadata=batch.StagedFile(metadata.filename or "metadata.csv", metadata.file) if metadata else None,
         category_id=category_id,
         category_mode=category_mode,
         is_handwritten=is_handwritten,

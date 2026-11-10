@@ -1517,7 +1517,7 @@ export interface components {
         Body_start_import_api_imports_post: {
             /**
              * Files
-             * @description PDF/PNG/JPG hoặc ZIP
+             * @description manifest.csv (bắt buộc, hoặc ở gốc ZIP) + file chính/đi kèm, hoặc ZIP chứa tất cả
              */
             files: string[];
             /**
@@ -1532,11 +1532,6 @@ export interface components {
              * @enum {string}
              */
             category_mode: "user" | "auto";
-            /**
-             * Metadata
-             * @description metadata.csv: file_name, title, category (mã), document_code
-             */
-            metadata?: string | null;
             /**
              * Is Handwritten
              * @default false
