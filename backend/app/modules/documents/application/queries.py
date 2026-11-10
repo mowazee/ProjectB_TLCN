@@ -285,6 +285,11 @@ def set_approval_status(
     return bool(getattr(result, "rowcount", 0))
 
 
+def document_titles(db: Session, allowed: Select[Any]) -> list[tuple[uuid.UUID, str]]:
+    """(id, title) của các tài liệu trong tập allowed (thường là visible_document_ids) — FR-06 v0.13 tìm theo tên."""
+    return [(r[0], r[1]) for r in db.execute(select(Document.id, Document.title).where(Document.id.in_(allowed))).all()]
+
+
 def document_brief(db: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, dict[str, Any]]:
     if not ids:
         return {}

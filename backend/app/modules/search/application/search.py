@@ -1,4 +1,8 @@
-"""UC-04 Tìm kiếm (FR-06): trên text hiệu lực, trong visible_document_ids(user), nhóm theo tài liệu."""
+"""UC-04 Tìm kiếm (FR-06): trên text hiệu lực, trong visible_document_ids(user), nhóm theo tài liệu.
+
+Từ v0.13 tìm theo nội dung khớp cả tên tài liệu (không phân biệt hoa thường, dấu): tài liệu chỉ khớp tên
+có pages rỗng và title_match; tài liệu khớp cả tên lẫn nội dung xếp trước.
+"""
 
 import uuid
 from dataclasses import dataclass, field
@@ -6,7 +10,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.modules.documents.application.queries import document_brief, visible_document_ids
+from app.modules.documents.application.queries import document_brief, document_titles, visible_document_ids
 from app.modules.jobs.application.queries import latest_status_subquery
 from app.modules.search.domain.normalize import fold, nfc, normalize_query
 from app.modules.search.infrastructure.tables import document_pages, ocr_corrections, ocr_results
@@ -32,6 +36,7 @@ class DocumentHit:
     title: str
     category_id: int
     pages: list[PageHit] = field(default_factory=list)
+    title_match: bool = False
 
 
 def _snippet(page_number: int, text: str, nq: str) -> PageHit:
@@ -96,7 +101,8 @@ def search(
         ).all():
             corrected[pid] = text
 
-    briefs = document_brief(db, {r[2] for r in rows})
+    title_ids = {doc_id for doc_id, title in document_titles(db, allowed) if nq in fold(nfc(title or ""))}
+    briefs = document_brief(db, {r[2] for r in rows} | title_ids)
     groups: dict[uuid.UUID, DocumentHit] = {}
     for raw_text, page_id, doc_id, page_number in rows:
         hit = groups.get(doc_id)
@@ -105,5 +111,15 @@ def search(
             hit = DocumentHit(doc_id, b.get("title", ""), b.get("category_id", 0))
             groups[doc_id] = hit
         hit.pages.append(_snippet(page_number, corrected.get(page_id, raw_text), nq))
-    ordered = sorted(groups.values(), key=lambda h: briefs.get(h.document_id, {}).get("created_at") or "", reverse=True)
+    for doc_id in title_ids:
+        if doc_id not in groups:
+            b = briefs.get(doc_id, {})
+            groups[doc_id] = DocumentHit(doc_id, b.get("title", ""), b.get("category_id", 0))
+        groups[doc_id].title_match = True
+
+    def rank(h: DocumentHit) -> tuple[int, str]:
+        both = h.title_match and bool(h.pages)
+        return (1 if both else 0, briefs.get(h.document_id, {}).get("created_at") or "")
+
+    ordered = sorted(groups.values(), key=rank, reverse=True)
     return ordered[params.offset : params.offset + params.page_size], len(ordered)

@@ -1,4 +1,4 @@
-"""GET /api/search?q=… (SDD mục 7.1): document_id, pages, snippets; lọc quyền; phân trang."""
+"""GET /api/search?q=… (SDD mục 7.1): document_id, pages, snippets; lọc quyền; phân trang; khớp cả tên (v0.13)."""
 
 import uuid
 from typing import Annotated
@@ -27,6 +27,7 @@ class SearchHitOut(BaseModel):
     title: str
     category_name: str | None
     pages: list[PageHitOut]
+    title_match: bool = False
 
 
 @router.get("", response_model=Page[SearchHitOut])
@@ -46,6 +47,7 @@ def search_documents(
             title=h.title,
             category_name=cats.get(h.category_id),
             pages=[PageHitOut(**p.__dict__) for p in h.pages],
+            title_match=h.title_match,
         )
         for h in hits
     ]

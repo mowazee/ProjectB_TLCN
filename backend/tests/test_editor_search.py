@@ -116,3 +116,22 @@ def test_list_filters(seed, login, fake_engine, enqueued):
     page = c.get("/api/documents", params={"page_size": 2, "page": 2}).json()
     assert page["total"] == 3 and len(page["items"]) == 1
     assert c.get("/api/documents", params={"q": "liệu 1"}).json()["total"] == 1
+
+
+def test_search_matches_title(seed, login, fake_engine, enqueued):
+    """FR-06 v0.13: tìm theo nội dung khớp cả tên tài liệu; khớp cả hai xếp trước; vẫn lọc quyền."""
+    only_title = _processed(seed, login, enqueued, make_png(), "a.png", title="Quyết định Khen thưởng")
+    both = _processed(
+        seed, login, enqueued, make_pdf(["Danh sách khen thưởng năm 2026"]), "b.pdf", title="Khen thưởng quý 3"
+    )
+    c = login("officer")
+    res = c.get("/api/search", params={"q": "KHEN THUONG"}).json()
+    assert res["total"] == 2
+    first, second = res["items"]
+    assert first["document_id"] == both and first["title_match"] and first["pages"]
+    assert second["document_id"] == only_title and second["title_match"] and second["pages"] == []
+    content_only = c.get("/api/search", params={"q": "danh sach"}).json()["items"]
+    assert [h["title_match"] for h in content_only] == [False]
+    assert login("officerb").get("/api/search", params={"q": "khen thuong"}).json()["total"] == 0
+    c.delete(f"/api/documents/{only_title}")
+    assert c.get("/api/search", params={"q": "khen thuong"}).json()["total"] == 1
