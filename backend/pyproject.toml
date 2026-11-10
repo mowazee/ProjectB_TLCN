@@ -50,7 +50,7 @@ containers = [
     "app.modules.auth", "app.modules.users", "app.modules.categories", "app.modules.documents",
     "app.modules.jobs", "app.modules.ocr", "app.modules.search", "app.modules.dashboard", "app.modules.audit",
     "app.modules.notifications", "app.modules.workflow", "app.modules.extraction", "app.modules.classification",
-    "app.modules.borrowing", "app.modules.imports", "app.modules.rollback",
+    "app.modules.borrowing", "app.modules.imports", "app.modules.rollback", "app.modules.settings",
 ]
 layers = ["presentation", "application", "infrastructure", "domain"]
 exhaustive = false
@@ -62,7 +62,7 @@ source_modules = [
     "app.modules.users.domain", "app.modules.documents.domain", "app.modules.jobs.domain",
     "app.modules.ocr.domain", "app.modules.search.domain", "app.modules.workflow.domain",
     "app.modules.extraction.domain", "app.modules.classification.domain", "app.modules.borrowing.domain",
-    "app.modules.imports.domain",
+    "app.modules.imports.domain", "app.modules.settings.domain",
 ]
 forbidden_modules = ["fastapi", "sqlalchemy", "celery"]
 
@@ -76,6 +76,7 @@ source_modules = [
     "app.modules.notifications.application", "app.modules.workflow.application",
     "app.modules.extraction.application", "app.modules.classification.application",
     "app.modules.borrowing.application", "app.modules.imports.application", "app.modules.rollback.application",
+    "app.modules.settings.application",
 ]
 forbidden_modules = ["fastapi"]
 
@@ -88,6 +89,7 @@ modules = [
     "app.modules.ocr.infrastructure", "app.modules.search.infrastructure", "app.modules.audit.infrastructure",
     "app.modules.notifications.infrastructure", "app.modules.workflow.infrastructure",
     "app.modules.extraction.infrastructure", "app.modules.borrowing.infrastructure",
+    "app.modules.settings.infrastructure",
 ]
 ignore_imports = [
     # P2-07 gắn cột documents.storage_location_id: cần bảng documents đã nạp (chỉ dùng metadata)
@@ -103,7 +105,8 @@ source_modules = [
     "app.modules.ocr.presentation.router", "app.modules.ocr.module", "app.modules.search.application.search",
     "app.modules.search.application.index", "app.modules.search.domain.normalize",
     "app.modules.search.infrastructure", "app.modules.search.presentation.router",
-    "app.modules.search.module", "app.modules.dashboard", "app.modules.audit", "app.shared",
+    "app.modules.search.module", "app.modules.dashboard", "app.modules.audit", "app.modules.settings",
+    "app.shared",
 ]
 forbidden_modules = [
     "app.modules.workflow", "app.modules.notifications", "app.modules.borrowing", "app.modules.extraction",

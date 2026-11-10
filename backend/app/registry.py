@@ -21,6 +21,7 @@ from app.modules.ocr import module as ocr
 from app.modules.rollback import module as rollback
 from app.modules.search import highlight_module
 from app.modules.search import module as search
+from app.modules.settings import module as system_settings
 from app.modules.users import module as users
 from app.modules.workflow import module as workflow
 from app.shared.config import Settings, settings
@@ -36,6 +37,7 @@ ALL_MODULES: list[ModuleSpec] = [
     search.MODULE,
     dashboard.MODULE,
     audit.MODULE,  # lõi MVP
+    system_settings.MODULE,  # FR-14 (v0.13, lõi)
     notifications.MODULE,  # P2-07 (Notifier dùng chung với P2-01)
     workflow.MODULE,  # P2-01
     highlight_module.MODULE,  # P2-02

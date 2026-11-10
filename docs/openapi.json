@@ -1979,6 +1979,66 @@
         }
       }
     },
+    "/api/admin/settings": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get Settings",
+        "operationId": "get_settings_api_admin_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Put Settings",
+        "operationId": "put_settings_api_admin_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/notifications": {
       "get": {
         "tags": [
@@ -6782,6 +6842,54 @@
           "features"
         ],
         "title": "SessionOut"
+      },
+      "SettingsIn": {
+        "properties": {
+          "trash_retention_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trash Retention Days"
+          },
+          "audit_retention_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audit Retention Days"
+          }
+        },
+        "type": "object",
+        "title": "SettingsIn"
+      },
+      "SettingsOut": {
+        "properties": {
+          "trash_retention_days": {
+            "type": "integer",
+            "title": "Trash Retention Days",
+            "description": "Số ngày giữ tài liệu trong thùng rác trước khi xóa cứng"
+          },
+          "audit_retention_days": {
+            "type": "integer",
+            "title": "Audit Retention Days",
+            "description": "Số ngày lưu audit log (tối thiểu 180)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trash_retention_days",
+          "audit_retention_days"
+        ],
+        "title": "SettingsOut"
       },
       "ShareMode": {
         "type": "string",

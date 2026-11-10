@@ -542,6 +542,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_admin_settings_get"];
+        /** Put Settings */
+        put: operations["put_settings_api_admin_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notifications": {
         parameters: {
             query?: never;
@@ -2189,6 +2207,26 @@ export interface components {
             /** Features */
             features: string[];
         };
+        /** SettingsIn */
+        SettingsIn: {
+            /** Trash Retention Days */
+            trash_retention_days?: number | null;
+            /** Audit Retention Days */
+            audit_retention_days?: number | null;
+        };
+        /** SettingsOut */
+        SettingsOut: {
+            /**
+             * Trash Retention Days
+             * @description Số ngày giữ tài liệu trong thùng rác trước khi xóa cứng
+             */
+            trash_retention_days: number;
+            /**
+             * Audit Retention Days
+             * @description Số ngày lưu audit log (tối thiểu 180)
+             */
+            audit_retention_days: number;
+        };
         /**
          * ShareMode
          * @description D-09 (SDD v0.8): chế độ chia sẻ, chỉ có hiệu lực khi tài liệu đã xuất bản.
@@ -3609,6 +3647,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_AuditLogOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settings_api_admin_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsOut"];
+                };
+            };
+        };
+    };
+    put_settings_api_admin_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsOut"];
                 };
             };
             /** @description Validation Error */
