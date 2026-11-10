@@ -2491,6 +2491,439 @@
         }
       }
     },
+    "/api/documents/{document_id}/external-shares": {
+      "get": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "List Links",
+        "operationId": "list_links_api_documents__document_id__external_shares_get",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinksOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Create Link",
+        "operationId": "create_link_api_documents__document_id__external_shares_post",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/external-shares/{link_id}": {
+      "delete": {
+        "tags": [
+          "sharing"
+        ],
+        "summary": "Revoke Link",
+        "operationId": "revoke_link_api_external_shares__link_id__delete",
+        "parameters": [
+          {
+            "name": "link_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Link Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/shares/{token}": {
+      "get": {
+        "tags": [
+          "sharing-public"
+        ],
+        "summary": "Public Share",
+        "operationId": "public_share_api_public_shares__token__get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 100,
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicShareOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/shares/{token}/otp": {
+      "post": {
+        "tags": [
+          "sharing-public"
+        ],
+        "summary": "Request Otp",
+        "operationId": "request_otp_api_public_shares__token__otp_post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 100,
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtpOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/shares/{token}/verify": {
+      "post": {
+        "tags": [
+          "sharing-public"
+        ],
+        "summary": "Verify",
+        "operationId": "verify_api_public_shares__token__verify_post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 100,
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/shares/{token}/pages/{page_number}/image": {
+      "get": {
+        "tags": [
+          "sharing-public"
+        ],
+        "summary": "Page Image",
+        "operationId": "page_image_api_public_shares__token__pages__page_number__image_get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 100,
+              "title": "Token"
+            }
+          },
+          {
+            "name": "page_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Page Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/shares/{token}/file": {
+      "get": {
+        "tags": [
+          "sharing-public"
+        ],
+        "summary": "Download File",
+        "operationId": "download_file_api_public_shares__token__file_get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 100,
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/shares/{token}/attachments/{attachment_id}": {
+      "get": {
+        "tags": [
+          "sharing-public"
+        ],
+        "summary": "Download Attachment",
+        "operationId": "download_attachment_api_public_shares__token__attachments__attachment_id__get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 100,
+              "title": "Token"
+            }
+          },
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/shares/{token}/bundle": {
+      "get": {
+        "tags": [
+          "sharing-public"
+        ],
+        "summary": "Download Bundle",
+        "operationId": "download_bundle_api_public_shares__token__bundle_get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 100,
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/notifications": {
       "get": {
         "tags": [
@@ -6549,6 +6982,165 @@
         ],
         "title": "LifecycleStatus"
       },
+      "LinkCreated": {
+        "properties": {
+          "link": {
+            "$ref": "#/components/schemas/LinkOut"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Chỉ trả một lần; đã gửi qua email cho người nhận"
+          }
+        },
+        "type": "object",
+        "required": [
+          "link",
+          "url"
+        ],
+        "title": "LinkCreated"
+      },
+      "LinkIn": {
+        "properties": {
+          "recipient_email": {
+            "type": "string",
+            "maxLength": 255,
+            "title": "Recipient Email"
+          },
+          "expires_in_hours": {
+            "type": "integer",
+            "title": "Expires In Hours",
+            "description": "1 đến EXTERNAL_SHARE_MAX_HOURS (24)",
+            "default": 24
+          },
+          "allow_download": {
+            "type": "boolean",
+            "title": "Allow Download",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "recipient_email"
+        ],
+        "title": "LinkIn"
+      },
+      "LinkOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "recipient_email": {
+            "type": "string",
+            "title": "Recipient Email"
+          },
+          "allow_download": {
+            "type": "boolean",
+            "title": "Allow Download"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "email_status": {
+            "type": "string",
+            "title": "Email Status"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "last_accessed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Accessed At"
+          },
+          "access_count": {
+            "type": "integer",
+            "title": "Access Count"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "recipient_email",
+          "allow_download",
+          "expires_at",
+          "revoked_at",
+          "email_status",
+          "created_by",
+          "created_at",
+          "last_accessed_at",
+          "access_count",
+          "status"
+        ],
+        "title": "LinkOut"
+      },
+      "LinksOut": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Đã cấu hình SMTP (chưa thì ẩn tính năng)"
+          },
+          "max_hours": {
+            "type": "integer",
+            "title": "Max Hours"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LinkOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "max_hours",
+          "items"
+        ],
+        "title": "LinksOut"
+      },
       "LocationIn": {
         "properties": {
           "name": {
@@ -6751,6 +7343,19 @@
           "unread"
         ],
         "title": "NotificationPage"
+      },
+      "OtpOut": {
+        "properties": {
+          "sent_to": {
+            "type": "string",
+            "title": "Sent To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sent_to"
+        ],
+        "title": "OtpOut"
       },
       "OwnerRef": {
         "properties": {
@@ -7197,6 +7802,115 @@
           "new_password"
         ],
         "title": "PasswordIn"
+      },
+      "PublicAttachment": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name"
+          },
+          "bytes": {
+            "type": "integer",
+            "title": "Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "file_name",
+          "bytes"
+        ],
+        "title": "PublicAttachment"
+      },
+      "PublicPage": {
+        "properties": {
+          "page_number": {
+            "type": "integer",
+            "title": "Page Number"
+          },
+          "width": {
+            "type": "integer",
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "title": "Height"
+          }
+        },
+        "type": "object",
+        "required": [
+          "page_number",
+          "width",
+          "height"
+        ],
+        "title": "PublicPage"
+      },
+      "PublicShareOut": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "recipient": {
+            "type": "string",
+            "title": "Recipient",
+            "description": "Email đã che một phần"
+          },
+          "allow_download": {
+            "type": "boolean",
+            "title": "Allow Download"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/PublicPage"
+            },
+            "type": "array",
+            "title": "Pages",
+            "default": []
+          },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/PublicAttachment"
+            },
+            "type": "array",
+            "title": "Attachments",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "expires_at",
+          "recipient",
+          "allow_download",
+          "verified"
+        ],
+        "title": "PublicShareOut"
       },
       "ReprocessIn": {
         "properties": {
@@ -8105,6 +8819,21 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VerifyIn": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 10,
+            "minLength": 4,
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "VerifyIn"
       },
       "VersionOut": {
         "properties": {

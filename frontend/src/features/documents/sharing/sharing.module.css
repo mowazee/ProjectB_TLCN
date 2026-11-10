@@ -338,3 +338,33 @@
     display: none;
   }
 }
+.publicPage {
+  min-height: 100vh;
+  padding: 24px 16px;
+  background: var(--c-bg);
+  display: flex;
+  justify-content: center;
+}
+.publicCard {
+  width: 100%;
+  max-width: 900px;
+  height: fit-content;
+}
+.publicCard h1 {
+  font-size: 1.3rem;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+}
+.publicH2 {
+  font-size: 1rem;
+  margin: 0;
+}
+.publicImg {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-paper);
+}

@@ -68,3 +68,6 @@ export interface Paged<T> {
 export type SystemSettings = S["SettingsOut"];
 export type Analytics = S["AnalyticsOut"];
 export type Attachment = S["AttachmentOut"];
+export type ExternalLinks = S["LinksOut"];
+export type ExternalLinkCreated = S["LinkCreated"];
+export type PublicShare = S["PublicShareOut"];

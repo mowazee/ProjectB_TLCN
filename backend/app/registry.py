@@ -23,6 +23,7 @@ from app.modules.rollback import module as rollback
 from app.modules.search import highlight_module
 from app.modules.search import module as search
 from app.modules.settings import module as system_settings
+from app.modules.sharing import module as sharing
 from app.modules.users import module as users
 from app.modules.workflow import module as workflow
 from app.shared.config import Settings, settings
@@ -40,6 +41,7 @@ ALL_MODULES: list[ModuleSpec] = [
     audit.MODULE,  # lõi MVP
     system_settings.MODULE,  # FR-14 (v0.13, lõi)
     analytics.MODULE,  # FR-17 (v0.13, lõi)
+    sharing.MODULE,  # FR-18 (v0.13, lõi; cần SMTP)
     notifications.MODULE,  # P2-07 (Notifier dùng chung với P2-01)
     workflow.MODULE,  # P2-01
     highlight_module.MODULE,  # P2-02

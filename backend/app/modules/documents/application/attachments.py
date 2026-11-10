@@ -57,6 +57,11 @@ def list_attachments(db: Session, principal: Principal, document_id: uuid.UUID) 
     return _list(db, document_id)
 
 
+def list_for_document(db: Session, document_id: uuid.UUID) -> list[DocumentAttachment]:
+    """Không kiểm quyền: dùng cho link chia sẻ ra ngoài (FR-18) sau khi đã kiểm link."""
+    return _list(db, document_id)
+
+
 def _list(db: Session, document_id: uuid.UUID) -> list[DocumentAttachment]:
     return list(
         db.scalars(
@@ -231,16 +236,7 @@ def bundle(db: Session, principal: Principal, document_id: uuid.UUID, ctx: Reque
     """Tải cả bộ: file gốc + tài liệu đi kèm (thư mục "di-kem/"). Trả (đường dẫn file zip tạm, tên tải về)."""
     doc = ensure_can_view(db, principal, document_id)
     items = _list(db, doc.id)
-    storage = get_storage()
-    tmp = tempfile.NamedTemporaryFile(prefix="bundle-", suffix=".zip", delete=False)  # noqa: SIM115
-    tmp.close()
-    used: set[str] = set()
-    with zipfile.ZipFile(tmp.name, "w", zipfile.ZIP_DEFLATED) as z:
-        z.write(storage.path(doc.storage_key), _unique(file_inspector.safe_filename(doc.file_name), used))
-        for att in items:
-            z.write(
-                storage.path(att.storage_key), "di-kem/" + _unique(file_inspector.safe_filename(att.file_name), used)
-            )
+    path = build_bundle(doc, items)
     record(
         db,
         action="download_bundle",
@@ -253,8 +249,26 @@ def bundle(db: Session, principal: Principal, document_id: uuid.UUID, ctx: Reque
         after={"attachments": len(items)},
     )
     db.commit()
+    return path, bundle_name(doc)
+
+
+def bundle_name(doc: Document) -> str:
     stem = file_inspector.safe_filename(doc.title or PurePath(doc.file_name).stem)
-    return Path(tmp.name), f"{PurePath(stem).stem or 'ho-so'}.zip"
+    return f"{PurePath(stem).stem or 'ho-so'}.zip"
+
+
+def build_bundle(doc: Document, items: list[DocumentAttachment]) -> Path:
+    """File zip tạm: file gốc + thư mục di-kem/ (tên trùng được đánh số). Người gọi xóa sau khi gửi."""
+    storage = get_storage()
+    tmp = tempfile.NamedTemporaryFile(prefix="bundle-", suffix=".zip", delete=False)  # noqa: SIM115
+    tmp.close()
+    used: set[str] = set()
+    with zipfile.ZipFile(tmp.name, "w", zipfile.ZIP_DEFLATED) as z:
+        z.write(storage.path(doc.storage_key), _unique(file_inspector.safe_filename(doc.file_name), used))
+        for att in items:
+            name = _unique(file_inspector.safe_filename(att.file_name), used)
+            z.write(storage.path(att.storage_key), "di-kem/" + name)
+    return Path(tmp.name)
 
 
 def iter_and_remove(path: Path, chunk: int = 64 * 1024) -> Iterator[bytes]:

@@ -36,6 +36,10 @@ class SessionStore(Protocol):
     def revoke_user(self, user_id: uuid.UUID) -> int: ...
     def incr(self, key: str, ttl_seconds: int) -> int: ...
     def reset(self, key: str) -> None: ...
+    # Giá trị có TTL (FR-18: OTP, phiên xem link chia sẻ)
+    def put_value(self, key: str, value: str, ttl_seconds: int) -> None: ...
+    def get_value(self, key: str) -> str | None: ...
+    def delete_value(self, key: str) -> None: ...
 
 
 def _new_session(user_id: uuid.UUID) -> SessionData:
@@ -107,6 +111,16 @@ class RedisSessionStore:
     def reset(self, key: str) -> None:
         self.r.delete(f"cnt:{key}")
 
+    def put_value(self, key: str, value: str, ttl_seconds: int) -> None:
+        self.r.set(f"val:{key}", value, ex=max(1, ttl_seconds))
+
+    def get_value(self, key: str) -> str | None:
+        v = self.r.get(f"val:{key}")
+        return v.decode() if isinstance(v, bytes) else v
+
+    def delete_value(self, key: str) -> None:
+        self.r.delete(f"val:{key}")
+
 
 class MemorySessionStore:
     def __init__(self, ttl: int) -> None:
@@ -114,6 +128,7 @@ class MemorySessionStore:
         self._lock = threading.Lock()
         self._sessions: dict[str, tuple[SessionData, float]] = {}
         self._counters: dict[str, tuple[int, float]] = {}
+        self._values: dict[str, tuple[str, float]] = {}
 
     def create(self, user_id: uuid.UUID) -> SessionData:
         s = _new_session(user_id)
@@ -160,6 +175,24 @@ class MemorySessionStore:
     def reset(self, key: str) -> None:
         with self._lock:
             self._counters.pop(key, None)
+
+    def put_value(self, key: str, value: str, ttl_seconds: int) -> None:
+        with self._lock:
+            self._values[key] = (value, time.monotonic() + max(1, ttl_seconds))
+
+    def get_value(self, key: str) -> str | None:
+        with self._lock:
+            item = self._values.get(key)
+            if item is None:
+                return None
+            if item[1] < time.monotonic():
+                del self._values[key]
+                return None
+            return item[0]
+
+    def delete_value(self, key: str) -> None:
+        with self._lock:
+            self._values.pop(key, None)
 
 
 @lru_cache

@@ -369,3 +369,39 @@ def count_by_department(db: Session) -> dict[int, int]:
         .group_by(Document.department_id)
     ).all()
     return {int(dep): int(n) for dep, n in rows}
+
+
+# ---------------------------------------------------------------- FR-18 chia sẻ ra ngoài (v0.13)
+def ensure_can_share(db: Session, principal: Principal, document_id: uuid.UUID) -> Document:
+    """Chủ sở hữu, Kiểm duyệt viên phòng ban của tài liệu, Admin; chỉ tài liệu đã xuất bản (như FR-13)."""
+    doc = ensure_can_view(db, principal, document_id)
+    scope = scope_of(doc)
+    if str(doc.approval_status) != ApprovalStatus.PUBLISHED.value:
+        from app.shared.errors import ConflictError
+
+        raise ConflictError("Chỉ chia sẻ được tài liệu đã xuất bản", code="DOCUMENT_NOT_PUBLISHED")
+    if not policies.can_share(principal, scope):
+        raise PermissionDeniedError(policies.denial_message(principal, scope, policies.SHARE))
+    return doc
+
+
+def shareable_document(db: Session, document_id: uuid.UUID) -> Document | None:
+    """Tài liệu còn hiệu lực cho link chia sẻ ra ngoài: chưa xóa và đang xuất bản (D-13)."""
+    doc = db.get(Document, document_id)
+    if doc is None or doc.lifecycle_status != LifecycleStatus.ACTIVE:
+        return None
+    if str(doc.approval_status) != ApprovalStatus.PUBLISHED.value:
+        return None
+    return doc
+
+
+def page_numbers(db: Session, document_id: uuid.UUID) -> list[tuple[int, int, int]]:
+    """[(số trang, rộng, cao)] của các trang đã có ảnh."""
+    return [
+        (r[0], r[1], r[2])
+        for r in db.execute(
+            select(DocumentPage.page_number, DocumentPage.width, DocumentPage.height)
+            .where(DocumentPage.document_id == document_id, DocumentPage.image_key != "")
+            .order_by(DocumentPage.page_number)
+        ).all()
+    ]
