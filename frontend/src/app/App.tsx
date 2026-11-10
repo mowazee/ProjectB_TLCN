@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { BrowserRouter, useRoutes } from "react-router";
 
 import { LoginPage, RequireAuth } from "@/features/auth";
+import { PublicSharePage } from "@/features/documents";
 import { SessionProvider, useSession } from "@/shared/session";
 import { SlotsProvider } from "@/shared/slots";
 
@@ -17,6 +18,7 @@ export function AppRoutes() {
   const nav = navItems(enabled, hasRole);
   const routes = useRoutes([
     { path: "/login", element: <LoginPage /> },
+    { path: "/s/:token", element: <PublicSharePage /> }, // FR-18: người nhận ngoài hệ thống, không đăng nhập
     {
       path: "/",
       element: (

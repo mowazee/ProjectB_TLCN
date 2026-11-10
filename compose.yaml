@@ -149,6 +149,18 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
 
+  # FR-18 (v0.13): hộp thư thử nghiệm khi phát triển - nhận mọi email (SMTP 1025), xem ở http://127.0.0.1:8025.
+  # Dùng: docker compose --profile tools up -d mailpit; trong .env đặt SMTP_HOST=mailpit, SMTP_PORT=1025,
+  # SMTP_STARTTLS=false. Chạy thật thì dùng Gmail (SMTP_HOST=smtp.gmail.com + app password), không cần service này.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    profiles: [tools]
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+    restart: unless-stopped
+    logging: *logging
+
   # P3 (học kỳ sau): vector store + worker EMBED. Chỉ giữ chỗ cho profile, chưa triển khai.
   # rag-worker:
   #   <<: *backend

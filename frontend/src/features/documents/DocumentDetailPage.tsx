@@ -1,4 +1,4 @@
-import { Lock, Download, PencilLine, Share2, Trash2 } from "lucide-react";
+import { Download, Lock, PencilLine, Send, Share2, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -37,6 +37,7 @@ import { AttachmentsTab } from "./AttachmentsTab";
 import { bundleUrl } from "./attachments";
 import { BackToList } from "./BackToList";
 import s from "./documents.module.css";
+import { ExternalShareDialog } from "./sharing/ExternalShareDialog";
 import { ShareDialog } from "./sharing/ShareDialog";
 import { ShareModeBadge } from "./sharing/ShareModeBadge";
 
@@ -131,6 +132,7 @@ export function DocumentDetailPage() {
   const { documentTabs, documentActions } = useSlots();
   const [editing, setEditing] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [external, setExternal] = useState(false); // FR-18
   const { session, hasFeature } = useSession();
 
   if (doc.isPending) return <Loading />;
@@ -186,9 +188,14 @@ export function DocumentDetailPage() {
             {/* FR-13: chủ sở hữu, Kiểm duyệt viên phòng ban, Admin chia sẻ tài liệu đã xuất bản; chưa xuất bản thì nút
                 mờ kèm lý do */}
             {d.can_share ? (
-              <button className="btn btn-primary" onClick={() => setSharing(true)}>
-                <Share2 size={16} aria-hidden /> Chia sẻ
-              </button>
+              <>
+                <button className="btn btn-primary" onClick={() => setSharing(true)}>
+                  <Share2 size={16} aria-hidden /> Chia sẻ
+                </button>
+                <button className="btn" onClick={() => setExternal(true)}>
+                  <Send size={16} aria-hidden /> Chia sẻ ra ngoài
+                </button>
+              </>
             ) : (
               canShareLater && (
                 <span title="Chỉ chia sẻ được tài liệu đã xuất bản">
@@ -288,6 +295,7 @@ export function DocumentDetailPage() {
       </div>
       {editing && <EditMetadata doc={d} onClose={() => setEditing(false)} />}
       {sharing && <ShareDialog doc={d} onClose={() => setSharing(false)} />}
+      {external && <ExternalShareDialog doc={d} onClose={() => setExternal(false)} />}
     </div>
   );
 }

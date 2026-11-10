@@ -61,6 +61,20 @@ class Settings(BaseSettings):
     MAX_ATTACHMENTS: int = 20
     MAX_ATTACHMENT_MB: int = 25
     MAX_BUNDLE_MB: int = 200
+    # FR-18 (v0.13): chia sẻ ra ngoài - SMTP (Gmail: smtp.gmail.com:587, app password), trống = tắt tính năng
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    SMTP_STARTTLS: bool = True
+    SMTP_SSL: bool = False
+    PUBLIC_BASE_URL: str = "http://127.0.0.1:8080"  # địa chỉ người nhận mở link /s/<token>
+    EXTERNAL_SHARE_MAX_HOURS: int = 24
+    SHARE_OTP_TTL_SECONDS: int = 600
+    SHARE_OTP_MAX_FAILURES: int = 5
+    SHARE_LOCK_SECONDS: int = 900
+    SHARE_RATE_PER_MINUTE: int = 30
     MAX_IMAGE_PIXELS: int = 60_000_000
 
     # Xóa mềm (D-05)
