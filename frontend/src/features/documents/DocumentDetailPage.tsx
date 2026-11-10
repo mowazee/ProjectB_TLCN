@@ -33,6 +33,8 @@ import {
   usePages,
   useUpdateDocument,
 } from "./api";
+import { AttachmentsTab } from "./AttachmentsTab";
+import { bundleUrl } from "./attachments";
 import { BackToList } from "./BackToList";
 import s from "./documents.module.css";
 import { ShareDialog } from "./sharing/ShareDialog";
@@ -159,6 +161,7 @@ export function DocumentDetailPage() {
 
   const tabs: TabDef[] = [
     { id: "pages", label: `Trang (${d.total_pages})`, render: () => <PagesGrid doc={d} /> },
+    { id: "attachments", label: "Tài liệu đi kèm", render: () => <AttachmentsTab document={d} /> },
     ...documentTabs.map((t) => ({
       id: t.id,
       label: t.label,
@@ -201,6 +204,9 @@ export function DocumentDetailPage() {
             {/* D-08: ai xem được tài liệu thì tải được file gốc (server ghi nhật ký mỗi lượt tải) */}
             <a className="btn" href={fileUrl(d.id)}>
               <Download size={16} aria-hidden /> Tải file gốc
+            </a>
+            <a className="btn" href={bundleUrl(d.id)} download>
+              <Download size={16} aria-hidden /> Tải cả bộ
             </a>
             {/* D-11: sửa theo chủ sở hữu và trạng thái duyệt; không sửa được thì nút mờ kèm lý do */}
             {can(d, "edit") ? (

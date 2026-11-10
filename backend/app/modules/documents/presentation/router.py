@@ -12,15 +12,18 @@ GET    /api/documents/{id}/pages/{p}/image  ảnh trang (người xem được t
 
 import uuid
 from typing import Annotated, Literal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, Path, Query, Response, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from app.modules.auth.presentation.deps import Ctx, CurrentPrincipal, DbSession
+from app.modules.documents.application import attachments as attachments_app
 from app.modules.documents.application import files, manage, sharing, upload
 from app.modules.documents.application.queries import ensure_can_view, list_pages
 from app.modules.documents.domain.lifecycle import ApprovalStatus, LifecycleStatus
 from app.modules.documents.presentation.schemas import (
+    AttachmentOut,
     DocumentOut,
     DocumentPatch,
     PageSummary,
@@ -56,7 +59,12 @@ def upload_document(
     ] = "user",
     title: Annotated[str | None, Form(max_length=255)] = None,
     is_handwritten: Annotated[bool, Form(description="P2-03 (khi cờ handwriting bật)")] = False,
+    attachments: Annotated[
+        list[UploadFile] | None, File(description="FR-15 (v0.13): tài liệu đi kèm, không OCR")
+    ] = None,
+    keep_originals: Annotated[bool, Form(description="FR-16: giữ các file gốc khi gộp làm tài liệu đi kèm")] = False,
 ) -> UploadOut:
+    extra = [attachments_app.read_upload(a.file, a.filename) for a in attachments or []]
     if files and file is not None:
         raise UnprocessableError("Chỉ gửi file hoặc files, không gửi cả hai", fields={"files": "conflict"})
     if files:
@@ -69,6 +77,8 @@ def upload_document(
             is_handwritten=is_handwritten,
             ctx=ctx,
             category_mode=category_mode,
+            attachments=extra,
+            keep_originals=keep_originals,
         )
     elif file is not None:
         doc, job = upload.upload_document(
@@ -81,6 +91,7 @@ def upload_document(
             is_handwritten=is_handwritten,
             ctx=ctx,
             category_mode=category_mode,
+            attachments=extra,
         )
     else:
         raise UnprocessableError("Hãy chọn file để tải lên", code="FILE_REQUIRED", fields={"file": "required"})
@@ -187,3 +198,51 @@ def page_image(
 ) -> FileResponse:
     path = files.page_image_path(db, principal, document_id, page_number)
     return FileResponse(path, media_type="image/png", headers={"Cache-Control": "private, max-age=300"})
+
+
+# ---------------------------------------------------------------- FR-15 tài liệu đi kèm (v0.13)
+@router.get("/{document_id}/attachments", response_model=list[AttachmentOut])
+def list_attachments(document_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal) -> list[AttachmentOut]:
+    return [
+        AttachmentOut.model_validate(a, from_attributes=True)
+        for a in attachments_app.list_attachments(db, principal, document_id)
+    ]
+
+
+@router.post("/{document_id}/attachments", response_model=list[AttachmentOut], status_code=status.HTTP_201_CREATED)
+def add_attachments(
+    document_id: uuid.UUID,
+    db: DbSession,
+    principal: CurrentPrincipal,
+    ctx: Ctx,
+    files: Annotated[list[UploadFile], File(description="Một hoặc nhiều file đi kèm")],
+) -> list[AttachmentOut]:
+    incoming = [attachments_app.read_upload(f.file, f.filename) for f in files]
+    saved = attachments_app.add_attachments(db, principal, document_id, incoming, ctx)
+    return [AttachmentOut.model_validate(a, from_attributes=True) for a in saved]
+
+
+@router.delete("/{document_id}/attachments/{attachment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_attachment(
+    document_id: uuid.UUID, attachment_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal, ctx: Ctx
+) -> Response:
+    attachments_app.delete_attachment(db, principal, document_id, attachment_id, ctx)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/{document_id}/attachments/{attachment_id}/file", response_class=FileResponse)
+def download_attachment(
+    document_id: uuid.UUID, attachment_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal, ctx: Ctx
+) -> FileResponse:
+    path, name, mime = attachments_app.open_attachment(db, principal, document_id, attachment_id, ctx)
+    return FileResponse(path, media_type=mime, filename=name, content_disposition_type="attachment")
+
+
+@router.get("/{document_id}/bundle", response_class=StreamingResponse)
+def download_bundle(document_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal, ctx: Ctx) -> StreamingResponse:
+    path, name = attachments_app.bundle(db, principal, document_id, ctx)
+    return StreamingResponse(
+        attachments_app.iter_and_remove(path),
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}"},
+    )

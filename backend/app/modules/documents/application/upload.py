@@ -24,7 +24,7 @@ from app.shared.config import settings
 from app.shared.context import Principal, RequestContext
 from app.shared.errors import AppError, PayloadTooLargeError, PermissionDeniedError, UnprocessableError
 from app.shared.events import publish
-from app.shared.storage import get_storage, original_key
+from app.shared.storage import document_prefix, get_storage, original_key
 
 
 def create_document_from_bytes(
@@ -42,6 +42,7 @@ def create_document_from_bytes(
     document_code: str | None = None,
     origin: dict[str, str] | None = None,
     merged_files: int | None = None,
+    attachments: list[Any] | None = None,
 ) -> tuple[Document, Any]:
     """Dùng chung cho UC-01 và từng file của bulk import (UC-23 include UC-01).
 
@@ -115,11 +116,15 @@ def create_document_from_bytes(
                 **({"merged_files": merged_files} if merged_files else {}),
             },
         )
+        if attachments:  # FR-15 (v0.13): tài liệu đi kèm lưu cùng transaction
+            from app.modules.documents.application.attachments import save_attachments
+
+            save_attachments(db, principal, doc, attachments, ctx)
         publish(db, DocumentUploaded(doc.id, principal.id))
         db.commit()
     except Exception:
         db.rollback()
-        storage.delete(key)
+        storage.delete_prefix(document_prefix(doc_id))  # file gốc + tài liệu đi kèm đã lưu
         raise
     return doc, job
 
@@ -135,6 +140,7 @@ def upload_document(
     is_handwritten: bool,
     ctx: RequestContext,
     category_mode: str = "user",
+    attachments: list[Any] | None = None,
 ) -> tuple[Document, Any]:
     data = file_inspector.read_limited(stream, settings.max_upload_bytes)
     return create_document_from_bytes(
@@ -147,6 +153,7 @@ def upload_document(
         is_handwritten=is_handwritten,
         ctx=ctx,
         category_mode=category_mode,
+        attachments=attachments,
     )
 
 
@@ -160,6 +167,8 @@ def upload_merged(
     is_handwritten: bool,
     ctx: RequestContext,
     category_mode: str = "user",
+    attachments: list[Any] | None = None,
+    keep_originals: bool = False,
 ) -> tuple[Document, Any]:
     """FR-16 (SDD v0.13): nhiều ảnh/PDF theo thứ tự -> một PDF -> một tài liệu, một job OCR.
 
@@ -171,25 +180,14 @@ def upload_merged(
         raise UnprocessableError(
             f"Gộp tối đa {settings.MAX_MERGE_FILES} file một lần", code="TOO_MANY_FILES", fields={"files": "too_many"}
         )
-    parts: list[tuple[bytes, str]] = []
-    total = 0
-    names: list[str] = []
-    for stream, filename in files:
-        name = file_inspector.safe_filename(filename)
-        try:
-            data = file_inspector.read_limited(stream, settings.max_upload_bytes)
-            info = file_inspector.inspect(data, name)
-        except AppError as exc:
-            raise type(exc)(f"{name}: {exc.message}", code=exc.code, fields={"files": name}) from exc
-        total += len(data)
-        if total > settings.max_upload_bytes:
-            raise PayloadTooLargeError(
-                f"Tổng dung lượng các file vượt quá {settings.MAX_UPLOAD_MB} MB", fields={"files": "too_large"}
-            )
-        parts.append((data, info.ext))
-        names.append(name)
+    names, parts = _check_parts([(filename, stream) for stream, filename in files])
+    extra = list(attachments or [])
+    if keep_originals:  # FR-16: giữ các file gốc riêng lẻ làm tài liệu đi kèm (FR-15)
+        from app.modules.documents.application.attachments import IncomingFile
+
+        extra = [IncomingFile(n, d) for n, (d, _) in zip(names, parts, strict=True)] + extra
     merged = merge_to_pdf(parts)
-    first = names[0].rsplit(".", 1)[0]
+    first = names[0].rsplit(".", 1)[0]  # tên file gộp theo file đầu tiên
     return create_document_from_bytes(
         db,
         principal,
@@ -201,4 +199,35 @@ def upload_merged(
         ctx=ctx,
         category_mode=category_mode,
         merged_files=len(parts),
+        attachments=extra,
     )
+
+
+def _check_parts(files: list[tuple[str | None, BinaryIO | bytes]]) -> tuple[list[str], list[tuple[bytes, str]]]:
+    """Kiểm từng file như FR-03 (lỗi kèm tên file) và tổng dung lượng; trả (tên, [(dữ liệu, đuôi)])."""
+    parts: list[tuple[bytes, str]] = []
+    names: list[str] = []
+    total = 0
+    for filename, src in files:
+        name = file_inspector.safe_filename(filename)
+        try:
+            data = src if isinstance(src, bytes) else file_inspector.read_limited(src, settings.max_upload_bytes)
+            info = file_inspector.inspect(data, name)
+        except AppError as exc:
+            raise type(exc)(f"{name}: {exc.message}", code=exc.code, fields={"files": name}) from exc
+        total += len(data)
+        if total > settings.max_upload_bytes:
+            raise PayloadTooLargeError(
+                f"Tổng dung lượng các file vượt quá {settings.MAX_UPLOAD_MB} MB", fields={"files": "too_large"}
+            )
+        parts.append((data, info.ext))
+        names.append(name)
+    return names, parts
+
+
+def merge_files(files: list[tuple[str, bytes]]) -> tuple[bytes, str]:
+    """FR-16 dùng chung cho nhập hàng loạt: gộp các file (đã đọc) thành một PDF; trả (dữ liệu, tên file)."""
+    if len(files) > settings.MAX_MERGE_FILES:
+        raise UnprocessableError(f"Gộp tối đa {settings.MAX_MERGE_FILES} file một lần", code="TOO_MANY_FILES")
+    names, parts = _check_parts([(n, d) for n, d in files])
+    return merge_to_pdf(parts), names[0].rsplit(".", 1)[0] + ".pdf"

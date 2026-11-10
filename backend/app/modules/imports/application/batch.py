@@ -12,6 +12,9 @@ loại", job CLASSIFY tự áp dụng sau OCR) hoặc một danh mục cụ th�
 category (mã danh mục) và document_code (số hiệu). Mã danh mục sai/ngừng dùng chỉ làm lỗi file đó. Tài liệu từ lô
 không gửi thông báo phân loại riêng từng tài liệu (tránh hàng trăm thông báo): một thông báo khi xong lô, kết quả
 danh mục từng file xem ở báo cáo lô.
+
+FR-15 (v0.13): file có thể gom thành bộ hồ sơ (file chính + tài liệu đi kèm) qua manifest.csv hoặc quy ước thư
+mục trong ZIP (imports/domain/bundles.py); bộ sai quy ước chỉ làm lỗi bộ đó, báo cáo ghi số tài liệu đi kèm.
 """
 
 import logging
@@ -24,8 +27,10 @@ from sqlalchemy.orm import Session
 from app.modules.audit.application.recorder import record
 from app.modules.categories.application import manage as categories
 from app.modules.documents.application import queries as documents
-from app.modules.documents.application.upload import create_document_from_bytes
-from app.modules.imports.domain.archive import ArchiveError, Budget, expand_batch, parse_metadata
+from app.modules.documents.application.attachments import IncomingFile
+from app.modules.documents.application.upload import create_document_from_bytes, merge_files
+from app.modules.imports.domain.archive import ArchiveError, Budget, Entry, expand_batch, parse_metadata
+from app.modules.imports.domain.bundles import Bundle, group
 from app.modules.jobs.application import queries as jobs
 from app.modules.jobs.application.create import create_job
 from app.modules.jobs.domain.model import JobError
@@ -172,34 +177,43 @@ def run_import(ctx: Any) -> None:
     try:
         expanded = expand_batch(raw, _budget())
         meta = parse_metadata(expanded.metadata)
+        bundles, loose = group(expanded.entries, expanded.manifest)
     except ArchiveError as exc:
         raise JobError(exc.code, str(exc)) from exc
 
     job_ctx = RequestContext(ip_address=None, user_agent="bulk-import", request_id=f"import:{ctx.job_id}")
-    keys = _unique_keys([e.name for e in expanded.entries])
+    work: list[Bundle] = bundles + [
+        Bundle(key=e.name, main=[e], error_code=e.error_code, error_message=e.error_message) for e in loose
+    ]
+    keys = _unique_keys([b.key for b in work])
     state: dict[str, dict[str, Any]] = dict((ctx.job.result or {}).get("files_state", {}))
-    total = len(expanded.entries)
+    total = len(work)
 
     def save(key: str, value: dict[str, Any]) -> None:
         state[key] = value
         ctx.set_result({"files_state": dict(state), "total": total})
 
-    for n, (key, entry) in enumerate(zip(keys, expanded.entries, strict=True), start=1):
+    for n, (key, item) in enumerate(zip(keys, work, strict=True), start=1):
         if state.get(key, {}).get("status") in ("imported", "importing"):
             continue  # đã nhập ở lần chạy trước
-        if entry.error_code:
-            save(key, {"status": "error", "code": entry.error_code, "message": entry.error_message})
+        if item.error_code:
+            save(key, {"status": "error", "code": item.error_code, "message": item.error_message})
         else:
             # Đánh dấu "importing" trong cùng transaction tạo tài liệu: lỗi thì rollback cả hai
             save(key, {"status": "importing"})
-            row = meta.get(entry.filename.lower(), {})
+            first: Entry = item.main[0]
+            row = item.row or meta.get(first.filename.lower(), {})
             try:
                 mode, category_id = _file_category(db, row, p)
+                if len(item.main) > 1:  # FR-16: thư mục chỉ có ảnh -> gộp theo thứ tự tên file
+                    data, filename = merge_files([(e.filename, e.data or b"") for e in item.main])
+                else:
+                    data, filename = first.data or b"", first.filename
                 doc, ocr_job = create_document_from_bytes(
                     db,
                     principal,
-                    data=entry.data or b"",
-                    filename=entry.filename,
+                    data=data,
+                    filename=filename,
                     title=row.get("title") or None,
                     category_id=category_id,
                     category_mode=mode,
@@ -208,12 +222,22 @@ def run_import(ctx: Any) -> None:
                     ctx=job_ctx,
                     audit_action="import_document",
                     origin={"import_job_id": str(ctx.job_id)},
+                    merged_files=len(item.main) if len(item.main) > 1 else None,
+                    attachments=[IncomingFile(a.filename, a.data or b"") for a in item.attachments],
                 )
             except AppError as exc:
                 state.pop(key, None)  # đã bị rollback cùng transaction
                 save(key, {"status": "error", "code": exc.code, "message": exc.message})
             else:
-                save(key, {"status": "imported", "document_id": str(doc.id), "job_id": str(ocr_job.id)})
+                save(
+                    key,
+                    {
+                        "status": "imported",
+                        "document_id": str(doc.id),
+                        "job_id": str(ocr_job.id),
+                        "attachments": len(item.attachments),
+                    },
+                )
         ctx.progress(round(n * 100 / max(total, 1)))
 
     imported = sum(1 for v in state.values() if v.get("status") in ("imported", "importing"))

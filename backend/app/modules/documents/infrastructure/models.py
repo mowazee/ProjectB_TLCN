@@ -122,3 +122,18 @@ class DocumentPage(Base):
         default=PageOcrStatus.PENDING,
         server_default=PageOcrStatus.PENDING.value,
     )
+
+
+class DocumentAttachment(Base):
+    """FR-15 (SDD v0.13): tài liệu đi kèm của một tài liệu chính - không OCR, không tìm kiếm nội dung."""
+
+    __tablename__ = "document_attachments"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    file_name: Mapped[str] = mapped_column(String(255))
+    storage_key: Mapped[str] = mapped_column(String(500))
+    mime_type: Mapped[str] = mapped_column(String(100))
+    bytes: Mapped[int] = mapped_column(BigInteger)
+    uploaded_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, server_default=func.now())

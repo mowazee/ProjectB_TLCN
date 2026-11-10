@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 
 METADATA_NAME = "metadata.csv"
+MANIFEST_NAME = "manifest.csv"  # FR-15 (v0.13): bộ hồ sơ có tài liệu đi kèm
 _CHUNK = 1024 * 1024
 
 
@@ -56,6 +57,7 @@ class Budget:
 class Expanded:
     entries: list[Entry] = field(default_factory=list)
     metadata: bytes | None = None
+    manifest: bytes | None = None
 
 
 def safe_member_name(name: str) -> str | None:
@@ -104,6 +106,11 @@ def expand_zip(name: str, data: bytes, budget: Budget, out: Expanded) -> None:
                     raise ArchiveError("METADATA_TOO_LARGE", "metadata.csv quá lớn")
                 out.metadata = _read_member(zf, info, budget)
                 continue
+            if PurePosixPath(safe).name.lower() == MANIFEST_NAME and "/" not in safe:
+                if info.file_size > 5 * 1024 * 1024:
+                    raise ArchiveError("METADATA_TOO_LARGE", "manifest.csv quá lớn")
+                out.manifest = _read_member(zf, info, budget)
+                continue
             budget.take_file()
             if info.flag_bits & 0x1:
                 out.entries.append(Entry(label, error_code="ENCRYPTED", error_message="File trong ZIP có mật khẩu"))
@@ -129,6 +136,8 @@ def expand_batch(files: list[tuple[str, bytes]], budget: Budget) -> Expanded:
     for name, data in files:
         if name.lower() == METADATA_NAME:
             out.metadata = data
+        elif name.lower() == MANIFEST_NAME:
+            out.manifest = data
         elif name.lower().endswith(".zip"):
             expand_zip(name, data, budget, out)
         else:
