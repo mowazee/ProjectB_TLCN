@@ -11,7 +11,7 @@ from app.modules.documents.infrastructure.models import Document, DocumentAttach
 from app.modules.imports.domain.archive import ArchiveError, Entry
 from app.modules.imports.domain.bundles import group
 from app.modules.jobs.application.runner import run_job
-from tests.conftest import make_pdf
+from tests.conftest import make_pdf, make_png
 
 F = "imports"
 TXT = "Ghi chú".encode()
@@ -89,3 +89,40 @@ def test_manifest_validity_columns_fr19(seed, login, db, enqueued):
     a = db.get(Document, UUID(by["a.pdf"]["document_id"]))
     assert str(a.validity_status) == "effective_until" and a.valid_until.isoformat() == "2099-12-31"
     assert str(db.get(Document, UUID(by["c.pdf"]["document_id"])).validity_status) == "unspecified"
+
+
+def test_manifest_file_name_merges_multiple_files(seed, login, db, enqueued):
+    """v0.15: file_name liệt kê nhiều file (;) -> gộp một PDF theo thứ tự khai báo; tên file PDF và tiêu đề lấy theo
+    title, title trống thì theo tên file đầu tiên."""
+    c = login("officer", features=F)
+    manifest = ("file_name,title\ntrang2.png;trang1.png,\na.pdf;b.png,Hồ sơ: gộp/01\nx.png;khong-co.png,\n").encode()
+    files = [
+        ("files", ("trang1.png", make_png("Trang 1"), "x")),
+        ("files", ("trang2.png", make_png("Trang 2"), "x")),
+        ("files", ("a.pdf", make_pdf(["A"]), "x")),
+        ("files", ("b.png", make_png("B"), "x")),
+        ("files", ("x.png", make_png("X"), "x")),
+        ("files", ("manifest.csv", manifest, "text/csv")),
+    ]
+    r = c.post("/api/imports", data={"category_id": str(seed["category"].id)}, files=files)
+    job_id = UUID(r.json()["job_id"])
+    assert run_job(job_id).value == "completed"
+    by = {f["name"]: f for f in c.get(f"/api/imports/{job_id}").json()["files"]}
+    assert by["trang2.png"]["status"] == "imported" and by["a.pdf"]["status"] == "imported"
+    assert by["x.png"]["code"] == "FILE_NOT_FOUND"
+    db.rollback()
+    first = db.get(Document, UUID(by["trang2.png"]["document_id"]))  # title trống: theo file đầu tiên
+    assert (first.mime_type, first.file_name, first.title) == ("application/pdf", "trang2.pdf", "trang2")
+    named = db.get(Document, UUID(by["a.pdf"]["document_id"]))  # có title: tên file PDF theo title (bỏ ký tự cấm)
+    assert named.title == "Hồ sơ: gộp/01" and named.file_name == "Hồ sơ  gộp 01.pdf"
+
+
+def test_template_zip_has_manifest_and_guide(seed, login):
+    r = login("officer", features=F).get("/api/imports/template.zip")
+    assert r.status_code == 200 and r.headers["content-type"] == "application/zip"
+    with zipfile.ZipFile(io.BytesIO(r.content)) as zf:
+        assert sorted(zf.namelist()) == ["HUONG-DAN.txt", "manifest.csv"]
+        csv_text = zf.read("manifest.csv").decode("utf-8-sig")
+        assert csv_text.startswith("file_name,attachments,title,category,document_code,validity,valid_until")
+        assert "trang-1.jpg;trang-2.jpg" in csv_text
+        assert "GỘP" in zf.read("HUONG-DAN.txt").decode("utf-8-sig")

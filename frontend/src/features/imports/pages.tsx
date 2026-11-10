@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams } from "react-router";
 
 import { POLL_MS } from "@/features/jobs";
 import { api } from "@/shared/api/client";
-import type { Category, ImportAccepted, ImportReport } from "@/shared/api/types";
+import type { ImportAccepted, ImportReport } from "@/shared/api/types";
 import { CategoryModePicker, type CategoryMode } from "@/shared/components/CategoryModePicker";
 import {
   Badge,
@@ -42,24 +42,6 @@ function remember(jobId: string) {
 
 const AUTO_HINT =
   "Mỗi file vào “Chưa phân loại”, hệ thống tự chọn danh mục sau khi OCR xong. Kết quả từng file xem ở báo cáo lô.";
-
-/** manifest.csv mẫu (v0.14 - cách khai báo lô duy nhất): mỗi dòng một bộ hồ sơ - file chính + tài liệu đi kèm.
- *  UTF-8 có BOM để Excel mở đúng tiếng Việt; mã danh mục lấy từ danh sách thật. */
-function downloadManifest(categories: Category[]) {
-  const code = categories[0]?.code ?? "HOP-DONG";
-  const rows = [
-    "file_name,attachments,title,category,document_code,validity,valid_until",
-    `quyet-dinh-12.pdf,phu-luc-1.docx;bang-ke.xlsx,Quyết định số 12/2026,${code},12/QĐ-UBND,effective,`,
-    "cong-van-07.pdf,,Công văn số 07,,07/CV,effective_until,31/12/2027",
-    "scan-001.pdf,,,,,,",
-  ];
-  const url = URL.createObjectURL(new Blob(["\uFEFF" + rows.join("\r\n") + "\r\n"], { type: "text/csv" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "manifest.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 /** UC-23 (P2-08, v0.14): tải các file + manifest.csv (hoặc ZIP chứa manifest.csv ở gốc) + cách gán danh mục -> job
  *  BULK_IMPORT. Chỉ file khai báo trong manifest.csv được nhập. */
@@ -135,21 +117,14 @@ export function ImportPage() {
             </select>
           </Field>
         )}
-        <div className="card stack">
-          <strong>manifest.csv (bắt buộc)</strong>
+        <div className="row" style={{ flexWrap: "wrap" }}>
           <span className="muted">
-            Chọn <code>manifest.csv</code> cùng các file, hoặc đặt nó ở gốc file ZIP. Mỗi dòng là một tài liệu: cột{" "}
-            <code>file_name</code> (bắt buộc, file chính được OCR), <code>attachments</code> (tài liệu đi kèm, phân cách
-            bằng <code>;</code>), <code>title</code> (trống = tên file), <code>category</code> (mã danh mục, ưu tiên hơn
-            lựa chọn ở trên), <code>document_code</code> (số hiệu), <code>validity</code> (<code>effective</code>,{" "}
-            <code>effective_until</code>, <code>expired</code>, <code>unspecified</code>) và <code>valid_until</code>{" "}
-            (ngày hết hiệu lực). File không có trong manifest sẽ bị bỏ qua.
+            Bắt buộc có <code>manifest.csv</code> (chọn cùng các file hoặc đặt ở gốc ZIP). Cách điền xem trong file mẫu.
           </span>
-          <div>
-            <button type="button" className="btn btn-sm" onClick={() => downloadManifest(categories.data ?? [])}>
-              <Download size={14} aria-hidden /> Tải manifest.csv mẫu
-            </button>
-          </div>
+          {/* v0.15: hướng dẫn chi tiết nằm trong HUONG-DAN.txt của file mẫu, không hiện dài trên trang */}
+          <a className="btn btn-sm" href="/api/imports/template.zip" download>
+            <Download size={14} aria-hidden /> Tải file mẫu (manifest.csv + hướng dẫn)
+          </a>
         </div>
         {/* P2-03: lô scan chữ viết tay -> OCR trên hàng đợi ocr_hw (cùng ô với trang tải lên) */}
         <SlotList items={uploadFields} props={{}} />

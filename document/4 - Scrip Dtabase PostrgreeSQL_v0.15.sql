@@ -1,11 +1,11 @@
 -- =====================================================================
--- DATABASE SCHEMA - MVP + P2, phiên bản 0.13 (10/11/2026)
--- Sinh tự động từ Alembic (0001_core → 0115), KHÔNG sửa tay.
--- Đồng bộ: "0 - Đặc tả SDD v0.13" mục 6 và
---          "3 - Các lược đồ usecase_sequence_erd_database v0.13" (ERD, 21 bảng)
+-- DATABASE SCHEMA - MVP + P2, phiên bản 0.15 (11/11/2026)
+-- Sinh tự động từ Alembic (0001_core → 0116), KHÔNG sửa tay.
+-- Đồng bộ: "0 - Đặc tả SDD v0.15" mục 6 và
+--          "3 - Các lược đồ usecase_sequence_erd_database v0.15" (ERD, 21 bảng)
 -- Tạo lại (trong backend/, PowerShell):
 --   $env:DATABASE_URL="postgresql+psycopg://u:p@localhost/db"
---   .venv\Scripts\alembic.exe upgrade head --sql > "..\document\4 - Scrip Dtabase PostrgreeSQL_v0.13.sql"
+--   .venv\Scripts\alembic.exe upgrade head --sql > "..\document\4 - Scrip Dtabase PostrgreeSQL_v0.15.sql"
 --   (rồi chép lại khối chú thích này lên đầu file)
 -- Thay đổi so với bản v0.5 (bản đó chỉ có phần MVP, revision 0001):
 --   + 5 bảng P2: document_approvals (0101), notifications (0102),
@@ -27,6 +27,11 @@
 --   FR-17 (0113): bảng daily_activity_stats + index audit_logs(action, created_at).
 --   FR-15 (0114): bảng document_attachments (tài liệu đi kèm).
 --   FR-18 (0115): bảng share_links (chia sẻ ra ngoài bằng link + OTP); processing_jobs.kind thêm EMAIL. (21 bảng)
+-- v0.14: FR-19 hiệu lực tài liệu (0116): documents.validity_status (unspecified | effective |
+--   effective_until | expired, mặc định unspecified), valid_until, validity_updated_by, validity_updated_at,
+--   validity_reminded_on + index ix_documents_validity. FR-20 không đổi bảng.
+-- v0.15: không đổi cấu trúc (vẫn 21 bảng); chỉ đổi quy tắc lưu dữ liệu ở tầng ứng dụng (job đã kết thúc
+--   giữ 30 ngày; nhật ký của tài liệu bị xóa vĩnh viễn được xóa cùng tài liệu).
 -- Toàn bộ chạy trong một transaction (BEGIN … COMMIT).
 -- =====================================================================
 BEGIN;
@@ -125,15 +130,15 @@ CREATE TABLE documents (
     CONSTRAINT ck_documents_approval_status CHECK (approval_status IN ('draft', 'pending_review', 'approved', 'rejected', 'published', 'unpublished'))
 );
 
+CREATE INDEX ix_documents_category_id ON documents (category_id);
+
 CREATE INDEX ix_documents_department_id ON documents (department_id);
+
+CREATE INDEX ix_documents_owner_id ON documents (owner_id);
 
 CREATE INDEX ix_documents_lifecycle_status ON documents (lifecycle_status);
 
-CREATE INDEX ix_documents_category_id ON documents (category_id);
-
 CREATE INDEX ix_documents_created_at ON documents (created_at);
-
-CREATE INDEX ix_documents_owner_id ON documents (owner_id);
 
 CREATE TABLE document_pages (
     id UUID NOT NULL, 
@@ -243,9 +248,9 @@ CREATE TABLE audit_logs (
     CONSTRAINT ck_audit_logs_result CHECK (result IN ('success', 'failure'))
 );
 
-CREATE INDEX ix_audit_logs_user_id ON audit_logs (user_id);
-
 CREATE INDEX ix_audit_logs_document_id ON audit_logs (document_id);
+
+CREATE INDEX ix_audit_logs_user_id ON audit_logs (user_id);
 
 CREATE INDEX idx_audit_logs_created_at ON audit_logs (created_at);
 
@@ -535,6 +540,26 @@ ALTER TABLE processing_jobs DROP CONSTRAINT ck_jobs_kind;
 ALTER TABLE processing_jobs ADD CONSTRAINT ck_jobs_kind CHECK (kind IN ('OCR', 'EXTRACT', 'CLASSIFY', 'BULK_IMPORT', 'EMAIL'));
 
 UPDATE alembic_version SET version_num='0115' WHERE alembic_version.version_num = '0114';
+
+-- Running upgrade 0115 -> 0116
+
+ALTER TABLE documents ADD COLUMN validity_status VARCHAR(30) DEFAULT 'unspecified' NOT NULL;
+
+ALTER TABLE documents ADD CONSTRAINT ck_documents_validity_status CHECK (validity_status IN ('unspecified', 'effective', 'effective_until', 'expired'));
+
+ALTER TABLE documents ADD COLUMN valid_until DATE;
+
+ALTER TABLE documents ADD COLUMN validity_updated_by UUID;
+
+ALTER TABLE documents ADD COLUMN validity_updated_at TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE documents ADD COLUMN validity_reminded_on DATE;
+
+ALTER TABLE documents ADD CONSTRAINT fk_documents_validity_updated_by FOREIGN KEY(validity_updated_by) REFERENCES users (id) ON DELETE SET NULL;
+
+CREATE INDEX ix_documents_validity ON documents (validity_status, valid_until);
+
+UPDATE alembic_version SET version_num='0116' WHERE alembic_version.version_num = '0115';
 
 COMMIT;
 

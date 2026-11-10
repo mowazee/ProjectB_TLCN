@@ -4380,6 +4380,21 @@
         }
       }
     },
+    "/api/imports/template.zip": {
+      "get": {
+        "tags": [
+          "imports"
+        ],
+        "summary": "Download Template",
+        "description": "File mẫu: ZIP gồm manifest.csv mẫu và HUONG-DAN.txt (v0.15).",
+        "operationId": "download_template_api_imports_template_zip_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
     "/api/imports/{job_id}": {
       "get": {
         "tags": [

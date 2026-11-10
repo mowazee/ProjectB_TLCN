@@ -1,10 +1,13 @@
-"""P2-08 (SDD v0.14): gom file của lô thành "bộ hồ sơ" theo manifest.csv - cách khai báo duy nhất (Python thuần).
+"""P2-08 (SDD v0.15): gom file của lô thành "bộ hồ sơ" theo manifest.csv - cách khai báo duy nhất (Python thuần).
 
-Mỗi dòng manifest.csv = một tài liệu chính (OCR) + tài liệu đi kèm (không OCR, FR-15). Cột: file_name (bắt buộc, tên
-file chính), attachments (tên file đi kèm, phân cách ";"), title, category (mã danh mục), document_code, validity
-(effective | effective_until | expired | unspecified) và valid_until (yyyy-mm-dd hoặc dd/mm/yyyy) - FR-19.
+Mỗi dòng manifest.csv = một tài liệu chính (OCR) + tài liệu đi kèm (không OCR, FR-15). Cột:
+- file_name (bắt buộc): file chính; nhiều ảnh/PDF phân cách bằng ";" thì gộp thành một PDF theo đúng thứ tự (FR-16).
+  Tên file PDF gộp và tiêu đề tài liệu lấy theo cột title; title trống thì lấy tên file đầu tiên;
+- attachments: tên file đi kèm, phân cách ";";
+- title, category (mã danh mục), document_code;
+- validity (effective | effective_until | expired | unspecified), valid_until (yyyy-mm-dd hoặc dd/mm/yyyy) - FR-19.
 Lô không có manifest.csv bị từ chối (MANIFEST_REQUIRED); file khai báo mà không có trong lô chỉ làm lỗi dòng đó; file có
-trong lô nhưng không được khai báo bị bỏ qua và báo lỗi NOT_IN_MANIFEST. v0.14 bỏ quy ước thư mục và metadata.csv.
+trong lô nhưng không được khai báo bị bỏ qua và báo lỗi NOT_IN_MANIFEST. v0.15 bỏ quy ước thư mục và metadata.csv.
 """
 
 import csv
@@ -18,7 +21,7 @@ from app.modules.imports.domain.archive import ArchiveError, Entry
 @dataclass
 class Bundle:
     key: str  # tên hiển thị trong báo cáo (đường dẫn file chính)
-    main: list[Entry] = field(default_factory=list)  # file chính
+    main: list[Entry] = field(default_factory=list)  # file chính (nhiều file: gộp theo thứ tự khai báo)
     attachments: list[Entry] = field(default_factory=list)
     row: dict[str, str] = field(default_factory=dict)  # dòng manifest.csv
     error_code: str | None = None
@@ -54,13 +57,17 @@ def _from_manifest(entries: list[Entry], rows: list[dict[str, str]]) -> tuple[li
     used: set[int] = set()
     bundles = []
     for row in rows:
-        main = by_name.get(_base(row["file_name"]))
-        b = Bundle(key=main.name if main else row["file_name"], row=row)
-        if main is None:
-            b.error_code, b.error_message = "FILE_NOT_FOUND", f"Không có file chính '{row['file_name']}' trong lô"
+        names = [x.strip() for x in row["file_name"].split(";") if x.strip()]
+        mains = [by_name.get(_base(n)) for n in names]
+        found = [m for m in mains if m is not None]
+        b = Bundle(key=found[0].name if found else row["file_name"], row=row)
+        absent = [n for n, m in zip(names, mains, strict=True) if m is None]
+        if absent or not names:
+            b.error_code = "FILE_NOT_FOUND"
+            b.error_message = "Không có file chính trong lô: " + ", ".join(absent or [row["file_name"]])
         else:
-            b.main = [main]
-            used.add(id(main))
+            b.main = found  # nhiều file -> gộp thành một PDF theo thứ tự khai báo (FR-16)
+        used.update(id(m) for m in found)
         missing = []
         for name in [x.strip() for x in row.get("attachments", "").split(";") if x.strip()]:
             att = by_name.get(_base(name))

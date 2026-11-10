@@ -1,5 +1,6 @@
 """API imports (SDD 7.2, P2-08):
 POST /api/imports            multipart nhiều file/ZIP kèm manifest.csv (bắt buộc) + category_mode/category_id -> 202
+GET  /api/imports/template.zip  file mẫu: manifest.csv + HUONG-DAN.txt (v0.15)
 GET  /api/imports/{job_id}   tiến độ + báo cáo từng file
 """
 
@@ -7,11 +8,11 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Response, UploadFile, status
 from pydantic import BaseModel
 
 from app.modules.auth.presentation.deps import Ctx, CurrentPrincipal, DbSession, require_feature
-from app.modules.imports.application import batch
+from app.modules.imports.application import batch, template
 
 router = APIRouter(prefix="/api/imports", tags=["imports"], dependencies=[Depends(require_feature("imports"))])
 
@@ -72,6 +73,16 @@ def start_import(
         ctx=ctx,
     )
     return ImportAccepted(job_id=job.id, status=str(job.status), files=len(files))
+
+
+@router.get("/template.zip", response_class=Response)
+def download_template(db: DbSession, principal: CurrentPrincipal) -> Response:
+    """File mẫu: ZIP gồm manifest.csv mẫu và HUONG-DAN.txt (v0.15)."""
+    return Response(
+        content=template.build_template(db),
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="mau-nhap-hang-loat.zip"'},
+    )
 
 
 @router.get("/{job_id}", response_model=ImportReport)

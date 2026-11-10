@@ -1234,6 +1234,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/imports/template.zip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Template
+         * @description File mẫu: ZIP gồm manifest.csv mẫu và HUONG-DAN.txt (v0.15).
+         */
+        get: operations["download_template_api_imports_template_zip_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/imports/{job_id}": {
         parameters: {
             query?: never;
@@ -5735,6 +5755,24 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    download_template_api_imports_template_zip_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

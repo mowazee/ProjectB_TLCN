@@ -99,22 +99,33 @@ thì khối này và danh sách cùng đổi, mỗi lúc chỉ một danh mục 
 người dùng chọn/xác nhận; "Chưa phân loại" không ngừng dùng được, không chọn tay được và không bao giờ được gợi ý. Bật cờ
 khi đã có một ít tài liệu được người dùng gán danh mục — chưa có dữ liệu mẫu, mô hình chỉ dựa vào tên/mô tả danh mục.
 
-**Nhập hàng loạt** (`/imports`, P2-08): chọn nhiều file PDF/PNG/JPG hoặc một file ZIP. Danh mục chọn cho **cả lô** giống
-khi tải lên: **Danh mục gợi ý** (mặc định khi bật `classification`, mỗi file tự phân loại sau OCR) hoặc một danh mục
-cụ thể. **metadata.csv** (tùy chọn, chọn riêng hoặc đặt trong ZIP) ghi thông tin riêng từng file để khỏi sửa tay sau
-khi nhập — nút **Tải file mẫu** tạo sẵn file với mã danh mục thật:
+**Nhập hàng loạt** (`/imports`, P2-08; từ v0.15 chỉ theo `manifest.csv`): chọn **`manifest.csv` cùng các file**, hoặc
+**một file ZIP có `manifest.csv` ở gốc**. Lô không có manifest bị từ chối (`MANIFEST_REQUIRED`). Danh mục chọn cho **cả
+lô** giống khi tải lên: **Danh mục gợi ý** (mặc định khi bật `classification`, mỗi file tự phân loại sau OCR) hoặc một
+danh mục cụ thể. Nút **Tải file mẫu** tải về `mau-nhap-hang-loat.zip` gồm `manifest.csv` mẫu (mã danh mục thật) và
+`HUONG-DAN.txt` (cách điền từng cột) — trang web chỉ hiện một dòng nhắc để đỡ rối. Mỗi dòng là **một tài liệu**:
 
 ```
-file_name,title,category,document_code
-hop-dong-45.pdf,Hợp đồng mua bán số 45/2026,HOP-DONG,45/2026/HĐMB
-cong-van-12.pdf,Công văn số 12 về số hóa hồ sơ,,12/CV-HCTH
+file_name,attachments,title,category,document_code,validity,valid_until
+quyet-dinh-12.pdf,phu-luc-1.docx;bang-ke.xlsx,Quyết định số 12/2026,HOP-DONG,12/QĐ-UBND,effective,
+trang-1.jpg;trang-2.jpg;trang-3.jpg,,Biên bản nghiệm thu,,05/BB,effective_until,31/12/2027
+scan-001.pdf,,,,,,
 ```
 
-`file_name` bắt buộc (khớp tên file, không phân biệt hoa/thường); `title` trống thì lấy tên file; `category` là **mã**
-danh mục (xem Quản trị → Danh mục), ưu tiên hơn lựa chọn của cả lô — mã sai hoặc danh mục ngừng dùng chỉ làm lỗi file
-đó; `document_code` là số hiệu. Lưu CSV dạng UTF-8 (Excel: *CSV UTF-8*). Báo cáo lô có cột **Danh mục** cho từng file
-(kèm nguồn Người dùng chọn / Tự động / Chờ phân loại, tự cập nhật khi phân loại xong). Lô không gửi thông báo phân loại
-cho từng tài liệu, chỉ một thông báo "Nhập hàng loạt xong" dẫn tới báo cáo.
+| Cột | Ý nghĩa |
+|---|---|
+| `file_name` | **Bắt buộc** — file chính (được OCR), khớp tên file không phân biệt hoa/thường (trong ZIP chỉ cần đúng tên, không cần đường dẫn). Ghi **nhiều ảnh/PDF phân cách bằng `;`** thì gộp thành **một PDF** theo đúng thứ tự đã ghi (FR-16, tối đa `MAX_MERGE_FILES`); thiếu một file trong danh sách thì cả dòng lỗi `FILE_NOT_FOUND` |
+| `attachments` | Tài liệu đi kèm (FR-15, không OCR), nhiều file ngăn cách bằng `;` |
+| `title` | Tiêu đề; khi gộp nhiều file, **tên file PDF sau khi gộp** cũng lấy theo `title` (ký tự không hợp lệ trong tên file được thay bằng khoảng trắng). Trống thì lấy tên file đầu tiên trong `file_name` |
+| `category` | **Mã** danh mục (Quản trị → Danh mục), ưu tiên hơn lựa chọn của cả lô |
+| `document_code` | Số hiệu |
+| `validity`, `valid_until` | Hiệu lực (FR-19): `effective`, `effective_until` (kèm ngày `31/12/2027` hoặc `2027-12-31`), `expired`, `unspecified`; trống = Không quy định |
+
+Lưu CSV dạng UTF-8 (Excel: *CSV UTF-8*). File có trong lô mà không khai báo bị **bỏ qua** (báo cáo ghi
+`NOT_IN_MANIFEST`); file khai báo mà không có trong lô, mã danh mục sai/ngừng dùng, hiệu lực sai chỉ làm lỗi dòng đó.
+Báo cáo lô có cột **Danh mục** (kèm nguồn Người dùng chọn / Tự động / Chờ phân loại) và số tài liệu đi kèm. Lô không gửi
+thông báo phân loại cho từng tài liệu, chỉ một thông báo "Nhập hàng loạt xong". Từ v0.15 **không còn** cách đặt tên thư
+mục (`main.*`, `dinh-kem/`) và `metadata.csv`.
 
 ### Chức năng bổ sung v0.13 (SDD v0.13, sau buổi demo 09/11/2026)
 
@@ -148,28 +159,8 @@ kèm** trên trang chi tiết. Ai xem được tài liệu thì tải được; 
 hủy xuất bản/rút lại trước). **Tải cả bộ** tạo file .zip gồm file gốc và thư mục `di-kem/`. Giới hạn: 20 file/bộ, 25
 MB/file, tổng 200 MB (`MAX_ATTACHMENTS`, `MAX_ATTACHMENT_MB`, `MAX_BUNDLE_MB`).
 
-**Nhập hàng loạt theo bộ hồ sơ** (FR-15 + P2-08), hai cách:
-
-1. *Thư mục trong ZIP* — thư mục con cấp 1 là một bộ khi có thư mục `dinh-kem/` hoặc file `main.*`. File chính là
-   `main.*` (hoặc file duy nhất ở gốc thư mục); thư mục chỉ có ảnh thì gộp theo thứ tự tên (đặt `01.jpg`, `02.jpg`…);
-   mọi file trong `dinh-kem/` là tài liệu đi kèm. Thư mục không có `dinh-kem/`/`main.*` vẫn nhập từng file như trước.
-
-   ```
-   lo.zip
-   ├── QD-12/ main.pdf, dinh-kem/phu-luc.docx      → 1 tài liệu + 1 đi kèm
-   ├── Scan-07/ 01.jpg, 02.jpg, dinh-kem/ghi-chu.txt → 2 ảnh gộp thành 1 PDF + 1 đi kèm
-   └── Loi/ a.pdf, b.pdf, dinh-kem/x.docx          → lỗi BUNDLE_NO_MAIN (không biết file nào chính)
-   ```
-
-2. *`manifest.csv`* (chọn cùng các file hoặc đặt ở gốc ZIP; nút **Tải manifest.csv mẫu**) — mỗi dòng một bộ:
-
-   ```
-   file_name,attachments,title,category,document_code
-   quyet-dinh-12.pdf,phu-luc-1.docx;bang-ke.xlsx,Quyết định số 12/2026,HOP-DONG,12/QĐ-UBND
-   ```
-
-   `attachments` ngăn cách bằng `;`. File đi kèm khai báo mà thiếu thì chỉ bộ đó lỗi (`ATTACHMENT_NOT_FOUND`).
-   Có `manifest.csv` thì không áp dụng cách 1. Báo cáo lô ghi số tài liệu đi kèm của từng bộ.
+**Nhập hàng loạt theo bộ hồ sơ** (FR-15 + P2-08): khai báo tài liệu đi kèm ở cột `attachments` của `manifest.csv`
+(xem **Nhập hàng loạt** ở trên). Cách đặt tên thư mục của v0.13 đã bỏ ở v0.15.
 
 **Thống kê hoạt động** (FR-17, Admin): **Quản trị → Thống kê** — lọc khoảng thời gian (tối đa 366 ngày), gom theo
 ngày/tuần/tháng, phòng ban, người dùng; thẻ số liệu tổng, biểu đồ xu hướng, biểu đồ so sánh phòng ban/người dùng, bảng
@@ -196,6 +187,42 @@ Tìm kiếm "nghiem thu" → mở kết quả (khung highlight) → gửi duyệ
 xuất bản; Mượn hồ sơ; Nhập hàng loạt (ZIP); `admin` → Nhật ký → Khôi phục.
 Bổ sung v0.13: gửi duyệt khai báo bản cứng; tab Tài liệu đi kèm + Tải cả bộ; tải lên gộp nhiều ảnh; `admin` → Thống
 kê, Cấu hình; Chia sẻ ra ngoài (cần SMTP hoặc Mailpit, mục 4.4).
+Bổ sung v0.14–v0.15: gửi duyệt chọn hiệu lực; `kiemduyet` → Duyệt tài liệu → tích chọn vài tài liệu → **Duyệt và xuất
+bản** (tích đủ checklist); Đổi hiệu lực một tài liệu đã xuất bản (nhập lý do); Nhập hàng loạt với `manifest.csv`.
+
+### Chức năng v0.14–v0.15 (SDD v0.15)
+
+**Hiệu lực tài liệu** (FR-19, D-14): bốn trạng thái **Còn hiệu lực**, **Còn hiệu lực đến ngày…**, **Hết hiệu lực**,
+**Không quy định** (mặc định, kể cả tài liệu cũ).
+- Bấm **Gửi duyệt** phải chọn hiệu lực (cùng hộp thoại bản cứng); "đến ngày" chỉ chọn được từ hôm nay. Gửi lại sau khi
+  bị từ chối thì giữ lựa chọn cũ.
+- Kiểm duyệt viên thấy hiệu lực người gửi đã khai trong hộp thoại **Duyệt** và sửa được.
+- Nút **Đổi hiệu lực** trên trang chi tiết: người tải lên khi Nháp / Bị từ chối; Kiểm duyệt viên phòng ban và Admin mọi
+  trạng thái — tài liệu đã duyệt/xuất bản **bắt buộc nhập lý do** (5–500 ký tự), kể cả gia hạn tài liệu đã hết hiệu lực.
+- "Đến ngày D" còn hiệu lực trọn ngày D, **hết hiệu lực sau 23:59** (giờ `APP_TIMEZONE`). Hệ thống hiển thị đúng ngay,
+  beat chạy mỗi giờ (`VALIDITY_CHECK_INTERVAL_SECONDS`) để chuyển trạng thái, ghi nhật ký và báo người tải lên.
+- Người tải lên được nhắc **một lần** khi còn ≤ 7 ngày (`VALIDITY_REMIND_DAYS`): thông báo trong hệ thống và email nếu
+  đã cấu hình SMTP; đổi ngày hết hạn thì nhắc lại theo ngày mới.
+- Tài liệu hết hiệu lực **ẩn mặc định** ở Tài liệu, Tìm kiếm, Duyệt tài liệu — tích **Hiện tài liệu hết hiệu lực** để
+  thấy; danh sách có bộ lọc Hiệu lực. Vẫn xem, mượn, chia sẻ được; trang chia sẻ ra ngoài và email chia sẻ ghi hiệu lực.
+
+**Duyệt, xuất bản, từ chối hàng loạt** (FR-20, Kiểm duyệt viên và Admin): ở **Duyệt tài liệu** tích chọn tối đa 20 tài
+liệu (`BULK_REVIEW_MAX`) → **Duyệt**, **Duyệt và xuất bản** hoặc **Từ chối**. Duyệt phải tích đủ 4 mục (hiệu lực, vị trí
+bản cứng, OCR/trích xuất, danh mục và thông tin); từ chối nhập một lý do chung; **Kiểm tra lại** đóng hộp thoại và giữ
+lựa chọn. Mỗi tài liệu xử lý như duyệt lẻ: tài liệu lỗi (sai trạng thái, khác phòng ban) không ảnh hưởng tài liệu khác;
+bảng kết quả ghi số thành công, lỗi và lý do. Vị trí bản cứng xem ở trang chi tiết từng tài liệu.
+
+**Dữ liệu được giữ bao lâu** (D-15, D-16):
+
+| Dữ liệu | Giữ | Ghi chú |
+|---|---|---|
+| Tài liệu trong thùng rác | theo Quản trị → Cấu hình (1–365 ngày, mặc định 30) | quá hạn: **xóa vĩnh viễn** mọi file (gốc, ảnh trang, đi kèm), dữ liệu và **toàn bộ nhật ký** của tài liệu; lượt xóa không ghi nhật ký |
+| Lịch sử thay đổi của tài liệu còn tồn tại | vĩnh viễn | sửa, OCR, duyệt, xuất bản, hiệu lực, vị trí, chia sẻ… |
+| Nhật ký vận hành | theo Cấu hình (180–3650 ngày) | đăng nhập, quản trị, lượt tải, xem/tải qua link ngoài |
+| Hàng đợi xử lý (job đã xong/lỗi) | 30 ngày (`JOB_RETENTION_DAYS`) | giữ job mới nhất của mỗi tài liệu; báo cáo lô nhập hàng loạt cũ hơn 30 ngày không còn xem được |
+
+**Hướng dẫn sử dụng** (FR-21): menu **Hướng dẫn sử dụng** (`/guide`, mọi người dùng). Hiện để trống, sau này đặt tài liệu
+hướng dẫn tại đây.
 
 ## 4. Phát triển hằng ngày
 
@@ -381,7 +408,7 @@ docker compose exec redis redis-cli info keyspace   # session/hàng đợi trong
 | migrate | `alembic upgrade head` rồi thoát | api/worker/beat chỉ chạy sau khi migrate thành công |
 | api | FastAPI | healthcheck `/health`; Redis mất → API trả 503 `SERVICE_UNAVAILABLE` (không treo) |
 | worker | Celery `-P solo`, hàng đợi `default,ocr,ocr_hw`, image `docso-backend-hw` (có VietOCR + PyTorch CPU) | worker chết giữa job → khi container khởi động lại tự nhận lại job dở (log "Nhận lại … job bị bỏ dở"); worker chết hẳn → beat gửi lại sau `JOB_STALE_SECONDS`; runner claim theo DB nên không chạy trùng; mất Redis → tự kết nối lại. Chạy nhiều worker ngoài Docker trên cùng máy: đặt `WORKER_NAME` khác nhau |
-| beat | purge, gửi lại job kẹt, nhắc quá hạn | chỉ chạy **1** bản |
+| beat | xóa vĩnh viễn tài liệu quá hạn thùng rác, dọn audit và job cũ (30 ngày), gửi lại job kẹt, nhắc quá hạn mượn, chuyển hết hiệu lực + nhắc trước hạn (mỗi giờ), thống kê | chỉ chạy **1** bản |
 | web | Nginx + React | chỉ nghe `127.0.0.1:8080` (đổi `WEB_BIND` trong `.env`) |
 
 ### 6.3 Lên server thật
@@ -516,7 +543,12 @@ sửa phiên bản trong file, chạy test, để CI xác nhận.
 | Link hiện "Gửi lỗi" / job `EMAIL_FAILED` | Sai `SMTP_USER`/`SMTP_PASSWORD` (Gmail phải dùng app password, không phải mật khẩu đăng nhập), sai cổng/STARTTLS, hoặc máy không ra được Internet. |
 | Người nhận mở link báo "Link không còn hiệu lực" | Link hết hạn, đã thu hồi, tài liệu bị hủy xuất bản/rút lại/xóa — tạo link mới. Link trỏ về `127.0.0.1`: sửa `PUBLIC_BASE_URL` thành địa chỉ người nhận truy cập được. |
 | Gửi duyệt báo "cần khai báo tài liệu có bản cứng hay không" | Bật `borrowing` (D-12): chọn Có (kèm kho/kệ) hoặc Không (Kho chung) trong hộp thoại Gửi duyệt. |
-| Nhập hàng loạt báo `BUNDLE_NO_MAIN` | Thư mục có `dinh-kem/` nhưng gốc có nhiều file: đặt tên file chính là `main.*` (mục 3, Nhập hàng loạt theo bộ hồ sơ). |
+| Nhập hàng loạt báo `MANIFEST_REQUIRED` | Từ v0.15 lô phải có `manifest.csv` (chọn cùng các file hoặc đặt ở gốc ZIP, mục 3 Nhập hàng loạt). |
+| Báo cáo lô ghi `NOT_IN_MANIFEST` | File có trong lô nhưng không có dòng nào trong `manifest.csv` (cột `file_name` hoặc `attachments`) nên bị bỏ qua. |
+| Gửi duyệt báo "Hãy chọn hiệu lực" / `INVALID_VALID_UNTIL` | Chọn hiệu lực trong hộp thoại (FR-19); "đến ngày" phải từ hôm nay trở đi. |
+| Đổi hiệu lực báo `REASON_REQUIRED` | Tài liệu đã duyệt/xuất bản: nhập lý do ít nhất 5 ký tự. |
+| Không thấy tài liệu trong danh sách/tìm kiếm | Có thể đã hết hiệu lực (ẩn mặc định): tích **Hiện tài liệu hết hiệu lực**. |
+| Báo cáo lô nhập cũ / job cũ biến mất | Hàng đợi chỉ giữ 30 ngày (`JOB_RETENTION_DAYS`). |
 | Trang Thống kê toàn số 0 cho các ngày trước | Beat chưa chạy lần nào (tổng hợp mỗi giờ, lần đầu tính bù 90 ngày); hôm nay vẫn tính trực tiếp. |
 | npm báo xung đột TypeScript | Giữ `typescript ~5.9` (typescript-eslint và openapi-typescript chưa hỗ trợ TS 6/7). |
 
