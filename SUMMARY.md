@@ -1,8 +1,8 @@
-# Tóm tắt trạng thái ProjectB (baseline SDD v0.13) — cập nhật 10/11/2026
+# Tóm tắt trạng thái ProjectB (baseline SDD v0.15) — cập nhật 11/11/2026
 
 Trạng thái chung: **MVP + toàn bộ P2 (P2-01…P2-09) + phân hệ quản trị/tài khoản (FR-09…FR-13) + các bổ sung sau
-demo 09/11 (SDD v0.13: FR-14…FR-18, D-12, D-13) đã hiện thực**; đặc tả v0.13 khớp với code; CI xanh trên mọi PR
-(#1–#37). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng và thử gửi email thật qua Gmail (mục 4).
+demo 09/11 (SDD v0.13–v0.15: FR-14…FR-21, D-12…D-16) đã hiện thực**; đặc tả v0.15 khớp với code; CI xanh trên mọi
+PR (#1–#43). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng và thử gửi email thật qua Gmail (mục 4).
 
 ## 1. Đã hoàn thành
 
@@ -13,9 +13,9 @@ demo 09/11 (SDD v0.13: FR-14…FR-18, D-12, D-13) đã hiện thực**; đặc t
 | Quản trị và tài khoản | FR-09 tài khoản của tôi, FR-10 phòng ban, FR-11 hàng đợi xử lý, FR-12 vai trò Người dùng thông thường + nhóm quyền, FR-13 chia sẻ | test_v07_*.py, test_v08_sharing.py |
 | Quyền sửa (D-11) | Policy ở `documents/domain/policies.py`, `DocumentOut.permissions` + `edit_lock_reason`, action `withdraw`/`return` | test_v012_permissions.py (ma trận 288 trường hợp); e2e test_review_locks_editing_d11 |
 | Điểm mở rộng | ModuleSpec + registry, job kind registry (`jobs.run`), event sau commit, port OcrEngine/Storage/Notifier/EmailSender (v0.13), hook trước khi gửi duyệt (`shared/submit_hooks`, v0.13), API truy vấn công khai, UI registry + slot | import-linter 5 contract KEPT; ESLint chặn import sai ranh giới |
-| CSDL | Alembic `0001_core` + `0101…0106` (mỗi module P2 một revision) + `0107` vai trò Người dùng thông thường, `0108` chia sẻ, `0109` nguồn danh mục, `0110` rút lại/trả lại, `0111…0115` bổ sung v0.13 (bản cứng/Kho chung, cấu hình hệ thống, thống kê theo ngày, tài liệu đi kèm, link chia sẻ ra ngoài); trigger audit append-only (cho phép ON DELETE SET NULL) | `alembic check` sạch trên SQLite và PostgreSQL; upgrade/downgrade/upgrade (CI mỗi PR) |
-| Đặc tả | `document/` v0.13: SDD (file 0), Đặc tả đề tài (file 2), Use Case/Sequence/ERD (file 3, vẽ lại Hình 1, Hình 8, thêm Hình 2b), script CSDL (file 4, sinh từ Alembic `0001…0115`, 21 bảng); file 1 (khảo sát) không đánh số phiên bản | script file 4 chạy sạch trên PostgreSQL 18 |
-| Frontend | React 19 + TS + Vite 8, React Router 7, TanStack Query 5, CSS Modules, Chart.js; 18 feature (8 lõi + 10 P2, lazy); types sinh từ OpenAPI; v0.13 thêm trang Thống kê, Cấu hình, tab Tài liệu đi kèm, hộp thoại Chia sẻ ra ngoài, trang công khai `/s/:token` | 75 test Vitest (21 file); tsc/eslint/prettier sạch |
+| CSDL | Alembic `0001_core` + `0101…0106` (mỗi module P2 một revision) + `0107` vai trò Người dùng thông thường, `0108` chia sẻ, `0109` nguồn danh mục, `0110` rút lại/trả lại, `0111…0115` bổ sung v0.13 (bản cứng/Kho chung, cấu hình hệ thống, thống kê theo ngày, tài liệu đi kèm, link chia sẻ ra ngoài), `0116` hiệu lực tài liệu (v0.14); trigger audit append-only (cho phép ON DELETE SET NULL) | `alembic check` sạch trên SQLite và PostgreSQL; upgrade/downgrade/upgrade (CI mỗi PR) |
+| Đặc tả | `document/` v0.15: SDD (file 0), Đặc tả đề tài (file 2), Use Case/Sequence/ERD (file 3: Hình 1, 2, 2b, 2c, 3–9; UC đến UC-37), script CSDL (file 4, sinh từ Alembic `0001…0116`, 21 bảng); file 1 (khảo sát) không đánh số phiên bản | script file 4 chạy sạch trên PostgreSQL 18 |
+| Frontend | React 19 + TS + Vite 8, React Router 7, TanStack Query 5, CSS Modules, Chart.js; 19 feature (9 lõi + 10 P2, lazy); types sinh từ OpenAPI; v0.13 thêm trang Thống kê, Cấu hình, tab Tài liệu đi kèm, hộp thoại Chia sẻ ra ngoài, trang công khai `/s/:token`; v0.14–v0.15 thêm nhãn/hộp thoại hiệu lực, duyệt hàng loạt, trang Hướng dẫn sử dụng | 80 test Vitest (24 file); tsc/eslint/prettier sạch |
 | Giao diện | Design token + component dùng chung; icon `lucide-react`; sidebar gom nhóm, ô tìm nhanh, avatar; đăng nhập chia đôi; dashboard theo nhóm + biểu đồ; **nền sáng/tối** (theo hệ thống / sáng / tối, lưu lựa chọn); nút theo quyền D-11 | E2E trên giao diện mới; soát ảnh chụp desktop 1440px + mobile 390px, sáng và tối |
 | OCR | Chữ in: VietOCR `vgg_seq2seq` (PaddleOCR dò dòng), chia dòng dài, chống nghiêng, lọc ký tự lạ, OCR vùng ảnh trong PDF có lớp chữ, dừng OCR. Chữ viết tay: VietOCR `vgg_transformer` trên hàng đợi `ocr_hw`, chia dòng, dùng chung model dò dòng | scan thật 87,7% → 98,2% (GUIDE 9.1); test_ocr_vietnamese.py, test_worker_profiles.py |
 | Sao lưu (NFR-03) | Service `backup` hằng ngày (database + storage), mỗi bản tự thử khôi phục → OK/WARN/FAILED; `restore` có chốt an toàn | thử thật trên Docker; CI `compose` chạy vòng sao lưu → xóa → khôi phục |
@@ -44,15 +44,21 @@ demo 09/11 (SDD v0.13: FR-14…FR-18, D-12, D-13) đã hiện thực**; đặc t
 | FR-17 | Thống kê hoạt động theo người dùng/phòng ban/thời gian, biểu đồ, xuất CSV; bảng tổng hợp theo ngày (migration 0113) | #35 |
 | FR-15 | Tài liệu đi kèm, tải cả bộ (.zip), giữ file gốc khi gộp; nhập hàng loạt theo thư mục/manifest.csv (migration 0114) | #36 |
 | FR-18 | Chia sẻ ra ngoài bằng link + OTP email, tối đa 24 giờ, thu hồi; trang công khai `/s/:token`; job `EMAIL` (migration 0115) | #37 |
+| SDD v0.14 (đặc tả) | FR-19 hiệu lực tài liệu, FR-20 duyệt hàng loạt, D-14, D-15; UC-34…UC-36; Hình 2c, Hình 9, vẽ lại Hình 8 | #39 |
+| D-15 | Dọn audit chỉ xóa log vận hành, giữ lịch sử thay đổi tài liệu | #40 |
+| FR-19 | Hiệu lực tài liệu: khai báo khi gửi duyệt, Kiểm duyệt sửa khi duyệt, đổi kèm lý do sau duyệt/xuất bản, hết hạn sau 23:59, nhắc trước 7 ngày, ẩn mặc định (migration 0116) | #41 |
+| FR-20 | Duyệt / duyệt và xuất bản / từ chối hàng loạt tối đa 20 tài liệu, checklist, kết quả từng tài liệu; hàng chờ ẩn tài liệu hết hiệu lực | #42 |
+| Vận hành (v0.15) | Hàng đợi lưu 30 ngày; xóa vĩnh viễn không giữ nhật ký; nhập hàng loạt chỉ theo manifest.csv; trang Hướng dẫn sử dụng (FR-21) | #43 |
+| SDD v0.15 (đặc tả) | Đồng bộ đặc tả với bản hiện thực, D-16, FR-21, UC-37; script CSDL v0.15; README, GUIDE, SUMMARY | #44 |
 
-### Kết quả kiểm thử (10/11/2026)
+### Kết quả kiểm thử (11/11/2026)
 
 | Bộ | Kết quả |
 |---|---|
-| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 491 passed, 1 skipped / 491 passed, 1 skipped |
-| CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#37) |
+| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 505 passed, 1 skipped / 505 passed, 1 skipped |
+| CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#43) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (chạy khi PR đổi Docker/infra) |
-| Frontend Vitest | 75 passed (21 file) |
+| Frontend Vitest | 80 passed (24 file) |
 | E2E Playwright trên demo thật, mọi cờ bật (local) | 13 passed, 1 skipped (14 test: 5 MVP + 9 P2; test bỏ qua chỉ dành cho chế độ cờ tắt) |
 | CI `e2e`: 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) | xanh trên mọi PR (ở chế độ MVP các test P2 tự bỏ qua) |
 | ruff, ruff format, mypy, lint-imports, ESLint, tsc, Prettier | sạch |
@@ -67,7 +73,7 @@ demo 09/11 (SDD v0.13: FR-14…FR-18, D-12, D-13) đã hiện thực**; đặc t
 | FR-04 | jobs/runner, ocr/run_ocr, beat requeue, dừng job, OCR vùng ảnh | jobs/JobStatus (poll 2s), nút Dừng | test_ocr_jobs.py (retry không trùng, needs_review, engine lỗi, job treo); test_v010_cancel_job.py; test_v09_ocr_regions.py; test_ocr_vietnamese.py |
 | FR-05 | ocr/editor | ocr/EditorPage (409 giữ draft; v0.13 mức 1: editorUtils, tô sáng dòng, tìm/thay, hoàn tác, nháp tự lưu) | test_editor_search.py; EditorForm.test.tsx, editorUtils.test.ts; e2e 409 |
 | FR-06 | search (FTS PostgreSQL / substring SQLite, không dấu; v0.13 khớp cả tên, `title_match`) | search/SearchPage | test_editor_search.py (test_search_matches_title); e2e |
-| FR-07 | documents/manage (lọc approval_status), purge (beat) | documents/TrashPage; DocumentsListPage (cột/lọc duyệt khi workflow bật); BackToList (quay lại giữ bộ lọc) | test_documents.py (410 quá hạn, purge giữ audit, bỏ qua job đang chạy); test_v07_jobs_documents.py; DocumentsListPage.test.tsx |
+| FR-07 | documents/manage (lọc approval_status), purge (beat; v0.15 xóa cả audit_logs của tài liệu, không ghi dòng purge) | documents/TrashPage; DocumentsListPage (cột/lọc duyệt khi workflow bật); BackToList (quay lại giữ bộ lọc) | test_documents.py (410 quá hạn, purge giữ audit, bỏ qua job đang chạy); test_v07_jobs_documents.py; DocumentsListPage.test.tsx |
 | FR-08 | dashboard, audit | dashboard (Chart.js), admin/AuditPage | test_editor_search.py, test_admin.py |
 | FR-09 | users/application/account, auth/presentation/account_router (`/api/account`) | features/account (/account), notifications/NotificationsPage (/notifications) | test_v07_admin_account.py (sai mật khẩu 400, 429 kể cả khi đúng, xoay phiên + thu hồi phiên khác); AccountPage.test.tsx |
 | FR-10 | users/application/departments | admin/DepartmentsPage | test_v07_admin_account.py (trùng mã 409, còn dùng 409 DEPARTMENT_IN_USE, chỉ Admin ghi) |
@@ -83,14 +89,18 @@ demo 09/11 (SDD v0.13: FR-14…FR-18, D-12, D-13) đã hiện thực**; đặc t
 | P2-05 | classification (job CLASSIFY, scikit-learn TF-IDF + Logistic Regression) | classification (tab) | test_p2_extraction_classification.py, test_v09_auto_category.py, SuggestionsTab.test.tsx |
 | P2-06 | ocr/versions_module (difflib) | versions (editorTools) | test_p2_versions_highlight.py; e2e |
 | P2-07 | borrowing + notifications (beat nhắc quá hạn) | borrowing, notifications (chuông) | test_p2_borrowing.py, test_p2_workflow.py |
-| P2-08 | imports (job BULK_IMPORT, ZIP an toàn, metadata.csv) | imports | test_p2_imports.py, test_imports_auto_category.py; e2e |
+| P2-08 | imports (job BULK_IMPORT, ZIP an toàn; v0.15 chỉ manifest.csv, bắt buộc) | imports | test_p2_imports.py, test_imports_auto_category.py; e2e |
 | P2-09 | rollback | rollback (auditRowActions) | test_p2_rollback.py; e2e |
 | FR-14 | settings (system_settings, beat purge_audit); documents đọc thời hạn thùng rác | admin/SettingsPage (/admin/settings) | test_v013_retention.py; SettingsPage.test.tsx |
-| FR-15 | documents/application/attachments, domain/attachments (loại file); imports/domain/bundles (thư mục, manifest.csv) | documents/AttachmentsTab, UploadPage, imports | test_v013_attachments.py, test_v013_import_bundles.py; AttachmentsTab.test.tsx |
+| FR-15 | documents/application/attachments, domain/attachments (loại file); imports/domain/bundles (manifest.csv) | documents/AttachmentsTab, UploadPage, imports | test_v013_attachments.py, test_v013_import_bundles.py; AttachmentsTab.test.tsx |
 | FR-16 | documents/upload (upload_merged, merge_files), infrastructure/merge (PyMuPDF) | documents/UploadPage (chọn nhiều, sắp thứ tự) | test_v013_merge_upload.py; UploadPage.test.tsx |
 | FR-17 | analytics (daily_activity_stats, beat refresh_activity_stats, export CSV) | admin/AnalyticsPage (/admin/analytics, Chart.js) | test_v013_analytics.py; AnalyticsPage.test.tsx |
 | FR-18 | sharing (share_links, OTP + phiên xem trong session store, job EMAIL), shared/email (EmailSender SMTP) | documents/sharing/ExternalShareDialog, PublicSharePage (/s/:token) | test_v013_external_share.py; ExternalShare.test.tsx |
 | D-12 | borrowing/locations (Kho chung, declare_on_submit), shared/submit_hooks; requests chặn bản nháp | workflow (hộp thoại bản cứng khi Gửi duyệt), borrowing (tab, Kho lưu trữ) | test_p2_borrowing.py (3 test D-12); components.test.tsx |
+| FR-19 | documents/domain/validity, application/validity (beat validity_tasks, nhắc qua Notifier + EmailSender), hook gửi duyệt; workflow approve; search, sharing, imports | shared/components/validity, documents/ValidityDialog, workflow (hộp thoại gửi duyệt/duyệt), danh sách, tìm kiếm, /s/:token | test_v014_validity.py; ValidityDialog.test.tsx, components.test.tsx |
+| FR-20 | workflow/approvals.bulk (POST /api/reviews/bulk), hàng chờ include_expired | workflow/ReviewsPage | test_v014_bulk_review.py; ReviewsPage.test.tsx |
+| FR-21 | — | features/guide (/guide) | GuidePage.test.tsx |
+| D-15, D-16 | audit/retention (log vận hành; delete_for_document), jobs/retention (purge_old_jobs 30 ngày) | admin/SettingsPage (ghi chú phạm vi xóa) | test_v013_retention.py, test_documents.py, test_v014_job_retention.py |
 | NFR-09 | registry + cờ | registry.ts | toàn bộ test chạy lại với `TEST_FEATURES=all`; test_p2_flags.py; registry.test.ts |
 | NFR-03 | `infra/backup/backup.sh` (service `backup`, `restore`) | — | CI `compose`: sao lưu → xóa tài liệu và file → khôi phục → app chạy lại |
 
@@ -115,7 +125,7 @@ một PR riêng trước PR hiện thực.
 | 10 | Phạm vi rollback P2-09 | Ghi rõ loại hỗ trợ + 422 `ROLLBACK_NOT_SUPPORTED` + API xem trước | SDD P2-09, §7.2; file 3 UC-08b |
 | + | `documents.department_id` có trong DB nhưng ERD v0.5 không vẽ | Vẽ lên ERD (căn cứ của D-02) | file 3 Hình 8 |
 
-Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); từ v0.6 script sinh lại từ Alembic (v0.13: `0001…0115`, 21 bảng).
+Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); từ v0.6 script sinh lại từ Alembic (v0.15: `0001…0116`, 21 bảng).
 
 ### 3.2 Quyết định chốt sau v0.6
 
@@ -129,8 +139,13 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); từ v0.6 scrip
 | D-12 | Gửi duyệt hỏi bản cứng (có → kho/kệ; không → Kho chung, không mượn được); chỉ mượn tài liệu đã xuất bản; chủ sở hữu, Kiểm duyệt viên, Admin sửa vị trí sau xuất bản | v0.13 |
 | D-13 | Chia sẻ ra ngoài: chỉ tài liệu đã xuất bản, link ≤ 24 giờ, OTP gửi tới email người nhận, thu hồi được; email qua SMTP (Gmail app password) | v0.13 |
 
-Khác đặc tả có chủ đích ở v0.13 (ghi trong PR #36): quy ước thư mục khi nhập hàng loạt chỉ áp dụng cho thư mục có
-`dinh-kem/` hoặc `main.*`; thư mục thường vẫn nhập từng file như trước để không phá các lô ZIP đang dùng.
+| D-14 | Hiệu lực tài liệu 4 trạng thái; khai báo khi gửi duyệt; sau duyệt/xuất bản chỉ Kiểm duyệt/Admin đổi, bắt buộc lý do; hết hạn sau 23:59 ngày hết hạn; nhắc trước 7 ngày; ẩn mặc định | v0.14 |
+| D-15 | Lịch sử thay đổi của tài liệu còn tồn tại không bị dọn theo thời hạn audit; chỉ dọn log vận hành | v0.14 (sửa v0.15) |
+| D-16 | Job đã kết thúc giữ 30 ngày; tài liệu xóa vĩnh viễn không giữ nhật ký; nhập hàng loạt chỉ theo manifest.csv | v0.15 |
+
+Các điểm hiện thực đã ghi vào đặc tả v0.15: gửi duyệt lại giữ hiệu lực đã khai báo; xuất bản không kiểm lại hiệu lực;
+hàng chờ duyệt chỉ có cột hiệu lực (vị trí bản cứng ở trang chi tiết, vì module workflow không phụ thuộc borrowing);
+"Duyệt và xuất bản" mà bước xuất bản lỗi thì tài liệu giữ trạng thái Đã duyệt. Quy ước thư mục của v0.13 đã bỏ ở v0.15.
 
 ## 4. Việc còn lại
 
@@ -143,6 +158,8 @@ Khác đặc tả có chủ đích ở v0.13 (ghi trong PR #36): quy ước thư
 | **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB` (25), `MAX_PAGES` (100), `MAX_MERGE_FILES` (20), `MAX_ATTACHMENTS` (20) |
 | **FR-18** thử gửi email thật | tài khoản Gmail + app password trong `.env` (GUIDE 4.4); `PUBLIC_BASE_URL` trỏ đúng địa chỉ người nhận mở được | đã test bằng sender giả; Mailpit cho thử local |
 | Email chờ OCR | job `EMAIL` dùng chung worker với OCR nên thư/OTP có thể đến chậm khi đang OCR tài liệu dài | tách hàng đợi `mail` + worker nhẹ nếu cần |
+| Nội dung trang Hướng dẫn sử dụng (FR-21) | tài liệu hướng dẫn và cách đưa lên (file tải lên hay nội dung soạn sẵn) | trang `/guide` đã có, đang trống |
+| Bắt buộc CI xanh trước khi merge | PR #43 cho thấy nút merge vẫn bấm được khi chưa có check | xem dòng ruleset bên dưới |
 | Ngưỡng "dòng tin cậy thấp" trong OCR Editor | cố định 0,8 — cần dữ liệu thật để chỉnh | `editorUtils.ts` (`LOW_SCORE`) |
 | Bắt buộc CI xanh trước khi merge | sửa ruleset (GUIDE 7.1) — đến 02/11 vẫn chưa bật | không còn test chập chờn đã biết |
 | Chép bản sao lưu ra ngoài máy | tùy nơi triển khai (ổ ngoài, cloud) | `BACKUP_DIR` (GUIDE 6.4) |
@@ -240,3 +257,10 @@ Khác đặc tả có chủ đích ở v0.13 (ghi trong PR #36): quy ước thư
 | #35 | 10/11 | FR-17: thống kê hoạt động theo người dùng, phòng ban, thời gian |
 | #36 | 10/11 | FR-15: tài liệu đi kèm, tải cả bộ, nhập hàng loạt theo bộ hồ sơ |
 | #37 | 10/11 | FR-18: chia sẻ ra ngoài bằng link + OTP email |
+| #38 | 10/11 | Cập nhật README, GUIDE, SUMMARY và script CSDL theo SDD v0.13 |
+| #39 | 11/11 | Đặc tả v0.14: FR-19, FR-20, D-14, D-15 |
+| #40 | 11/11 | D-15: dọn audit chỉ xóa log vận hành |
+| #41 | 11/11 | FR-19: hiệu lực tài liệu |
+| #42 | 11/11 | FR-20: duyệt, xuất bản, từ chối hàng loạt |
+| #43 | 11/11 | Hàng đợi lưu 30 ngày, xóa vĩnh viễn không giữ nhật ký, nhập hàng loạt chỉ theo manifest.csv, trang Hướng dẫn sử dụng |
+| #44 | 11/11 | Đặc tả v0.15 và cập nhật README, GUIDE, SUMMARY, script CSDL |

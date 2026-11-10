@@ -1,10 +1,10 @@
-# Hệ thống số hóa hồ sơ tài liệu doanh nghiệp (ProjectB — SDD v0.13)
+# Hệ thống số hóa hồ sơ tài liệu doanh nghiệp (ProjectB — SDD v0.15)
 
 Tiểu luận chuyên ngành — UTE, Nhóm 3. Mọi yêu cầu, tên dữ liệu và hợp đồng API bám theo
-**SDD v0.13** (`document/0 -Dac_ta_SDD_v0.14.docx`; v0.14 đã chốt đặc tả, đang hiện thực). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
+**SDD v0.15** (`document/0 -Dac_ta_SDD_v0.15.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
 
-**Trạng thái (10/11/2026):** MVP + P2 + phân hệ quản trị/tài khoản + bổ sung sau demo (SDD v0.13: FR-14…FR-18,
-D-12, D-13) đã hiện thực; đặc tả v0.13 khớp với code; CI xanh trên mọi PR (#1–#37). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng OCR,
+**Trạng thái (11/11/2026):** MVP + P2 + phân hệ quản trị/tài khoản + bổ sung sau demo (SDD v0.13–v0.15: FR-14…FR-21,
+D-12…D-16) đã hiện thực; đặc tả v0.15 khớp với code; CI xanh trên mọi PR (#1–#43). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng OCR,
 trích xuất, phân loại — xem [SUMMARY.md](SUMMARY.md) mục 4.
 
 ProjectB được dựng mới hoàn toàn từ baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng).
@@ -20,7 +20,8 @@ ProjectA (`D:\ProjectA_TLCN`) giữ lại làm tham chiếu bản MVP cũ (Jinja
 | v0.11 | 21/10/2026 | OCR chữ in tiếng Việt bằng VietOCR, chống nghiêng, lọc ký tự lạ (GUIDE mục 9) |
 | v0.12 | 26/10/2026 | D-11 quyền sửa theo chủ sở hữu và trạng thái duyệt (Rút lại / Trả lại); nhập hàng loạt có Danh mục gợi ý |
 | v0.13 | 10/11/2026 | Bổ sung sau demo: cấu hình thời gian lưu trữ (FR-14), tài liệu đi kèm (FR-15), gộp nhiều file (FR-16), thống kê (FR-17), chia sẻ ra ngoài bằng link + OTP (FR-18), bản cứng/Kho chung (D-12), tìm theo tên, OCR Editor |
-| v0.14 | 11/11/2026 | Hiệu lực tài liệu (FR-19, D-14), duyệt/xuất bản/từ chối hàng loạt (FR-20), lịch sử thay đổi tài liệu không bị dọn theo thời hạn audit (D-15) — **đang hiện thực** |
+| v0.14 | 11/11/2026 | Hiệu lực tài liệu (FR-19, D-14), duyệt/xuất bản/từ chối hàng loạt (FR-20), lịch sử thay đổi tài liệu không bị dọn theo thời hạn audit (D-15) |
+| v0.15 | 11/11/2026 | Đồng bộ bản hiện thực: hàng đợi lưu 30 ngày, xóa vĩnh viễn không giữ nhật ký, nhập hàng loạt chỉ theo manifest.csv (D-16), trang Hướng dẫn sử dụng (FR-21) |
 
 ## Kiến trúc
 
@@ -47,6 +48,9 @@ Trình duyệt ── React SPA (Vite, TS) ──/api──► Nginx ──► F
 - **Bổ sung v0.13:** tài liệu đi kèm + tải cả bộ, gộp nhiều file khi tải lên, nhập hàng loạt theo bộ hồ sơ, OCR
   Editor mức 1, Thống kê và Cấu hình thời gian lưu trữ (Admin), bản cứng/Kho chung khi gửi duyệt, chia sẻ ra ngoài bằng
   link + OTP email (cần SMTP — GUIDE mục 4.4). Hướng dẫn dùng: GUIDE mục 3 (Chức năng bổ sung v0.13).
+- **Bổ sung v0.14–v0.15:** hiệu lực tài liệu (khai báo khi gửi duyệt, tự hết hạn, nhắc trước 7 ngày, ẩn mặc định),
+  duyệt/xuất bản/từ chối hàng loạt tối đa 20 tài liệu, nhập hàng loạt chỉ theo `manifest.csv`, hàng đợi lưu 30 ngày,
+  tài liệu quá hạn thùng rác bị xóa vĩnh viễn cùng nhật ký, trang Hướng dẫn sử dụng. GUIDE mục 3 (Chức năng v0.14–v0.15).
 - **Sao lưu (NFR-03):** service `backup` sao lưu hằng ngày database + file, mỗi bản tự thử khôi phục (GUIDE mục 6.4).
 
 | Module lõi (MVP) | P2 (cờ) |
@@ -56,12 +60,12 @@ Trình duyệt ── React SPA (Vite, TS) ──/api──► Nginx ──► F
 ## Cấu trúc thư mục
 
 ```
-backend/            FastAPI + Celery (app/, alembic/ 0001…0115, tests/, eval/, scripts/)
-frontend/           React + TypeScript + Vite (src/app, src/features/* - 18 feature, src/shared)
+backend/            FastAPI + Celery (app/, alembic/ 0001…0116, tests/, eval/, scripts/)
+frontend/           React + TypeScript + Vite (src/app, src/features/* - 19 feature, src/shared)
 infra/nginx/        default.conf (SPA + reverse proxy /api, CSP)
 infra/backup/       backup.sh (sao lưu/khôi phục, chạy trong service backup/restore)
 docs/openapi.json   hợp đồng API (sinh types React: npm run gen:api)
-document/           đặc tả v0.13: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.13 (21 bảng, sinh từ Alembic)
+document/           đặc tả v0.15: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.15 (21 bảng, sinh từ Alembic)
 tests/e2e/          Playwright (Python) chạy trên hệ thống thật
 .github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2), compose.yml (Docker + sao lưu)
 compose.yaml        Docker Compose (profile rag, tools — tools có Mailpit thử email); compose.dev.yaml
@@ -82,14 +86,14 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin là `
 
 ## Kiểm thử
 
-| Bộ | Lệnh | Kết quả hiện tại (10/11/2026) |
+| Bộ | Lệnh | Kết quả hiện tại (11/11/2026) |
 |---|---|---|
-| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 491 passed, 1 skipped |
-| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 491 passed, 1 skipped |
+| Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 505 passed, 1 skipped |
+| Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 505 passed, 1 skipped |
 | Backend trên PostgreSQL 18 + Redis | CI `backend.yml` (6 tổ hợp cờ) | xanh mỗi PR |
-| Frontend | `cd frontend; npm test` | 75 passed (21 file) |
+| Frontend | `cd frontend; npm test` | 80 passed (24 file) |
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |
-| E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | 13 passed, 1 skipped (mọi cờ bật) |
+| E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | xanh trên CI (ma trận mvp, p2-dot-1, p2-tat-ca) |
 | Docker + sao lưu/khôi phục | CI `compose.yml` | xanh |
 
 Tài liệu khác: [GUIDE.md](GUIDE.md) (cài đặt, sử dụng, vận hành, Git/CI, sự cố, OCR) · [SUMMARY.md](SUMMARY.md)
