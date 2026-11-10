@@ -18,7 +18,10 @@ class AuditResult(StrEnum):
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
-    __table_args__ = (Index("idx_audit_logs_created_at", "created_at"),)
+    __table_args__ = (
+        Index("idx_audit_logs_created_at", "created_at"),
+        Index("idx_audit_logs_action_created_at", "action", "created_at"),  # FR-17 thống kê (0113)
+    )
 
     id: Mapped[int] = mapped_column(BigIntPK, primary_key=True, autoincrement=True)
     user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)

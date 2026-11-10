@@ -560,6 +560,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Analytics */
+        get: operations["get_analytics_api_admin_analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/analytics/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Analytics */
+        get: operations["export_analytics_api_admin_analytics_export_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notifications": {
         parameters: {
             query?: never;
@@ -1056,6 +1090,37 @@ export interface components {
          * @enum {string}
          */
         Action: "submit" | "approve" | "reject" | "publish" | "unpublish" | "withdraw" | "return";
+        /** AnalyticsOut */
+        AnalyticsOut: {
+            /** Granularity */
+            granularity: string;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Series */
+            series: {
+                [key: string]: unknown;
+            }[];
+            /** By User */
+            by_user: {
+                [key: string]: unknown;
+            }[];
+            /** By Department */
+            by_department: {
+                [key: string]: unknown;
+            }[];
+            /** Totals */
+            totals: {
+                [key: string]: unknown;
+            };
+        };
         /** ApprovalEntryOut */
         ApprovalEntryOut: {
             /**
@@ -3706,6 +3771,74 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SettingsOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_analytics_api_admin_analytics_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+                granularity?: "day" | "week" | "month";
+                department_id?: number | null;
+                user_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_analytics_api_admin_analytics_export_csv_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+                granularity?: "day" | "week" | "month";
+                department_id?: number | null;
+                user_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

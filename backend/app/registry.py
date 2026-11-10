@@ -5,6 +5,7 @@ activate(): nạp module đang bật theo FEATURES_ENABLED: đăng ký job handl
 và gọi setup() để module cắm vào registry của lõi (engine OCR, dashboard, notifier...).
 """
 
+from app.modules.analytics import module as analytics
 from app.modules.audit import module as audit
 from app.modules.auth import module as auth
 from app.modules.borrowing import module as borrowing
@@ -38,6 +39,7 @@ ALL_MODULES: list[ModuleSpec] = [
     dashboard.MODULE,
     audit.MODULE,  # lõi MVP
     system_settings.MODULE,  # FR-14 (v0.13, lõi)
+    analytics.MODULE,  # FR-17 (v0.13, lõi)
     notifications.MODULE,  # P2-07 (Notifier dùng chung với P2-01)
     workflow.MODULE,  # P2-01
     highlight_module.MODULE,  # P2-02
