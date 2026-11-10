@@ -29,9 +29,10 @@ from app.modules.workflow.domain.state_machine import (
 )
 from app.modules.workflow.infrastructure.models import DocumentApproval
 from app.shared import submit_hooks
+from app.shared.config import settings
 from app.shared.context import Principal, RequestContext
 from app.shared.db import aware, utcnow
-from app.shared.errors import ConflictError, PermissionDeniedError, UnprocessableError
+from app.shared.errors import AppError, ConflictError, PermissionDeniedError, UnprocessableError
 from app.shared.notify import get_notifier
 from app.shared.pagination import PageParams
 
@@ -85,8 +86,9 @@ def transition(
     comments: str | None,
     ctx: RequestContext,
     payload: dict[str, Any] | None = None,
+    batch_id: str | None = None,
 ) -> str:
-    """Thực hiện action; trả approval_status mới."""
+    """Thực hiện action; trả approval_status mới. batch_id: thao tác hàng loạt (FR-20), ghi vào audit."""
     if not principal.roles & ACTION_ROLES[action]:
         raise PermissionDeniedError("Vai trò của bạn không được thực hiện thao tác này")
     # Gửi duyệt, rút lại: chủ sở hữu (D-11); duyệt/xuất bản/hủy/trả lại: Kiểm duyệt viên phòng ban của tài liệu - chia
@@ -135,7 +137,7 @@ def transition(
         entity_id=doc.id,
         document_id=doc.id,
         before={"approval_status": step.from_status},
-        after={"approval_status": step.to_status, "comments": comments},
+        after={"approval_status": step.to_status, "comments": comments} | ({"batch_id": batch_id} if batch_id else {}),
     )
     if action in OWNER_ACTIONS:  # gửi duyệt / rút lại: báo Kiểm duyệt viên phòng ban của tài liệu
         recipients = [u for u in user_ids_with_roles(db, {"APPROVER"}, doc.department_id) if u != principal.id]
@@ -155,6 +157,94 @@ def transition(
         )
     db.commit()
     return step.to_status
+
+
+BULK_ACTIONS: dict[str, tuple[Action, ...]] = {
+    "approve": (Action.APPROVE,),
+    "approve_publish": (Action.APPROVE, Action.PUBLISH),
+    "publish": (Action.PUBLISH,),
+    "reject": (Action.REJECT,),
+}
+CHECKLIST = frozenset({"validity", "physical_copy", "extraction", "metadata"})
+
+
+@dataclass
+class BulkResult:
+    document_id: uuid.UUID
+    ok: bool
+    approval_status: str | None = None
+    error_code: str | None = None
+    error_message: str | None = None
+
+
+def bulk(
+    db: Session,
+    principal: Principal,
+    *,
+    action: str,
+    document_ids: list[uuid.UUID],
+    comments: str | None,
+    confirmed_checks: list[str],
+    ctx: RequestContext,
+) -> tuple[str, list[BulkResult]]:
+    """FR-20 (SDD v0.14): duyệt / duyệt và xuất bản / xuất bản / từ chối tối đa BULK_REVIEW_MAX tài liệu.
+
+    Mỗi tài liệu đi qua đúng transition() như thao tác lẻ (quyền phòng ban, state machine, lý do từ chối) trong giao
+    dịch riêng: tài liệu lỗi bị rollback và báo lý do, không ảnh hưởng tài liệu khác. Duyệt/xuất bản bắt buộc xác nhận
+    đủ checklist. Audit từng tài liệu mang batch_id; thêm một dòng bulk_review tổng hợp.
+    """
+    if not principal.has_any("APPROVER", "ADMIN"):
+        raise PermissionDeniedError("Chỉ Kiểm duyệt viên hoặc Quản trị viên được duyệt hàng loạt")
+    if action not in BULK_ACTIONS:
+        raise UnprocessableError("Thao tác không hợp lệ", fields={"action": "invalid"})
+    ids = list(dict.fromkeys(document_ids))
+    if not ids:
+        raise UnprocessableError("Hãy chọn ít nhất một tài liệu", fields={"document_ids": "required"})
+    if len(ids) > settings.BULK_REVIEW_MAX:
+        raise UnprocessableError(
+            f"Mỗi lần xử lý tối đa {settings.BULK_REVIEW_MAX} tài liệu",
+            code="BULK_LIMIT",
+            fields={"document_ids": "too_many"},
+        )
+    comments = (comments or "").strip() or None
+    if action == "reject" and not comments:
+        raise UnprocessableError("Từ chối phải kèm lý do", fields={"comments": "required"})
+    if action != "reject" and not set(confirmed_checks) >= CHECKLIST:
+        raise UnprocessableError(
+            "Hãy xác nhận đã kiểm tra hiệu lực, vị trí bản cứng, kết quả OCR/trích xuất và danh mục",
+            code="CHECKLIST_REQUIRED",
+            fields={"confirmed_checks": "required"},
+        )
+    batch_id = uuid.uuid4().hex
+    results: list[BulkResult] = []
+    for doc_id in ids:
+        status: str | None = None
+        try:
+            for step in BULK_ACTIONS[action]:
+                status = transition(db, principal, doc_id, step, comments=comments, ctx=ctx, batch_id=batch_id)
+        except AppError as exc:
+            db.rollback()
+            results.append(BulkResult(doc_id, False, status, exc.code, exc.message))
+        else:
+            results.append(BulkResult(doc_id, True, status))
+    record(
+        db,
+        action="bulk_review",
+        module="workflow",
+        actor_id=principal.id,
+        ctx=ctx,
+        entity_type="batch",
+        entity_id=batch_id,
+        after={
+            "action": action,
+            "batch_id": batch_id,
+            "succeeded": sum(r.ok for r in results),
+            "failed": sum(not r.ok for r in results),
+            "confirmed_checks": sorted(set(confirmed_checks) & CHECKLIST),
+        },
+    )
+    db.commit()
+    return batch_id, results
 
 
 def history(db: Session, principal: Principal, document_id: uuid.UUID) -> list[ApprovalEntry]:
@@ -186,11 +276,15 @@ def state(db: Session, principal: Principal, document_id: uuid.UUID) -> dict[str
     return {"approval_status": current, "allowed_actions": actions}
 
 
-def review_queue(db: Session, principal: Principal, params: PageParams) -> tuple[list[ReviewItem], int]:
-    """GET /api/reviews: tài liệu pending_review trong phạm vi quyền (Kiểm duyệt/Admin)."""
+def review_queue(
+    db: Session, principal: Principal, params: PageParams, *, include_expired: bool = False
+) -> tuple[list[ReviewItem], int]:
+    """GET /api/reviews: tài liệu pending_review trong phạm vi quyền (Kiểm duyệt/Admin); FR-19 ẩn hết hiệu lực."""
     if not principal.has_any("APPROVER", "ADMIN"):
         raise PermissionDeniedError("Chỉ Kiểm duyệt viên hoặc Quản trị viên xem hàng chờ duyệt")
     ids_stmt = documents.documents_with_approval(principal, PENDING)  # type: ignore[arg-type]
+    if not include_expired:
+        ids_stmt = ids_stmt.where(~documents.expired_clause(validity.today()))
     total = db.scalar(select(func.count()).select_from(ids_stmt.subquery())) or 0
     last_submit = (
         select(

@@ -138,6 +138,8 @@ class Settings(BaseSettings):
     # FR-19 (SDD v0.14): hiệu lực tài liệu - chu kỳ beat chuyển hết hạn/nhắc và số ngày nhắc trước
     VALIDITY_CHECK_INTERVAL_SECONDS: int = 3600
     VALIDITY_REMIND_DAYS: int = 7
+    # FR-20 (SDD v0.14): số tài liệu tối đa mỗi lần duyệt/xuất bản/từ chối hàng loạt
+    BULK_REVIEW_MAX: int = 20
     IMPORT_MAX_FILES: int = 200
     IMPORT_MAX_TOTAL_MB: int = 500  # tổng dung lượng sau giải nén
     IMPORT_MAX_ZIP_RATIO: int = 100  # chặn zip bomb: tỉ lệ nén tối đa mỗi file

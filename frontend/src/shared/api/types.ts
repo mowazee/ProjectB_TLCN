@@ -41,6 +41,7 @@ export type AuditLog = S["AuditLogOut"];
 export type ApprovalState = S["ApprovalStateOut"];
 export type ApprovalEntry = S["ApprovalEntryOut"];
 export type ReviewItem = S["ReviewItemOut"];
+export type BulkReviewOut = S["BulkOut"];
 export type Highlights = S["HighlightsOut"];
 export type HighlightBox = S["HighlightBoxOut"];
 export type VersionInfo = S["VersionOut"];
