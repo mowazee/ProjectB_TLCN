@@ -80,7 +80,6 @@ export function SearchPage() {
           placeholder="Nhập từ khóa, ví dụ: nghiệm thu công trình"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          autoFocus
           aria-label="Từ khóa"
         />
         <select

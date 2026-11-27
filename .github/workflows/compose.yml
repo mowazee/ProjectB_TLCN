@@ -33,16 +33,16 @@ jobs:
       - run: docker compose build
       - run: docker compose up -d
       - name: Chờ API sẵn sàng qua Nginx
-        run: npx --yes wait-on -t 300000 http://127.0.0.1:8080/api/health/ready
+        run: for i in $(seq 1 300); do curl -fsS http://127.0.0.1:8080/api/health/ready >/dev/null && break; [ "$i" = 300 ] && exit 1; sleep 1; done
       - run: docker compose run --rm --no-deps api python scripts/seed_demo.py --allow-demo-in-production
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install pytest pytest-playwright pymupdf pillow -c backend/constraints.txt && python -m playwright install --with-deps chromium
+      - run: 'pip install --only-binary :all: pytest pytest-playwright pymupdf pillow -c backend/constraints.txt && python -m playwright install --with-deps chromium'
       - run: pytest tests/e2e -q --browser chromium
       - name: Redis restart không mất session/hàng đợi (AOF)
         run: |
           docker compose restart redis
-          npx --yes wait-on -t 60000 http://127.0.0.1:8080/api/health/ready
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:8080/api/health/ready >/dev/null && break; [ "$i" = 60 ] && exit 1; sleep 1; done
       - name: Sao lưu -> mất dữ liệu -> khôi phục (NFR-03, GUIDE 6.4)
         run: |
           set -eux
@@ -62,7 +62,7 @@ jobs:
           test "$(psql "SELECT count(*) FROM documents")" = "$docs"
           docker compose exec -T backup test -f "/data/storage/$key"
           docker compose up -d
-          npx --yes wait-on -t 120000 http://127.0.0.1:8080/api/health/ready
+          for i in $(seq 1 120); do curl -fsS http://127.0.0.1:8080/api/health/ready >/dev/null && break; [ "$i" = 120 ] && exit 1; sleep 1; done
       - if: failure()
         run: docker compose ps && docker compose logs --no-color > compose.log
       - if: failure()

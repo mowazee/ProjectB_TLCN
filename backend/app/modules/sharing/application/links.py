@@ -36,7 +36,7 @@ from app.shared.errors import AppError, NotFoundError, UnprocessableError
 from app.shared.security.session import get_session_store
 
 EMAIL_KIND = "EMAIL"
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$")  # phần domain không chồng lấn: không backtracking
 
 
 class GoneLinkError(AppError):

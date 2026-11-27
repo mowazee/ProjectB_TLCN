@@ -22,6 +22,6 @@ def origin_allowed(origin: str | None, referer: str | None, host: str | None) ->
         return True
     parts = urlsplit(source)
     value = f"{parts.scheme}://{parts.netloc}".rstrip("/")
-    if value in settings.allowed_origins:
+    if value in settings.allowed_origin_set:
         return True
     return bool(host) and parts.netloc == host

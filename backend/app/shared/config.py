@@ -152,13 +152,13 @@ class Settings(BaseSettings):
     def _check_production(self) -> "Settings":
         if self.is_production and self.SESSION_BACKEND != "redis":
             raise ValueError("Production bắt buộc SESSION_BACKEND=redis (ADR-AUTH-003)")
-        unknown = self.features_enabled - set(ALL_FEATURES)
+        unknown = self.enabled_features - set(ALL_FEATURES)
         if unknown:
             raise ValueError(f"FEATURES_ENABLED có cờ không hợp lệ: {sorted(unknown)}")
         return self
 
     @property
-    def features_enabled(self) -> frozenset[str]:
+    def enabled_features(self) -> frozenset[str]:
         return frozenset(f.strip() for f in self.FEATURES_ENABLED.split(",") if f.strip())
 
     @property
@@ -187,7 +187,7 @@ class Settings(BaseSettings):
         }
 
     @property
-    def allowed_origins(self) -> frozenset[str]:
+    def allowed_origin_set(self) -> frozenset[str]:
         return frozenset(o.strip().rstrip("/") for o in self.ALLOWED_ORIGINS.split(",") if o.strip())
 
     @property

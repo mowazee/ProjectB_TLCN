@@ -43,7 +43,7 @@ def _out(principal: Principal, csrf: str) -> SessionOut:
         ),
         roles=sorted(principal.roles),
         csrf_token=csrf,
-        features=sorted(settings.features_enabled),
+        features=sorted(settings.enabled_features),
     )
 
 

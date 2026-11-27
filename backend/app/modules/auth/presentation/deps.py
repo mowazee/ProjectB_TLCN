@@ -85,7 +85,7 @@ def require_feature(feature: str) -> Callable[[], None]:
     """Router P2 chỉ được gắn khi cờ bật; dependency này là lớp chặn thứ hai (trả 404)."""
 
     def _dep() -> None:
-        if feature not in settings.features_enabled:
+        if feature not in settings.enabled_features:
             raise NotFoundError("Tính năng chưa được bật")
 
     return _dep
