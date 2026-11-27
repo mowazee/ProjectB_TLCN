@@ -3,8 +3,8 @@
 Tiểu luận chuyên ngành — UTE, Nhóm 3. Mọi yêu cầu, tên dữ liệu và hợp đồng API bám theo
 **SDD v0.15** (`document/0 -Dac_ta_SDD_v0.15.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
 
-**Trạng thái (11/11/2026):** MVP + P2 + phân hệ quản trị/tài khoản + bổ sung sau demo (SDD v0.13–v0.15: FR-14…FR-21,
-D-12…D-16) đã hiện thực; đặc tả v0.15 khớp với code; CI xanh trên mọi PR (#1–#43). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng OCR,
+**Trạng thái (28/11/2026):** MVP + P2 + phân hệ quản trị/tài khoản + bổ sung sau demo (SDD v0.13–v0.15: FR-14…FR-21,
+D-12…D-16) đã hiện thực; đặc tả v0.15 khớp với code; CI xanh trên mọi PR (#1–#57); SonarCloud 0 issue mở; quét bảo mật (gitleaks, Trivy) đạt. Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng OCR,
 trích xuất, phân loại — xem [SUMMARY.md](SUMMARY.md) mục 4.
 
 ProjectB được dựng mới hoàn toàn từ baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng).
@@ -51,6 +51,9 @@ Trình duyệt ── React SPA (Vite, TS) ──/api──► Nginx ──► F
 - **Bổ sung v0.14–v0.15:** hiệu lực tài liệu (khai báo khi gửi duyệt, tự hết hạn, nhắc trước 7 ngày, ẩn mặc định),
   duyệt/xuất bản/từ chối hàng loạt tối đa 20 tài liệu, nhập hàng loạt chỉ theo `manifest.csv`, hàng đợi lưu 30 ngày,
   tài liệu quá hạn thùng rác bị xóa vĩnh viễn cùng nhật ký, trang Hướng dẫn sử dụng. GUIDE mục 3 (Chức năng v0.14–v0.15).
+- **Chất lượng và bảo mật:** CI chặn merge khi lint/test đỏ, có secret (gitleaks), lỗ hổng HIGH/CRITICAL (Trivy,
+  pip-audit, npm audit); SonarCloud Automatic Analysis gắn Quality Gate cho mỗi PR; cài thư viện chỉ từ wheel và không
+  chạy script cài đặt npm; container web chạy Nginx không quyền root. Quy ước: [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Sao lưu (NFR-03):** service `backup` sao lưu hằng ngày database + file, mỗi bản tự thử khôi phục (GUIDE mục 6.4).
 
 | Module lõi (MVP) | P2 (cờ) |
@@ -87,15 +90,20 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin là `
 
 ## Kiểm thử
 
-| Bộ | Lệnh | Kết quả hiện tại (11/11/2026) |
+| Bộ | Lệnh | Kết quả hiện tại (28/11/2026) |
 |---|---|---|
 | Backend (SQLite) | `cd backend; .\.venv\Scripts\python.exe -m pytest -q` | 509 passed, 1 skipped |
 | Backend, mọi cờ P2 bật (NFR-09) | `$env:TEST_FEATURES="all"; ... pytest -q` | 509 passed, 1 skipped |
 | Backend trên PostgreSQL 18 + Redis | CI `backend.yml` (6 tổ hợp cờ) | xanh mỗi PR |
-| Frontend | `cd frontend; npm test` | 82 passed (25 file) |
+| Frontend | `cd frontend; npm test` (độ phủ: `npm run test:coverage`) | 82 passed (25 file) |
+| Độ phủ dòng lệnh | artifact `backend-coverage`, `frontend-coverage` của CI | backend 93%, frontend 66,6% |
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |
+| Bảo mật, phân tích tĩnh | gitleaks, Trivy, pip-audit, `npm audit`, bandit; SonarCloud (Quality Gate mỗi PR) | 0 secret, 0 lỗ hổng HIGH/CRITICAL, 0 issue SonarCloud |
+| Kiểm thử tải NFR-04 | `tests/load/load_test.py` (docs/TEST_PLAN.md mục 8) | chưa đo trên staging |
 | E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | xanh trên CI (ma trận mvp, p2-dot-1, p2-tat-ca) |
 | Docker + sao lưu/khôi phục | CI `compose.yml` | xanh |
+
+Lỗi phát hiện được theo dõi ở **GitHub Issues** (nhãn `bug`, mẫu báo lỗi `.github/ISSUE_TEMPLATE/bug_report.yml`).
 
 Quy ước đóng góp, chất lượng và kiểm soát mã do AI hỗ trợ: [CONTRIBUTING.md](CONTRIBUTING.md); nợ kỹ thuật:
 [docs/TECH_DEBT.md](docs/TECH_DEBT.md).

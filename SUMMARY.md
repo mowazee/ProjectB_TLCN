@@ -1,8 +1,9 @@
-# Tóm tắt trạng thái ProjectB (baseline SDD v0.15) — cập nhật 11/11/2026
+# Tóm tắt trạng thái ProjectB (baseline SDD v0.15) — cập nhật 28/11/2026
 
 Trạng thái chung: **MVP + toàn bộ P2 (P2-01…P2-09) + phân hệ quản trị/tài khoản (FR-09…FR-13) + các bổ sung sau
 demo 09/11 (SDD v0.13–v0.15: FR-14…FR-21, D-12…D-16) đã hiện thực**; đặc tả v0.15 khớp với code; CI xanh trên mọi
-PR (#1–#43). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng và thử gửi email thật qua Gmail (mục 4).
+PR (#1–#57); từ 28/11 bổ sung hồ sơ minh chứng theo rubric chấm đồ án (quét bảo mật, SonarCloud 0 issue, độ phủ, kế hoạch
+kiểm thử, tài liệu thiết kế, AI Usage Log, bộ thực nghiệm người dùng). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng và thử gửi email thật qua Gmail (mục 4).
 
 ## 1. Đã hoàn thành
 
@@ -19,7 +20,7 @@ PR (#1–#43). Việc còn lại chủ yếu cần **dữ liệu thật** để 
 | Giao diện | Design token + component dùng chung; icon `lucide-react`; sidebar gom nhóm, ô tìm nhanh, avatar; đăng nhập chia đôi; dashboard theo nhóm + biểu đồ; **nền sáng/tối** (theo hệ thống / sáng / tối, lưu lựa chọn); nút theo quyền D-11 | E2E trên giao diện mới; soát ảnh chụp desktop 1440px + mobile 390px, sáng và tối |
 | OCR | Chữ in: VietOCR `vgg_seq2seq` (PaddleOCR dò dòng), chia dòng dài, chống nghiêng, lọc ký tự lạ, OCR vùng ảnh trong PDF có lớp chữ, dừng OCR. Chữ viết tay: VietOCR `vgg_transformer` trên hàng đợi `ocr_hw`, chia dòng, dùng chung model dò dòng | scan thật 87,7% → 98,2% (GUIDE 9.1); test_ocr_vietnamese.py, test_worker_profiles.py |
 | Sao lưu (NFR-03) | Service `backup` hằng ngày (database + storage), mỗi bản tự thử khôi phục → OK/WARN/FAILED; `restore` có chốt an toàn | thử thật trên Docker; CI `compose` chạy vòng sao lưu → xóa → khôi phục |
-| Hạ tầng | Nginx (SPA + /api, CSP), Dockerfile backend/frontend, compose (một `worker` nghe `default,ocr,ocr_hw` bằng image `docso-backend-hw`, xử lý cả job gửi email `EMAIL`; profile rag, tools — tools có Mailpit thử email), compose.dev, Makefile; CI 4 workflow (ma trận cờ P2); ruleset `protect-main` | — |
+| Hạ tầng | Nginx (SPA + /api, CSP), Dockerfile backend/frontend, compose (một `worker` nghe `default,ocr,ocr_hw` bằng image `docso-backend-hw`, xử lý cả job gửi email `EMAIL`; profile rag, tools — tools có Mailpit thử email), compose.dev, Makefile; CI 6 workflow: backend, frontend, e2e (ma trận cờ P2), compose, security (gitleaks, Trivy), release (image phiên bản lên GHCR, rollback bằng `IMAGE_TAG`); SonarCloud Automatic Analysis; web chạy Nginx không quyền root; ruleset `protect-main` | security.yml, release.yml; SonarCloud 0 issue |
 | Đánh giá | `backend/eval/`: CER/WER/độ chính xác ký tự, hiệu chỉnh ngưỡng, precision/recall trích xuất, top-1 phân loại, đo chữ viết tay từ bản sửa trong app | chạy với OCR thật trên scan thật (3 trang) và dữ liệu tổng hợp |
 | Demo | `demo-start.cmd` / `demo-stop.cmd` (PostgreSQL riêng `.demo\`, worker, beat, API, React :8080 hoặc `-Port`) | đã chạy end-to-end với OCR thật |
 
@@ -50,18 +51,28 @@ PR (#1–#43). Việc còn lại chủ yếu cần **dữ liệu thật** để 
 | FR-20 | Duyệt / duyệt và xuất bản / từ chối hàng loạt tối đa 20 tài liệu, checklist, kết quả từng tài liệu; hàng chờ ẩn tài liệu hết hiệu lực | #42 |
 | Vận hành (v0.15) | Hàng đợi lưu 30 ngày; xóa vĩnh viễn không giữ nhật ký; nhập hàng loạt chỉ theo manifest.csv; trang Hướng dẫn sử dụng (FR-21) | #43 |
 | SDD v0.15 (đặc tả + P2-08) | Đồng bộ đặc tả với bản hiện thực, D-16, FR-21, UC-37; script CSDL v0.15; README, GUIDE, SUMMARY. Kèm code: `file_name` ghi nhiều file (`;`) để gộp một PDF (tên file và tiêu đề theo `title`, trống thì theo file đầu tiên); nút Tải file mẫu trả ZIP `manifest.csv` + `HUONG-DAN.txt` | #44 |
+| Nhật ký, thùng rác | Beat dọn mỗi giờ (tài liệu quá hạn không còn kẹt trong thùng rác sau khi build lại), dọn nhật ký sót; Nhật ký lọc theo tên người dùng/tài liệu, hành động gần đúng; cột Tên tài liệu; Hàng đợi ghi lưu 30 ngày | #45, #46 |
+| Chất lượng, bảo mật (rubric TC2.4, TC2.6) | gitleaks, Trivy, pip-audit/npm audit chặn merge; báo cáo độ phủ backend/frontend; image phiên bản GHCR; CONTRIBUTING, nợ kỹ thuật, mẫu PR/báo lỗi; Nginx không quyền root; SonarCloud | #47 |
+| Hồ sơ kiểm thử, thiết kế (rubric TC2.1, TC2.3, TC2.5, TC2.7) | Kế hoạch kiểm thử, kiểm thử tải NFR-04, sơ đồ context/component, từ điển dữ liệu, 22 business rules, AI Usage Log, bộ thực nghiệm người dùng (SUS); sửa test E2E chập chờn | #48 |
+| SonarCloud | Xử lý 30 issue (cài thư viện chỉ từ wheel, `npm ci --ignore-scripts`, bỏ `npx`, regex không backtracking, log injection, a11y, đổi tên thuộc tính cấu hình) → 0 issue | #57 |
+| Bug tracker | GitHub Issues #49–#56 (nhãn `bug`): 8 lỗi đã gặp, đủ vòng đời, kèm PR sửa và test hồi quy | — |
 
-### Kết quả kiểm thử (11/11/2026)
+### Kết quả kiểm thử (28/11/2026)
 
 | Bộ | Kết quả |
 |---|---|
 | Backend pytest (SQLite), cờ tắt / mọi cờ bật | 509 passed, 1 skipped / 509 passed, 1 skipped |
-| CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#43) |
+| CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#57) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (chạy khi PR đổi Docker/infra) |
 | Frontend Vitest | 82 passed (25 file) |
 | E2E Playwright trên demo thật, mọi cờ bật (local) | 13 passed, 1 skipped (14 test: 5 MVP + 9 P2; test bỏ qua chỉ dành cho chế độ cờ tắt) |
 | CI `e2e`: 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) | xanh trên mọi PR (ở chế độ MVP các test P2 tự bỏ qua) |
 | ruff, ruff format, mypy, lint-imports, ESLint, tsc, Prettier | sạch |
+| Độ phủ dòng lệnh (artifact CI) | backend 93%, frontend 66,6% |
+| Bảo mật: gitleaks (toàn bộ lịch sử), Trivy, pip-audit, npm audit, bandit | 0 secret; 0 lỗ hổng HIGH/CRITICAL |
+| SonarCloud (nhánh `main`) | 0 issue mở; Quality Gate đạt |
+| Tỉ lệ lượt chạy CI xanh | ~96% (187/194 lượt gần nhất) |
+| Kiểm thử tải NFR-04 (`tests/load/load_test.py`) | chưa đo trên staging |
 
 ## 2. Truy vết yêu cầu → hiện thực → test
 
@@ -159,9 +170,13 @@ hàng chờ duyệt chỉ có cột hiệu lực (vị trí bản cứng ở tra
 | **FR-18** thử gửi email thật | tài khoản Gmail + app password trong `.env` (GUIDE 4.4); `PUBLIC_BASE_URL` trỏ đúng địa chỉ người nhận mở được | đã test bằng sender giả; Mailpit cho thử local |
 | Email chờ OCR | job `EMAIL` dùng chung worker với OCR nên thư/OTP có thể đến chậm khi đang OCR tài liệu dài | tách hàng đợi `mail` + worker nhẹ nếu cần |
 | Nội dung trang Hướng dẫn sử dụng (FR-21) | tài liệu hướng dẫn và cách đưa lên (file tải lên hay nội dung soạn sẵn) | trang `/guide` đã có, đang trống |
-| Bắt buộc CI xanh trước khi merge | PR #43 cho thấy nút merge vẫn bấm được khi chưa có check | xem dòng ruleset bên dưới |
 | Ngưỡng "dòng tin cậy thấp" trong OCR Editor | cố định 0,8 — cần dữ liệu thật để chỉnh | `editorUtils.ts` (`LOW_SCORE`) |
-| Bắt buộc CI xanh trước khi merge | sửa ruleset (GUIDE 7.1) — đến 02/11 vẫn chưa bật | không còn test chập chờn đã biết |
+| Bắt buộc CI xanh và 1 approve trước khi merge | bật quy tắc bảo vệ nhánh `main` (GUIDE 7.1); PR #43, #46 cho thấy nút merge vẫn bấm được khi chưa có check | CONTRIBUTING.md mục 1 |
+| **Staging công khai + triển khai tự động** (rubric TC2.2, TC2.6) | chọn máy: VPS hoặc máy nhà + Cloudflare Tunnel; thêm chặng deploy, cảnh báo uptime | image phiên bản GHCR (`release.yml`), rollback bằng `IMAGE_TAG` (GUIDE 6.5) |
+| **Thực nghiệm người dùng** (rubric TC2.7) | ≥ 10 người thuộc nhóm mục tiêu, đo SUS, một vòng cải tiến và đo lại | `docs/user-testing/` (kịch bản, phiếu SUS, `sus_score.py`) |
+| Kiểm thử tải NFR-04 | hệ thống chạy trên demo/staging | `tests/load/load_test.py` |
+| AI Usage Log phần PR #1–#28, bản cam kết KPI, sổ tiến độ | nhóm tự điền | `docs/AI_USAGE_LOG.md`, `document/Checklist_cai_tien_theo_Rubric.docx` |
+| Báo cáo lỗi dạng file (môn Kiểm thử phần mềm) | tổng hợp từ GitHub Issues | issue #49–#56, `docs/TEST_PLAN.md` mục 7 |
 | Chép bản sao lưu ra ngoài máy | tùy nơi triển khai (ổ ngoài, cloud) | `BACKUP_DIR` (GUIDE 6.4) |
 | CD (tự triển khai) | server | chưa làm |
 
@@ -266,3 +281,6 @@ hàng chờ duyệt chỉ có cột hiệu lực (vị trí bản cứng ở tra
 | #44 | 11/11 | Đặc tả v0.15, README, GUIDE, SUMMARY, script CSDL; nhập hàng loạt gộp nhiều file qua `file_name`, file mẫu ZIP kèm hướng dẫn |
 | #45 | 11/11 | Beat dọn mỗi giờ (thùng rác quá hạn không bị kẹt sau khi build lại), dọn nhật ký sót của tài liệu đã xóa; Nhật ký hệ thống lọc theo tên người dùng/tài liệu, hành động gần đúng; Hàng đợi ghi rõ lưu 30 ngày |
 | #46 | 11/11 | Nhật ký hệ thống: thêm cột Tên tài liệu (liên kết tới tài liệu), khớp với ô lọc Tài liệu |
+| #47 | 28/11 | CI: gitleaks, Trivy, chặn pip-audit/npm audit, báo cáo độ phủ, image phiên bản GHCR; CONTRIBUTING, nợ kỹ thuật, mẫu PR/báo lỗi; Nginx không quyền root; SonarCloud |
+| #48 | 28/11 | Kế hoạch kiểm thử, kiểm thử tải, sơ đồ context/component, từ điển dữ liệu, business rules, AI Usage Log, bộ thực nghiệm SUS; sửa E2E chập chờn (#56) |
+| #57 | 28/11 | Xử lý 30 issue SonarCloud |
