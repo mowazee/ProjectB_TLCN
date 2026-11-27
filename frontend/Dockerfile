@@ -12,6 +12,8 @@ RUN npm run gen:api && npm run build
 FROM nginxinc/nginx-unprivileged:1.29-alpine
 COPY infra/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /src/frontend/dist /usr/share/nginx/html
+# Ghi rõ người dùng không phải root (uid 101 = nginx của image unprivileged)
+USER 101
 EXPOSE 8080
 # 127.0.0.1 chứ không phải localhost: trong Alpine localhost ra ::1 (IPv6) mà Nginx chỉ nghe IPv4
 HEALTHCHECK --interval=30s --timeout=5s CMD wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1
