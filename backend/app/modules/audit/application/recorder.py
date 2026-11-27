@@ -18,11 +18,6 @@ from app.shared.db import utcnow
 logger = logging.getLogger(__name__)
 
 
-def _safe_log(value: Any) -> str:
-    """Giá trị đưa vào log: bỏ ký tự xuống dòng/điều khiển (chặn giả mạo dòng log), giới hạn độ dài."""
-    return "".join(ch if ch.isprintable() else "?" for ch in str(value))[:200]
-
-
 def record(
     db: Session,
     *,
@@ -57,6 +52,8 @@ def record(
         with db.begin_nested():
             db.add(log)
     except SQLAlchemyError:
-        logger.exception("Ghi audit thất bại: action=%s entity=%s", action, _safe_log(entity_id))
+        # Không đưa giá trị lấy từ request (action, entity_id) vào log - chống giả mạo dòng log (SonarCloud S5145);
+        # module là hằng số trong code, stack trace đủ để điều tra.
+        logger.exception("Ghi audit thất bại ở module %s", module)
         return None
     return log
