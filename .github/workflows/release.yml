@@ -1,0 +1,53 @@
+name: release
+
+# Đóng gói và đánh phiên bản (TC2.6): mỗi tag vX.Y.Z build 3 image (api/beat, worker có VietOCR, web) và đẩy lên GitHub
+# Container Registry với tag phiên bản + latest. Triển khai/rollback = chọn IMAGE_TAG trong .env (GUIDE 6.5).
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag phiên bản (vd. v0.15.0)"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: docso-backend, context: ./backend, file: backend/Dockerfile, args: "" }
+          - { name: docso-backend-hw, context: ./backend, file: backend/Dockerfile, args: "WITH_HW=1" }
+          - { name: docso-web, context: ., file: frontend/Dockerfile, args: "" }
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: echo "tag=${{ github.event.inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          build-args: ${{ matrix.args }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.v.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.v.outputs.tag }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+      - name: Trivy quét image vừa phát hành (báo cáo CRITICAL/HIGH)
+        run: |
+          docker run --rm -v "$PWD:/out" aquasec/trivy:0.58.1 image             ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.v.outputs.tag }}             --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 --format table --output /out/trivy-${{ matrix.name }}.txt
+      - uses: actions/upload-artifact@v4
+        with: { name: "trivy-${{ matrix.name }}", path: "trivy-${{ matrix.name }}.txt" }

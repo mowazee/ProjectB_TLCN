@@ -470,6 +470,26 @@ upload trong lúc sao lưu chỉ thành file thừa, không có bản ghi trỏ 
 Bản sao lưu nằm trên cùng máy thì không chống được hỏng ổ hay mất máy: chép `BACKUP_DIR` ra ngoài (ổ ngoài,
 Google Drive, máy khác) theo lịch. Demo Windows (mục 3, `.demo\`) là dữ liệu thử, không sao lưu.
 
+### 6.5 Phiên bản image và rollback
+
+Workflow `release.yml` build và đẩy 3 image lên GitHub Container Registry mỗi khi tạo tag phiên bản:
+
+```powershell
+git tag v0.15.0; git push origin v0.15.0      # hoặc Actions → release → Run workflow, nhập tag
+```
+
+Image: `ghcr.io/mowazee/docso-backend`, `docso-backend-hw`, `docso-web`, mỗi image có tag phiên bản và `latest`;
+Trivy quét từng image, báo cáo ở artifact của lần chạy. Dùng image đã phát hành thay vì build tại chỗ — trong `.env`:
+
+```
+IMAGE_PREFIX=ghcr.io/mowazee/
+IMAGE_TAG=v0.15.0
+```
+
+rồi `docker compose pull; docker compose up -d`. **Rollback:** đặt `IMAGE_TAG` về phiên bản trước và chạy lại hai lệnh
+trên (migration chỉ thêm, phiên bản cũ vẫn chạy được trên CSDL mới). Không đặt hai biến thì compose build tại chỗ như cũ
+(`docso-*:0.5`).
+
 ## 7. Git, GitHub và CI
 
 Repo: https://github.com/mowazee/ProjectB_TLCN (public từ 13/10/2026; nhánh chính `main`).

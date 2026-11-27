@@ -46,7 +46,11 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
-      - run: npm test
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        with: { name: frontend-coverage, path: frontend/coverage }
+      - name: Lỗ hổng thư viện chạy production (npm audit, chặn từ mức high)
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run build
       - uses: actions/upload-artifact@v4
         with: { name: frontend-dist, path: frontend/dist }

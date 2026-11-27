@@ -32,7 +32,8 @@ jobs:
       - name: import-linter (R1-R10)
         run: lint-imports
       - run: bandit -q -r app -c pyproject.toml
-      - run: pip-audit -r requirements.txt --progress-spinner off || true # báo cáo, không chặn
+      - name: Lỗ hổng thư viện (pip-audit, chặn khi có lỗ hổng đã biết)
+        run: pip-audit -r requirements.txt --progress-spinner off
 
   test:
     runs-on: ubuntu-latest
@@ -63,7 +64,15 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip, cache-dependency-path: "backend/*.txt" }
       - run: pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt
-      - run: pytest -q --cov=app --cov-report=term-missing:skip-covered
+      - run: pytest -q --cov=app --cov-report=term-missing:skip-covered --cov-report=html --cov-report=xml
+      # Báo cáo độ phủ (minh chứng TC2.5): bản đầy đủ của tổ hợp "all"
+      - if: matrix.features == 'all'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: |
+            backend/htmlcov
+            backend/coverage.xml
 
   migrations:
     runs-on: ubuntu-latest

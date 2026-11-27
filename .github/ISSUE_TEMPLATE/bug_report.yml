@@ -1,0 +1,28 @@
+name: Báo lỗi
+description: Ghi nhận một lỗi (defect) để theo dõi vòng đời sửa lỗi
+title: "[Lỗi] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Mức độ
+      options: ["Critical/Blocker - không dùng được chức năng chính", "Major - sai nghiệp vụ, có cách tránh", "Minor - giao diện, chữ"]
+    validations: { required: true }
+  - type: input
+    id: requirement
+    attributes: { label: "Yêu cầu liên quan", placeholder: "vd. FR-19, P2-08" }
+  - type: textarea
+    id: steps
+    attributes: { label: "Các bước tái hiện", placeholder: "1. ...\n2. ..." }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: "Kết quả mong đợi / kết quả thực tế" }
+    validations: { required: true }
+  - type: input
+    id: env
+    attributes: { label: "Môi trường", placeholder: "Docker / demo Windows, trình duyệt, phiên bản" }
+  - type: textarea
+    id: fix
+    attributes: { label: "Sửa lỗi (điền khi đóng)", placeholder: "Nguyên nhân, PR/commit sửa, test hồi quy" }
