@@ -1,0 +1,2 @@
+participant,role,round,T1,T2,T3,T4,T5,T6,T7,T8,T9,time_s,errors,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,note
+P00,vi-du-xoa-dong-nay,1,1,1,0,1,,,,,,540,2,4,2,4,2,4,2,4,2,4,2,"T: 1 = hoàn thành không trợ giúp, 0 = không hoàn thành/cần trợ giúp, trống = không áp dụng; time_s = tổng thời gian; q1..q10 = điểm SUS 1-5"

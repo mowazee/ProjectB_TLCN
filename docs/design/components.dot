@@ -1,0 +1,47 @@
+// Sơ đồ thành phần (C4 mức 2–3): container triển khai và module backend. Khớp compose.yaml và backend/app/modules.
+// Vẽ lại: dot -Tpng docs/design/components.dot -o docs/design/components.png
+digraph components {
+  graph [fontname="Arial", rankdir=LR, compound=true, splines=true, nodesep=0.35, ranksep=0.9, pad=0.3, dpi=150,
+         label="Hình C2. Sơ đồ thành phần — container triển khai và module backend (v0.15)", labelloc=b, fontsize=16];
+  node [fontname="Arial", fontsize=11, shape=box, style="rounded,filled", fillcolor="#ffffff", penwidth=1.2];
+  edge [fontname="Arial", fontsize=9, color="#555555"];
+
+  browser [label="Trình duyệt", shape=ellipse, fillcolor="#fde3d6"];
+
+  subgraph cluster_web {
+    label="web (Nginx)"; style="rounded,filled"; fillcolor="#f3f6fb"; color="#2c4f8c";
+    spa [label="React SPA\nfeatures/*: documents, ocr, search,\nworkflow, borrowing, imports, admin,\nsharing, guide… (UI registry + slot)"];
+    proxy [label="Reverse proxy /api\nCSP, cùng origin"];
+  }
+
+  subgraph cluster_api {
+    label="api (FastAPI, modular monolith — 4 lớp/module, import-linter 5 contract)"; style="rounded,filled"; fillcolor="#eef6ee"; color="#2e7d4f";
+    subgraph cluster_core {
+      label="Module lõi"; style="rounded"; color="#2e7d4f";
+      core [label="auth · users · categories · documents\njobs · ocr · search · dashboard · audit\nsettings · analytics · sharing"];
+    }
+    subgraph cluster_p2 {
+      label="Module P2 (cờ FEATURES_ENABLED)"; style="rounded,dashed"; color="#b5852a";
+      p2 [label="workflow · highlight · handwriting\nextraction · classification · versions\nborrowing · notifications · imports · rollback"];
+    }
+    ext [label="Điểm mở rộng (shared)\nModuleSpec registry · job kind registry\ndomain event sau commit · submit_hooks\nport OcrEngine / Storage / Notifier / EmailSender", fillcolor="#fffaf0"];
+  }
+
+  worker [label="worker (Celery)\nhàng đợi default, ocr, ocr_hw\nOCR in + chữ viết tay, trích xuất,\nphân loại, nhập hàng loạt, email"];
+  beat   [label="beat (Celery)\ndọn thùng rác/audit/job (mỗi giờ),\nhiệu lực + nhắc, thống kê,\ngửi lại job kẹt, nhắc quá hạn mượn"];
+  pg     [label="PostgreSQL 18\n21 bảng, FTS", shape=cylinder, fillcolor="#dce9f6"];
+  redis  [label="Redis\nsession, OTP, broker", shape=cylinder, fillcolor="#dce9f6"];
+  store  [label="Kho file riêng\n(file gốc, ảnh trang,\ntài liệu đi kèm)", shape=folder, fillcolor="#dce9f6"];
+  backup [label="backup\n(sao lưu + tự thử khôi phục)"];
+
+  browser -> spa [label="HTTPS"];
+  spa -> proxy [label="fetch /api"];
+  proxy -> core [lhead=cluster_api, label="REST JSON"];
+  core -> ext [dir=none, style=dotted];
+  p2 -> ext [dir=none, style=dotted];
+  core -> pg; core -> redis; core -> store;
+  core -> worker [label="job sau commit\n(qua Redis)", ltail=cluster_api];
+  worker -> pg; worker -> store;
+  beat -> worker [label="tác vụ định kỳ"];
+  backup -> pg [style=dashed]; backup -> store [style=dashed];
+}

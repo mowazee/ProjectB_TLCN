@@ -1,0 +1,33 @@
+// Sơ đồ ngữ cảnh (C4 mức 1): hệ thống và các tác nhân/hệ thống ngoài.
+// Vẽ lại: dot -Tpng docs/design/context.dot -o docs/design/context.png
+digraph context {
+  graph [fontname="Arial", rankdir=LR, splines=true, nodesep=0.6, ranksep=1.4, pad=0.3, dpi=150,
+         label="Hình C1. Sơ đồ ngữ cảnh — Hệ thống số hóa hồ sơ tài liệu (v0.15)", labelloc=b, fontsize=16];
+  node [fontname="Arial", fontsize=12, shape=box, style="rounded,filled", penwidth=1.4];
+  edge [fontname="Arial", fontsize=10, color="#555555"];
+
+  officer  [label="Nhân viên nghiệp vụ\n(tải lên, sửa OCR, gửi duyệt,\nnhập hàng loạt, mượn hồ sơ)", fillcolor="#fde3d6", color="#8a5232"];
+  approver [label="Kiểm duyệt viên\n(duyệt / xuất bản / hiệu lực,\nduyệt mượn)", fillcolor="#fde3d6", color="#8a5232"];
+  viewer   [label="Người dùng thông thường\n(xem tài liệu đã xuất bản)", fillcolor="#fde3d6", color="#8a5232"];
+  admin    [label="Quản trị viên\n(người dùng, danh mục, cấu hình,\nnhật ký, thống kê, rollback)", fillcolor="#fde3d6", color="#8a5232"];
+  external [label="Người nhận bên ngoài\n(không tài khoản, OTP)", fillcolor="#efe3f7", color="#6b3f8a"];
+
+  system [label="HỆ THỐNG SỐ HÓA HỒ SƠ TÀI LIỆU\nReact SPA + FastAPI + Celery\nPostgreSQL, Redis, kho file riêng", shape=box,
+          style="rounded,filled,bold", fillcolor="#dce9f6", color="#2c4f8c", penwidth=2.2, fontsize=14, width=3.4, height=1.4];
+
+  smtp   [label="Dịch vụ email SMTP\n(Gmail / Mailpit)", fillcolor="#e3efd9", color="#4b7a35"];
+  ocr    [label="Mô hình OCR cục bộ\n(PaddleOCR dò dòng,\nVietOCR đọc chữ)", fillcolor="#e3efd9", color="#4b7a35"];
+  backup [label="Nơi lưu bản sao lưu\n(thư mục BACKUP_DIR)", fillcolor="#e3efd9", color="#4b7a35"];
+
+  {rank=source; officer; approver; viewer; admin; external;}
+  {rank=sink; smtp; ocr; backup;}
+
+  officer  -> system [label="HTTPS /api\n(session cookie + CSRF)"];
+  approver -> system;
+  viewer   -> system;
+  admin    -> system;
+  external -> system [label="link /s/<token> + OTP"];
+  system -> smtp   [label="link chia sẻ, OTP,\nnhắc hết hiệu lực"];
+  system -> ocr    [label="ảnh trang → văn bản\n+ độ tin cậy"];
+  system -> backup [label="sao lưu hằng ngày\n(DB + file)"];
+}
