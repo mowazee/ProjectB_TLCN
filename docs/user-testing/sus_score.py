@@ -1,5 +1,6 @@
 """Tổng hợp kết quả thực nghiệm người dùng: điểm SUS, tỉ lệ hoàn thành tác vụ, thời gian, so sánh vòng 1 – vòng 2.
 
+    cd docs/user-testing
     python sus_score.py ket_qua_thuc_nghiem.csv --round 1
     python sus_score.py ket_qua_thuc_nghiem.csv --compare
 Chỉ dùng thư viện chuẩn. Dòng có participant bắt đầu bằng "P00" (dòng ví dụ) bị bỏ qua.
@@ -9,6 +10,7 @@ import argparse
 import csv
 import statistics
 import sys
+from pathlib import Path
 
 TASKS = [f"T{i}" for i in range(1, 10)]
 
@@ -51,15 +53,28 @@ def show(title: str, s: dict[str, float]) -> None:
     print(f"   Thời gian trung bình {s['time_mean_s']:.0f} s, số lỗi thao tác trung bình {s['errors_mean']:.1f}")
 
 
+BASE_DIR = Path(__file__).resolve().parent
+
+
+def safe_csv_path(name: str) -> Path:
+    """Chỉ đọc file .csv nằm trong thư mục của script (chặn đọc file ngoài ý muốn qua đường dẫn nhập vào)."""
+    path = (BASE_DIR / Path(name).name).resolve()
+    if path.parent != BASE_DIR or path.suffix.lower() != ".csv" or not path.is_file():
+        raise SystemExit(f"Chỉ đọc file .csv có sẵn trong {BASE_DIR}")
+    return path
+
+
 def main() -> int:
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser()
-    ap.add_argument("csv")
+    ap.add_argument("csv", help="tên file CSV kết quả trong thư mục docs/user-testing")
     ap.add_argument("--round", type=int)
     ap.add_argument("--compare", action="store_true", help="so sánh vòng 1 và vòng 2")
     a = ap.parse_args()
-    with open(a.csv, encoding="utf-8-sig", newline="") as f:
+    path = safe_csv_path(a.csv)
+    with path.open(encoding="utf-8-sig", newline="") as f:
         rows = [r for r in csv.DictReader(f) if r.get("participant") and not r["participant"].startswith("P00")]
     if a.compare:
         r1 = summarize([r for r in rows if r["round"] == "1"])
