@@ -114,6 +114,8 @@ def test_highlight_and_versions(officer_page: Page, tmp_path, uniq):
     editor = page.get_by_label("Nội dung OCR")
     editor.fill(editor.input_value().replace("nổi bật", "đã đổi"))
     page.get_by_role("button", name="Lưu phiên bản mới").click()
+    # Lưu xong Editor tự chuyển về trang xem: chờ tín hiệu này rồi mới mở lại, tránh so sánh khi phiên bản chưa lưu
+    expect(page).to_have_url(re.compile(rf"/documents/{doc_id}/pages/1$"))
     page.goto(f"{BASE_URL}/documents/{doc_id}/pages/1/edit")
     page.get_by_label("Từ phiên bản").select_option(index=0)
     # Diff theo từ: "nổi bật" -> "đã đổi" hiển thị từng từ bị xóa/thêm

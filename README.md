@@ -100,5 +100,17 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin là `
 Quy ước đóng góp, chất lượng và kiểm soát mã do AI hỗ trợ: [CONTRIBUTING.md](CONTRIBUTING.md); nợ kỹ thuật:
 [docs/TECH_DEBT.md](docs/TECH_DEBT.md).
 
+## Hồ sơ minh chứng theo rubric
+
+| Minh chứng | Tài liệu |
+|---|---|
+| Đặc tả yêu cầu, thiết kế (SRS/SDD), sơ đồ UC/Sequence/ERD | `document/` (SDD, Đặc tả đề tài, Use Case/Sequence/ERD v0.15, script CSDL) |
+| Sơ đồ ngữ cảnh, sơ đồ thành phần | [docs/design/](docs/design/) (`context.png`, `components.png`, nguồn `.dot`) |
+| Từ điển dữ liệu, quy tắc nghiệp vụ | [docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md), [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) |
+| Kế hoạch kiểm thử, kiểm thử tải, quản lý lỗi | [docs/TEST_PLAN.md](docs/TEST_PLAN.md), [tests/load/](tests/load/), GitHub Issues |
+| Coding convention, kiểm soát mã AI, nợ kỹ thuật | [CONTRIBUTING.md](CONTRIBUTING.md), [docs/TECH_DEBT.md](docs/TECH_DEBT.md) |
+| Nhật ký sử dụng AI | [docs/AI_USAGE_LOG.md](docs/AI_USAGE_LOG.md) |
+| Thực nghiệm người dùng (kịch bản, phiếu SUS, script tổng hợp) | [docs/user-testing/](docs/user-testing/) |
+
 Tài liệu khác: [GUIDE.md](GUIDE.md) (cài đặt, sử dụng, vận hành, Git/CI, sự cố, OCR) · [SUMMARY.md](SUMMARY.md)
 (trạng thái, truy vết, chênh lệch so với đặc tả, việc còn lại) · [backend/eval/README.md](backend/eval/README.md) (đánh giá NFR-08).
