@@ -26,5 +26,12 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     css: { modules: { classNameStrategy: "non-scoped" } },
+    // Báo cáo độ phủ (npm run test:coverage): text cho log CI, html + lcov làm minh chứng/SonarCloud
+    coverage: {
+      provider: "v8",
+      reporter: ["text-summary", "html", "lcov"],
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.test.{ts,tsx}", "src/test/**", "src/shared/api/schema.d.ts", "src/main.tsx"],
+    },
   },
 });

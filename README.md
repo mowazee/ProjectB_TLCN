@@ -67,7 +67,8 @@ infra/backup/       backup.sh (sao lưu/khôi phục, chạy trong service backu
 docs/openapi.json   hợp đồng API (sinh types React: npm run gen:api)
 document/           đặc tả v0.15: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.15 (21 bảng, sinh từ Alembic)
 tests/e2e/          Playwright (Python) chạy trên hệ thống thật
-.github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2), compose.yml (Docker + sao lưu)
+.github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2), compose.yml (Docker + sao lưu),
+                    security.yml (gitleaks, Trivy), release.yml (image phiên bản lên GHCR); SonarCloud Automatic Analysis
 compose.yaml        Docker Compose (profile rag, tools — tools có Mailpit thử email); compose.dev.yaml
 scripts/            demo_start/stop.ps1 (demo một chạm), docker_start/stop.ps1
 ```
@@ -95,6 +96,9 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin là `
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |
 | E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | xanh trên CI (ma trận mvp, p2-dot-1, p2-tat-ca) |
 | Docker + sao lưu/khôi phục | CI `compose.yml` | xanh |
+
+Quy ước đóng góp, chất lượng và kiểm soát mã do AI hỗ trợ: [CONTRIBUTING.md](CONTRIBUTING.md); nợ kỹ thuật:
+[docs/TECH_DEBT.md](docs/TECH_DEBT.md).
 
 ## Hồ sơ minh chứng theo rubric
 
