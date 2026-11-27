@@ -47,13 +47,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
       - name: Trivy quét image vừa phát hành (báo cáo CRITICAL/HIGH)
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.v.outputs.tag }}
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
-          exit-code: "0"
-          format: table
-          output: trivy-${{ matrix.name }}.txt
+        run: |
+          docker run --rm -v "$PWD:/out" aquasec/trivy:0.58.1 image             ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ steps.v.outputs.tag }}             --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 --format table --output /out/trivy-${{ matrix.name }}.txt
       - uses: actions/upload-artifact@v4
         with: { name: "trivy-${{ matrix.name }}", path: "trivy-${{ matrix.name }}.txt" }
