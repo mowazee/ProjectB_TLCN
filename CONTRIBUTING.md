@@ -43,12 +43,12 @@
 | Test + độ phủ (artifact `backend-coverage`, `frontend-coverage`) | backend.yml, frontend.yml | 100% pass |
 | Lỗ hổng thư viện | pip-audit, `npm audit --audit-level=high`, Trivy | 0 lỗ hổng đã biết / 0 HIGH-CRITICAL có bản sửa |
 | Secret trong lịch sử Git | security.yml (gitleaks, cấu hình `.gitleaks.toml`) | 0 secret |
-| Phân tích tĩnh, trùng lặp mã | sonarcloud.yml | 0 Blocker/Critical, trùng lặp ≤ 3% |
+| Phân tích tĩnh, trùng lặp mã, Quality Gate | SonarCloud Automatic Analysis (check "SonarCloud Code Analysis" trên mỗi PR) | 0 Blocker/Critical, trùng lặp ≤ 3% |
 
-**Bật SonarCloud (một lần):** đăng nhập https://sonarcloud.io bằng GitHub → *Analyze new project* → chọn repo
-`ProjectB_TLCN` (organization `mowazee`, key `mowazee_ProjectB_TLCN`, khớp `sonar-project.properties`) → tắt
-*Automatic Analysis* → tạo token → thêm vào GitHub: *Settings → Secrets and variables → Actions → New secret*
-`SONAR_TOKEN`. Chưa có secret thì workflow tự bỏ qua.
+**SonarCloud:** đã bật *Automatic Analysis* cho repo (organization `mowazee`): SonarCloud tự quét mỗi PR và nhánh
+`main`, kết quả ở https://sonarcloud.io/project/overview?id=mowazee_ProjectB_TLCN. Phạm vi phân tích cấu hình trong
+`.sonarcloud.properties`. Độ phủ test không đưa lên SonarCloud (Automatic Analysis không nhận báo cáo coverage) mà lấy từ
+artifact `backend-coverage`, `frontend-coverage` của CI. Action bên thứ ba trong workflow mới được ghim bằng commit SHA.
 
 ## 5. Kiểm soát mã do AI hỗ trợ
 

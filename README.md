@@ -68,7 +68,7 @@ docs/openapi.json   hợp đồng API (sinh types React: npm run gen:api)
 document/           đặc tả v0.15: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.15 (21 bảng, sinh từ Alembic)
 tests/e2e/          Playwright (Python) chạy trên hệ thống thật
 .github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2), compose.yml (Docker + sao lưu),
-                    security.yml (gitleaks, Trivy), sonarcloud.yml, release.yml (image phiên bản lên GHCR)
+                    security.yml (gitleaks, Trivy), release.yml (image phiên bản lên GHCR); SonarCloud Automatic Analysis
 compose.yaml        Docker Compose (profile rag, tools — tools có Mailpit thử email); compose.dev.yaml
 scripts/            demo_start/stop.ps1 (demo một chạm), docker_start/stop.ps1
 ```
