@@ -18,6 +18,11 @@ from app.shared.db import utcnow
 logger = logging.getLogger(__name__)
 
 
+def _safe_log(value: Any) -> str:
+    """Giá trị đưa vào log: bỏ ký tự xuống dòng/điều khiển (chặn giả mạo dòng log), giới hạn độ dài."""
+    return "".join(ch if ch.isprintable() else "?" for ch in str(value))[:200]
+
+
 def record(
     db: Session,
     *,
@@ -52,6 +57,6 @@ def record(
         with db.begin_nested():
             db.add(log)
     except SQLAlchemyError:
-        logger.exception("Ghi audit thất bại: action=%s entity=%s", action, entity_id)
+        logger.exception("Ghi audit thất bại: action=%s entity=%s", action, _safe_log(entity_id))
         return None
     return log

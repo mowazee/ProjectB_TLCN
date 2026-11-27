@@ -56,7 +56,7 @@ ALL_MODULES: list[ModuleSpec] = [
 
 
 def enabled_modules(s: Settings = settings) -> list[ModuleSpec]:
-    return [m for m in ALL_MODULES if m.feature is None or m.feature in s.features_enabled]
+    return [m for m in ALL_MODULES if m.feature is None or m.feature in s.enabled_features]
 
 
 def activate(s: Settings = settings) -> list[ModuleSpec]:

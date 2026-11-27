@@ -22,7 +22,7 @@ from app.shared.errors import NotFoundError, PermissionDeniedError
 
 def publication_required() -> bool:
     """D-02 (v0.7): VIEWER chỉ thấy tài liệu đã xuất bản khi có quy trình duyệt (cờ workflow bật)."""
-    return "workflow" in settings.features_enabled
+    return "workflow" in settings.enabled_features
 
 
 def scope_of(doc: Document) -> policies.DocScope:

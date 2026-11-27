@@ -112,8 +112,9 @@ def _ocr_region(engine: Any, page_bgr: np.ndarray, box: Box) -> list[OcrLine]:
     """OCR một vùng ảnh; box của kết quả đổi về toạ độ ảnh trang (để highlight P2-02 vẽ đúng chỗ)."""
     x, y, w, h = box
     crop = page_bgr[y : y + h, x : x + w]
-    scale = 2.0 if min(w, h) < MIN_CROP_SIDE else 1.0
-    if scale != 1.0:
+    upscale = min(w, h) < MIN_CROP_SIDE
+    scale = 2.0 if upscale else 1.0
+    if upscale:
         crop = cv2.resize(crop, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
     # Không deskew: vùng cắt phải giữ đúng hệ toạ độ của trang
     crop = cv2.cvtColor(cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY), cv2.COLOR_GRAY2BGR)

@@ -40,12 +40,14 @@ function ShareForm({ doc, sharing, onClose }: { doc: DocumentOut; sharing: Shari
     mode === "internal" ? [ownerDept, ...others.filter((d) => deps.has(d.id)).map((d) => d.name)] : [],
   );
 
-  const initialDeps = sharing.departments.map((d) => d.id).sort();
-  const initialPeople = sharing.users.map((u) => u.id).sort();
+  const byNumber = (a: number, b: number) => a - b;
+  const byText = (a: string, b: string) => a.localeCompare(b);
+  const initialDeps = sharing.departments.map((d) => d.id).sort(byNumber);
+  const initialPeople = sharing.users.map((u) => u.id).sort(byText);
   const dirty =
     mode !== asShareMode(sharing.share_mode) ||
-    JSON.stringify([...deps].sort()) !== JSON.stringify(initialDeps) ||
-    JSON.stringify(people.map((p) => p.id).sort()) !== JSON.stringify(initialPeople);
+    JSON.stringify([...deps].sort(byNumber)) !== JSON.stringify(initialDeps) ||
+    JSON.stringify(people.map((p) => p.id).sort(byText)) !== JSON.stringify(initialPeople);
 
   const toggleDep = (id: number) =>
     setDeps((cur) => {

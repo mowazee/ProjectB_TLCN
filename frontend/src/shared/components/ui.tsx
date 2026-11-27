@@ -186,7 +186,7 @@ export function Modal({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <div className={s.backdrop} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className={s.backdrop} role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div
         className={`${s.modal} ${size === "lg" ? s.modalLg : ""}`}
         role="dialog"

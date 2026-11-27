@@ -82,7 +82,7 @@ def start_import(
             fields={"files": "manifest_required"},
         )
     if category_mode == "auto":
-        if "classification" not in settings.features_enabled:
+        if "classification" not in settings.enabled_features:
             raise UnprocessableError(
                 "Danh mục gợi ý cần bật tính năng phân loại tự động (P2-05)",
                 code="CATEGORY_MODE_UNAVAILABLE",

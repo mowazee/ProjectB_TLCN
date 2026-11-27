@@ -40,7 +40,6 @@ function AddMember({ role, onClose }: { role: string; onClose: () => void }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           aria-label="Tìm người dùng"
-          autoFocus
         />
         <ErrorBox error={save.error} />
         {users.isPending ? (

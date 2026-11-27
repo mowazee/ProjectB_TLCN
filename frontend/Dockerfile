@@ -3,7 +3,7 @@
 FROM node:24-alpine AS build
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY frontend/ ./
 COPY docs/openapi.json /src/docs/openapi.json
 RUN npm run gen:api && npm run build

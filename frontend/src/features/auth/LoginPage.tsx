@@ -95,7 +95,6 @@ export function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                autoFocus
               />
             </div>
           </Field>

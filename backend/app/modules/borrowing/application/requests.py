@@ -137,7 +137,7 @@ def create_request(
     if to_date < today():
         raise UnprocessableError("Thời gian mượn đã qua", fields={"to_date": "in_past"})
     # D-12 (v0.13): chỉ mượn tài liệu đã xuất bản (khi bật workflow) có bản cứng ở kho/kệ thật
-    if "workflow" in settings.features_enabled and str(doc.approval_status) != "published":
+    if "workflow" in settings.enabled_features and str(doc.approval_status) != "published":
         raise ConflictError("Chỉ mượn được tài liệu đã xuất bản", code="DOCUMENT_NOT_PUBLISHED")
     _, loc = physical_state(db, doc.id)
     if loc is None or loc.is_virtual:
