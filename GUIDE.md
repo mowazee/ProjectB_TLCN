@@ -350,11 +350,24 @@ $env:TEST_DATABASE_URL="postgresql+psycopg://postgres@127.0.0.1:55434/dms_test" 
 
 cd ..\frontend
 npm run lint; npm run typecheck; npm run format:check; npm test; npm run build
+npm run test:coverage                                            # báo cáo độ phủ: frontend/coverage/index.html
 
 # E2E (khi demo đang chạy)
 cd ..; backend\.venv\Scripts\python.exe -m playwright install chromium   # lần đầu
 backend\.venv\Scripts\python.exe -m pytest tests\e2e --browser chromium
 ```
+
+Độ phủ backend: thêm `--cov=app --cov-report=html` vào lệnh pytest (báo cáo ở `backend/htmlcov/index.html`).
+
+Kiểm thử tải NFR-04 (p95 ≤ 2 giây) khi hệ thống đang chạy:
+
+```powershell
+backend\.venv\Scripts\python.exe tests/load/load_test.py --base http://127.0.0.1:8080 --users 20 --duration 60 --json load-result.json
+```
+
+Kế hoạch kiểm thử (tầng, tiêu chí vào/ra, quản lý lỗi bằng GitHub Issues): `docs/TEST_PLAN.md`. Thực nghiệm người dùng
+(kịch bản, phiếu SUS, script tổng hợp): `docs/user-testing/`. Sinh lại từ điển dữ liệu sau khi đổi model:
+`cd backend; .\.venv\Scripts\python.exe scripts/gen_data_dictionary.py`.
 
 Đánh giá chất lượng OCR (NFR-08): xem `backend/eval/README.md`.
 
@@ -417,7 +430,7 @@ docker compose exec redis redis-cli info keyspace   # session/hàng đợi trong
 | api | FastAPI | healthcheck `/health`; Redis mất → API trả 503 `SERVICE_UNAVAILABLE` (không treo) |
 | worker | Celery `-P solo`, hàng đợi `default,ocr,ocr_hw`, image `docso-backend-hw` (có VietOCR + PyTorch CPU) | worker chết giữa job → khi container khởi động lại tự nhận lại job dở (log "Nhận lại … job bị bỏ dở"); worker chết hẳn → beat gửi lại sau `JOB_STALE_SECONDS`; runner claim theo DB nên không chạy trùng; mất Redis → tự kết nối lại. Chạy nhiều worker ngoài Docker trên cùng máy: đặt `WORKER_NAME` khác nhau |
 | beat | xóa vĩnh viễn tài liệu quá hạn thùng rác, dọn audit và job cũ (30 ngày), gửi lại job kẹt, nhắc quá hạn mượn, chuyển hết hiệu lực + nhắc trước hạn (mỗi giờ), thống kê | chỉ chạy **1** bản |
-| web | Nginx + React | chỉ nghe `127.0.0.1:8080` (đổi `WEB_BIND` trong `.env`) |
+| web | Nginx + React, image `nginx-unprivileged` (chạy bằng người dùng thường, nghe 8080 trong container) | chỉ nghe `127.0.0.1:8080` (đổi `WEB_BIND` trong `.env`) |
 
 ### 6.3 Lên server thật
 
@@ -532,12 +545,22 @@ Squash merge làm commit trên nhánh khác commit trên `main` (cùng nội dun
 
 | Workflow | Khi nào | Kiểm tra |
 |---|---|---|
-| `backend.yml` | mọi PR; push `main` khi đổi backend | ruff, mypy, import-linter, bandit, pip-audit (báo cáo); pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật; Alembic upgrade → check → downgrade → upgrade |
-| `frontend.yml` | mọi PR; push `main` khi đổi frontend/API | ESLint, tsc, Prettier, Vitest, build; `openapi-drift` (types React phải khớp API) |
+| `backend.yml` | mọi PR; push `main` khi đổi backend | ruff, mypy, import-linter, bandit, pip-audit (chặn); pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, báo cáo độ phủ (artifact `backend-coverage`); Alembic upgrade → check → downgrade → upgrade |
+| `frontend.yml` | mọi PR; push `main` khi đổi frontend/API | ESLint, tsc, Prettier, Vitest + độ phủ (artifact `frontend-coverage`), `npm audit` (chặn từ mức high), build; `openapi-drift` (types React phải khớp API) |
 | `e2e.yml` | mọi PR | Playwright trên hệ thống thật × 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) |
 | `compose.yml` | PR đổi Docker/infra; push `main` | build image → `docker compose up` → E2E qua Nginx → restart Redis → sao lưu, xóa dữ liệu, khôi phục (NFR-03) |
+| `security.yml` | mọi PR; push `main` | gitleaks quét secret trên toàn bộ lịch sử Git (`.gitleaks.toml`); Trivy quét lỗ hổng thư viện, cấu hình Dockerfile, secret — chặn CRITICAL/HIGH có bản sửa |
+| `release.yml` | tag `vX.Y.Z` hoặc chạy tay | build 3 image, đẩy lên GHCR, Trivy quét image (mục 6.5) |
+| SonarCloud (Automatic Analysis) | mọi PR; `main` | check "SonarCloud Code Analysis": Quality Gate — 0 lỗi bảo mật/độ tin cậy mới, trùng lặp mã mới ≤ 3% (cấu hình `.sonarcloud.properties`) |
 
-Khi CI đỏ: mở PR → tab Checks → job đỏ → bước đỏ để xem log; hoặc `gh run view <id> --log-failed`.
+Mọi cách cài thư viện trong CI và Dockerfile dùng `pip install --only-binary :all:` (chỉ wheel, không chạy `setup.py`)
+và `npm ci --ignore-scripts`; thêm thư viện chỉ có bản nguồn sẽ làm CI đỏ — chọn bản có wheel. Action bên thứ ba trong
+workflow mới ghim bằng commit SHA. Quy ước đầy đủ: CONTRIBUTING.md.
+
+Khi CI đỏ: mở PR → tab Checks → job đỏ → bước đỏ để xem log; hoặc `gh run view <id> --log-failed`. Báo cáo
+gitleaks/Trivy/độ phủ nằm ở mục Artifacts của lần chạy. **PR không có check nào:** kiểm tra PR có xung đột với `main`
+không (PR xung đột thì GitHub không chạy workflow `pull_request`) — merge `main` vào nhánh rồi đẩy lại; nếu không xung
+đột, đẩy một commit rỗng `git commit --allow-empty -m "ci: kích hoạt lại CI"`.
 
 ### 7.3 Khóa phiên bản thư viện
 
