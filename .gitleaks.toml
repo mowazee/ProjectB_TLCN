@@ -1,0 +1,19 @@
+# Cấu hình gitleaks (workflow security.yml): dùng bộ luật mặc định, chỉ bỏ qua dữ liệu demo/test công khai có chủ đích.
+# Không thêm vào đây bất kỳ secret thật nào; secret thật chỉ nằm trong .env (đã .gitignore) hoặc GitHub Secrets.
+title = "ProjectB gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "File mẫu cấu hình và dữ liệu test/demo (mật khẩu demo Admin@12345, Demo@12345 công bố trong README)"
+paths = [
+  '''(^|/)\.env(\.docker)?\.example$''',
+  '''^backend/tests/''',
+  '''^tests/e2e/''',
+  '''^frontend/src/.*\.test\.tsx?$''',
+  '''^frontend/src/test/''',
+  '''^docs/openapi\.json$''',
+  '''^frontend/src/shared/api/schema\.d\.ts$''',
+  '''^frontend/package-lock\.json$''',
+]

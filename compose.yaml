@@ -17,7 +17,7 @@ x-backend-env: &backend-env
 
 x-backend: &backend
   build: { context: ./backend }
-  image: docso-backend:0.5
+  image: ${IMAGE_PREFIX:-}docso-backend:${IMAGE_TAG:-0.5}
   env_file: .env
   environment: *backend-env
   volumes:
@@ -81,7 +81,7 @@ services:
     # api/beat giữ image nhẹ. Cùng image đó đọc được chữ viết tay (P2-03) nên worker nhận luôn hàng đợi ocr_hw - không
     # còn service worker-hw / profile hw riêng (trước đây quên bật -Hw thì job chữ viết tay chờ mãi).
     build: { context: ./backend, args: { WITH_HW: "1" } }
-    image: docso-backend-hw:0.5
+    image: ${IMAGE_PREFIX:-}docso-backend-hw:${IMAGE_TAG:-0.5}
     # -P solo: nạp model Paddle một lần trong chính tiến trình xử lý (prefork = fork sau khi nạp
     # Paddle/OpenMP, dễ treo). Tăng thông lượng bằng cách scale: docker compose up -d --scale worker=2
     command: ["celery", "-A", "app.workers.celery_app:celery_app", "worker", "-Q", "default,ocr,ocr_hw", "-P", "solo", "-l", "info"]
@@ -107,7 +107,7 @@ services:
 
   web:
     build: { context: ., dockerfile: frontend/Dockerfile }
-    image: docso-web:0.5
+    image: ${IMAGE_PREFIX:-}docso-web:${IMAGE_TAG:-0.5}
     ports: ["${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8080}:80"]
     depends_on:
       api: { condition: service_healthy }

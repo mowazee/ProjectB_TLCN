@@ -1,0 +1,54 @@
+name: security
+
+# Quét bảo mật mỗi PR (TC2.4, TC2.6): secret lộ trong toàn bộ lịch sử Git (gitleaks) và lỗ hổng thư viện /
+# cấu hình sai trong mã nguồn, Dockerfile (Trivy). Lỗ hổng thư viện Python, npm còn được chặn ở backend.yml (pip-audit)
+# và frontend.yml (npm audit).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: gitleaks (secret trong lịch sử Git)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # quét toàn bộ lịch sử, không chỉ commit cuối
+      - name: gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.24.0 \
+            git /repo --config /repo/.gitleaks.toml --redact --no-banner \
+            --report-format json --report-path /repo/gitleaks-report.json
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: gitleaks-report, path: gitleaks-report.json, if-no-files-found: ignore }
+
+  trivy:
+    name: Trivy (lỗ hổng thư viện + cấu hình Dockerfile)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy fs (chặn CRITICAL/HIGH đã có bản sửa)
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+          skip-dirs: "frontend/node_modules,backend/.venv,backend/eval/data"
+          format: table
+          output: trivy-report.txt
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: trivy-report, path: trivy-report.txt, if-no-files-found: ignore }
