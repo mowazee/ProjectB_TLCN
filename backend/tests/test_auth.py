@@ -36,11 +36,11 @@ def test_wrong_password_401_and_audited(seed, make_app, db):
     assert db.scalar(select(AuditLog).where(AuditLog.action == "login", AuditLog.result == "failure"))
 
 
-def test_rate_limit_429(seed, make_app):
+def test_rate_limit_429_unknown_login(seed, make_app):
+    """Tên đăng nhập không tồn tại: giới hạn theo IP + tên (tài khoản có thật thì bị khóa, xem test_v017)."""
     c = _client(make_app)
-    codes = [c.post("/api/auth/login", json={"username": "officer", "password": "sai"}).status_code for _ in range(7)]
+    codes = [c.post("/api/auth/login", json={"username": "khongco", "password": "sai"}).status_code for _ in range(7)]
     assert codes[:5] == [401] * 5 and codes[-1] == 429
-    assert c.post("/api/auth/login", json={"username": "officer", "password": PASSWORD}).status_code == 429
 
 
 def test_unauthenticated_401_json(make_app):

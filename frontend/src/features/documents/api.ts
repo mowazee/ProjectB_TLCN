@@ -97,7 +97,12 @@ export function useUpdateValidity(id: string) {
 export function useDeleteDocument() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api<void>(`/api/documents/${id}`, { method: "DELETE" }),
+    // v0.17: confirmBorrows - người xóa đã xác nhận ghi nhận trả hồ sơ đang mượn / từ chối yêu cầu mượn đang chờ
+    mutationFn: ({ id, confirmBorrows }: { id: string; confirmBorrows?: boolean }) =>
+      api<void>(`/api/documents/${id}`, {
+        method: "DELETE",
+        query: confirmBorrows ? { confirm_borrows: true } : undefined,
+      }),
     onSuccess: () => client.invalidateQueries({ queryKey: documentKeys.all }),
   });
 }

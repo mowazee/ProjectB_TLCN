@@ -2,7 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { BrowserRouter, useRoutes } from "react-router";
 
-import { LoginPage, RequireAuth } from "@/features/auth";
+import { ForgotPasswordPage, LoginPage, RequireAuth, ResetPasswordPage } from "@/features/auth";
 import { PublicSharePage } from "@/features/documents";
 import { SessionProvider, useSession } from "@/shared/session";
 import { SlotsProvider } from "@/shared/slots";
@@ -18,6 +18,8 @@ export function AppRoutes() {
   const nav = navItems(enabled, hasRole);
   const routes = useRoutes([
     { path: "/login", element: <LoginPage /> },
+    { path: "/forgot-password", element: <ForgotPasswordPage /> }, // v0.17: quên mật khẩu (không đăng nhập)
+    { path: "/reset-password/:token", element: <ResetPasswordPage /> }, // v0.17: link trong email, 30 phút
     { path: "/s/:token", element: <PublicSharePage /> }, // FR-18: người nhận ngoài hệ thống, không đăng nhập
     {
       path: "/",

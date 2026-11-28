@@ -55,6 +55,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Options
+         * @description Tùy chọn của trang đăng nhập (không cần đăng nhập).
+         */
+        get: operations["options_api_auth_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forgot Password
+         * @description Gửi link khôi phục tới email của tài khoản. Tài khoản không tồn tại vẫn nhận thông báo chung; tài khoản do
+         *     Admin khóa, chưa có email hợp lệ hoặc máy chủ thư lỗi -> 503 EMAIL_SEND_FAILED.
+         */
+        post: operations["forgot_password_api_auth_forgot_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/reset-password/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Check Reset Link
+         * @description Kiểm link khôi phục còn hiệu lực; 410 RESET_LINK_INVALID nếu sai, đã dùng hoặc hết hạn.
+         */
+        get: operations["check_reset_link_api_auth_reset_password__token__get"];
+        put?: never;
+        /**
+         * Reset Password
+         * @description Đặt mật khẩu mới bằng link; thu hồi mọi phiên; mở lại tài khoản bị khóa do nhập sai mật khẩu.
+         */
+        post: operations["reset_password_api_auth_reset_password__token__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/account": {
         parameters: {
             query?: never;
@@ -282,7 +347,11 @@ export interface paths {
         get: operations["get_document_api_documents__document_id__get"];
         put?: never;
         post?: never;
-        /** Delete Document */
+        /**
+         * Delete Document
+         * @description Chuyển vào thùng rác. Có cờ borrowing: hồ sơ đang được mượn hoặc có yêu cầu mượn chờ duyệt mà chưa xác nhận
+         *     -> 409 DOCUMENT_HAS_BORROWS (thông báo cần xác nhận); gửi lại với confirm_borrows=true để xóa.
+         */
         delete: operations["delete_document_api_documents__document_id__delete"];
         options?: never;
         head?: never;
@@ -1580,6 +1649,16 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** AuthOptionsOut */
+        AuthOptionsOut: {
+            /**
+             * Password Reset
+             * @description Đã cấu hình SMTP: hiện chức năng Quên mật khẩu
+             */
+            password_reset: boolean;
+            /** Password Reset Ttl Minutes */
+            password_reset_ttl_minutes: number;
+        };
         /** Body_add_attachments_api_documents__document_id__attachments_post */
         Body_add_attachments_api_documents__document_id__attachments_post: {
             /**
@@ -2174,6 +2253,14 @@ export interface components {
             /** Attachments */
             attachments?: number | null;
         };
+        /** ForgotIn */
+        ForgotIn: {
+            /**
+             * Login
+             * @description Tên đăng nhập hoặc email
+             */
+            login: string;
+        };
         /** GuideOut */
         GuideOut: {
             /**
@@ -2533,6 +2620,11 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** MessageOut */
+        MessageOut: {
+            /** Message */
+            message: string;
+        };
         /** NotificationOut */
         NotificationOut: {
             /**
@@ -2825,6 +2917,26 @@ export interface components {
             status: string;
             /** Queue */
             queue: string;
+        };
+        /** ResetCheckOut */
+        ResetCheckOut: {
+            /** Username */
+            username: string;
+        };
+        /** ResetIn */
+        ResetIn: {
+            /** New Password */
+            new_password: string;
+        };
+        /** ResetOut */
+        ResetOut: {
+            /** Message */
+            message: string;
+            /**
+             * Reactivated
+             * @description Tài khoản bị khóa do nhập sai mật khẩu vừa được mở lại
+             */
+            reactivated: boolean;
         };
         /** ReviewItemOut */
         ReviewItemOut: {
@@ -3121,6 +3233,11 @@ export interface components {
             phone: string | null;
             /** Is Active */
             is_active: boolean;
+            /**
+             * Locked Reason
+             * @description Lý do khóa: failed_logins (nhập sai mật khẩu, v0.17) hoặc admin
+             */
+            locked_reason?: string | null;
             /** Department Id */
             department_id: number | null;
             /** Roles */
@@ -3289,6 +3406,125 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    options_api_auth_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthOptionsOut"];
+                };
+            };
+        };
+    };
+    forgot_password_api_auth_forgot_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_reset_link_api_auth_reset_password__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetCheckOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_password_api_auth_reset_password__token__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -3886,7 +4122,10 @@ export interface operations {
     };
     delete_document_api_documents__document_id__delete: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Đã xác nhận: ghi nhận trả hồ sơ đang mượn, từ chối yêu cầu mượn đang chờ (v0.17) */
+                confirm_borrows?: boolean;
+            };
             header?: never;
             path: {
                 document_id: string;

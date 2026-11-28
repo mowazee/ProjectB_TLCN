@@ -151,6 +151,35 @@
   min-height: 44px;
   font-size: 15px;
 }
+/* v0.17: quên / đặt lại mật khẩu */
+.forgotRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -8px;
+  font-size: 13.5px;
+}
+.backRow {
+  text-align: center;
+  font-size: 13.5px;
+}
+.hint {
+  font-size: 13.5px;
+  color: var(--c-muted);
+}
+.notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid color-mix(in srgb, var(--tone-teal-fg) 35%, transparent);
+  background: var(--tone-teal-bg);
+  color: var(--tone-teal-fg);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+}
+.notice > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
 
 @media (max-width: 900px) {
   .wrap {

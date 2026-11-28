@@ -82,6 +82,164 @@
         }
       }
     },
+    "/api/auth/options": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Options",
+        "description": "Tùy chọn của trang đăng nhập (không cần đăng nhập).",
+        "operationId": "options_api_auth_options_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthOptionsOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Forgot Password",
+        "description": "Gửi link khôi phục tới email của tài khoản. Tài khoản không tồn tại vẫn nhận thông báo chung; tài khoản do\nAdmin khóa, chưa có email hợp lệ hoặc máy chủ thư lỗi -> 503 EMAIL_SEND_FAILED.",
+        "operationId": "forgot_password_api_auth_forgot_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/reset-password/{token}": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Check Reset Link",
+        "description": "Kiểm link khôi phục còn hiệu lực; 410 RESET_LINK_INVALID nếu sai, đã dùng hoặc hết hạn.",
+        "operationId": "check_reset_link_api_auth_reset_password__token__get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetCheckOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Reset Password",
+        "description": "Đặt mật khẩu mới bằng link; thu hồi mọi phiên; mở lại tài khoản bị khóa do nhập sai mật khẩu.",
+        "operationId": "reset_password_api_auth_reset_password__token__post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/account": {
       "get": {
         "tags": [
@@ -1109,6 +1267,7 @@
           "documents"
         ],
         "summary": "Delete Document",
+        "description": "Chuyển vào thùng rác. Có cờ borrowing: hồ sơ đang được mượn hoặc có yêu cầu mượn chờ duyệt mà chưa xác nhận\n-> 409 DOCUMENT_HAS_BORROWS (thông báo cần xác nhận); gửi lại với confirm_borrows=true để xóa.",
         "operationId": "delete_document_api_documents__document_id__delete",
         "parameters": [
           {
@@ -1120,6 +1279,18 @@
               "format": "uuid",
               "title": "Document Id"
             }
+          },
+          {
+            "name": "confirm_borrows",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Đã xác nhận: ghi nhận trả hồ sơ đang mượn, từ chối yêu cầu mượn đang chờ (v0.17)",
+              "default": false,
+              "title": "Confirm Borrows"
+            },
+            "description": "Đã xác nhận: ghi nhận trả hồ sơ đang mượn, từ chối yêu cầu mượn đang chờ (v0.17)"
           }
         ],
         "responses": {
@@ -5423,6 +5594,25 @@
         ],
         "title": "AuditLogOut"
       },
+      "AuthOptionsOut": {
+        "properties": {
+          "password_reset": {
+            "type": "boolean",
+            "title": "Password Reset",
+            "description": "Đã cấu hình SMTP: hiện chức năng Quên mật khẩu"
+          },
+          "password_reset_ttl_minutes": {
+            "type": "integer",
+            "title": "Password Reset Ttl Minutes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "password_reset",
+          "password_reset_ttl_minutes"
+        ],
+        "title": "AuthOptionsOut"
+      },
       "Body_add_attachments_api_documents__document_id__attachments_post": {
         "properties": {
           "files": {
@@ -7097,6 +7287,22 @@
         ],
         "title": "FileReport"
       },
+      "ForgotIn": {
+        "properties": {
+          "login": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Login",
+            "description": "Tên đăng nhập hoặc email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "login"
+        ],
+        "title": "ForgotIn"
+      },
       "GuideOut": {
         "properties": {
           "id": {
@@ -8025,6 +8231,19 @@
         ],
         "title": "LoginIn"
       },
+      "MessageOut": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "MessageOut"
+      },
       "NotificationOut": {
         "properties": {
           "id": {
@@ -8776,6 +8995,53 @@
         ],
         "title": "ReprocessOut"
       },
+      "ResetCheckOut": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username"
+        ],
+        "title": "ResetCheckOut"
+      },
+      "ResetIn": {
+        "properties": {
+          "new_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "New Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "new_password"
+        ],
+        "title": "ResetIn"
+      },
+      "ResetOut": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "reactivated": {
+            "type": "boolean",
+            "title": "Reactivated",
+            "description": "Tài khoản bị khóa do nhập sai mật khẩu vừa được mở lại"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "reactivated"
+        ],
+        "title": "ResetOut"
+      },
       "ReviewItemOut": {
         "properties": {
           "document_id": {
@@ -9494,6 +9760,18 @@
           "is_active": {
             "type": "boolean",
             "title": "Is Active"
+          },
+          "locked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked Reason",
+            "description": "Lý do khóa: failed_logins (nhập sai mật khẩu, v0.17) hoặc admin"
           },
           "department_id": {
             "anyOf": [

@@ -164,8 +164,18 @@ def update_validity(
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_document(document_id: uuid.UUID, db: DbSession, principal: CurrentPrincipal, ctx: Ctx) -> Response:
-    manage.soft_delete(db, principal, document_id, ctx)
+def delete_document(
+    document_id: uuid.UUID,
+    db: DbSession,
+    principal: CurrentPrincipal,
+    ctx: Ctx,
+    confirm_borrows: Annotated[
+        bool, Query(description="Đã xác nhận: ghi nhận trả hồ sơ đang mượn, từ chối yêu cầu mượn đang chờ (v0.17)")
+    ] = False,
+) -> Response:
+    """Chuyển vào thùng rác. Có cờ borrowing: hồ sơ đang được mượn hoặc có yêu cầu mượn chờ duyệt mà chưa xác nhận
+    -> 409 DOCUMENT_HAS_BORROWS (thông báo cần xác nhận); gửi lại với confirm_borrows=true để xóa."""
+    manage.soft_delete(db, principal, document_id, ctx, {"confirm_borrows": confirm_borrows})
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

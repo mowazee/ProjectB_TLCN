@@ -37,6 +37,7 @@ from app.modules.documents.infrastructure.models import Document, DocumentPage
 from app.modules.jobs.application import queries as jobs
 from app.modules.settings.application.retention import trash_retention_days
 from app.modules.users.application.queries import display_names
+from app.shared import delete_hooks
 from app.shared.config import settings
 from app.shared.context import SYSTEM_CONTEXT, Principal, RequestContext
 from app.shared.db import aware, utcnow
@@ -262,9 +263,19 @@ def apply_auto_category(
     return True
 
 
-def soft_delete(db: Session, principal: Principal, document_id: uuid.UUID, ctx: RequestContext) -> None:
-    """Xóa mềm: lifecycle_status=deleted + deleted_at; job đang chờ kết thúc; vào thùng rác. Quyền: D-11."""
+def soft_delete(
+    db: Session,
+    principal: Principal,
+    document_id: uuid.UUID,
+    ctx: RequestContext,
+    options: dict[str, Any] | None = None,
+) -> None:
+    """Xóa mềm: lifecycle_status=deleted + deleted_at; job đang chờ kết thúc; vào thùng rác. Quyền: D-11.
+
+    v0.17: chạy delete_hooks trước (borrowing: hồ sơ đang mượn / yêu cầu mượn chờ duyệt cần người xóa xác nhận,
+    options["confirm_borrows"])."""
     doc = ensure_permission(db, principal, document_id, policies.DELETE)
+    delete_hooks.run(db, principal, doc.id, options or {}, ctx)
     before = _snapshot(doc)
     doc.lifecycle_status = LifecycleStatus.DELETED
     doc.deleted_at = utcnow()

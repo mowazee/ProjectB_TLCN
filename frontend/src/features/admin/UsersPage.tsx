@@ -288,7 +288,17 @@ export function UsersPage() {
                   <td>{u.email}</td>
                   <td>{u.department_id ? (depName.get(u.department_id) ?? "—") : "—"}</td>
                   <td>{u.roles.map((r) => ROLE_LABELS[r] ?? r).join(", ")}</td>
-                  <td>{u.is_active ? <Badge tone="ok">Hoạt động</Badge> : <Badge tone="danger">Đã khóa</Badge>}</td>
+                  <td>
+                    {u.is_active ? (
+                      <Badge tone="ok">Hoạt động</Badge>
+                    ) : (
+                      <span title={u.locked_reason === "failed_logins" ? "Nhập sai mật khẩu quá 5 lần" : undefined}>
+                        <Badge tone="danger">
+                          {u.locked_reason === "failed_logins" ? "Khóa (nhập sai mật khẩu)" : "Đã khóa"}
+                        </Badge>
+                      </span>
+                    )}
+                  </td>
                   <td>{formatDateTime(u.last_login_at)}</td>
                   <td>
                     <div className="row" style={{ flexWrap: "nowrap" }}>

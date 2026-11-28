@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000"
     LOGIN_MAX_FAILURES: int = 5
     LOGIN_WINDOW_SECONDS: int = 900
+    # v0.17: sai mật khẩu liên tiếp ACCOUNT_LOCK_THRESHOLD lần thì khóa tài khoản (mở bằng Admin hoặc quên mật khẩu)
+    ACCOUNT_LOCK_THRESHOLD: int = 5
+    PASSWORD_RESET_TTL_MINUTES: int = 30  # hiệu lực link khôi phục mật khẩu gửi qua email (dùng chung SMTP_*)
+    PASSWORD_RESET_PER_HOUR: int = 3  # số email khôi phục tối đa mỗi tài khoản trong 1 giờ
 
     # Upload (D-01: chốt sau khi đo)
     MAX_UPLOAD_MB: int = 25
