@@ -40,13 +40,13 @@ Phiên bản áp dụng: SDD v0.15. Mục tiêu: chứng minh mọi tiêu chí n
 
 | Chỉ số | Giá trị | Nguồn |
 |---|---|---|
-| Test backend | 509 passed, 1 skipped (mặc định và mọi cờ P2) | `pytest -q`; CI backend |
-| Test frontend | 82 passed (25 file) | `npm test` |
+| Test backend | 512 passed, 1 skipped (mặc định và mọi cờ P2) | `pytest -q`; CI backend |
+| Test frontend | 83 passed (25 file) | `npm test` |
 | E2E | xanh trên 3 tổ hợp cờ (mvp, p2-dot-1, p2-tat-ca) | CI e2e |
 | Độ phủ dòng lệnh backend | 93% | artifact `backend-coverage` |
 | Độ phủ dòng lệnh frontend | 66,6% | artifact `frontend-coverage` |
 | Tỉ lệ build xanh | ~96% (187/194 lượt chạy gần nhất) | lịch sử GitHub Actions |
-| Kiểm thử tải NFR-04 | chưa đo trên staging | `tests/load/load_test.py` |
+| Kiểm thử tải NFR-04 | đạt: 20 người p95 415 ms, 50 người p95 1 183 ms, lỗi 0% (Docker local, 28/11) | `tests/load/results/` |
 
 ## 6. Truy vết test → tiêu chí nghiệm thu
 
@@ -70,4 +70,17 @@ backend\.venv\Scripts\python.exe tests/load/load_test.py --base http://127.0.0.1
 ```
 
 In p50/p95/p99 theo endpoint (danh sách, tìm kiếm, chi tiết, dashboard), số yêu cầu/giây, tỉ lệ lỗi; mã thoát 1 nếu p95
-vượt 2 000 ms hoặc lỗi > 1%. Lưu `load-result.json` làm minh chứng.
+vượt 2 000 ms hoặc lỗi > 1%. Lưu `load-result.json` làm minh chứng (đặt vào `tests/load/results/`).
+
+**Kết quả đo 28/11/2026** — Docker Compose trên máy phát triển (22 CPU, 20 GB RAM cấp cho Docker), API 1 tiến trình
+uvicorn, dữ liệu demo (15 tài liệu), tài khoản `nhanvien`, 60 giây mỗi mức:
+
+| Người dùng đồng thời | Yêu cầu | Yêu cầu/giây | p50 | p95 | p99 | Lỗi | Kết luận |
+|---|---|---|---|---|---|---|---|
+| 20 | 3 888 | 64,6 | 258–309 ms | 415 ms | 439–520 ms | 0% | Đạt |
+| 50 | 2 984 | 49,3 | 699–748 ms | 1 183 ms | 1 364–1 429 ms | 0% | Đạt |
+
+Nhận xét: thông lượng không tăng từ 20 lên 50 người (64,6 → 49,3 yêu cầu/giây), độ trễ tăng gần tuyến tính: API chạy
+1 tiến trình là điểm nghẽn. Khi cần phục vụ đông hơn: chạy uvicorn nhiều worker (`--workers`) hoặc nhân bản service
+`api` sau Nginx. Số liệu đo trên máy local với dữ liệu nhỏ, chưa thay cho phép đo trên staging (TECH_DEBT mục 9).
+File JSON: `tests/load/results/2026-11-28-docker-20-users.json`, `...-50-users.json`.

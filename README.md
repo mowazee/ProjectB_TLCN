@@ -99,7 +99,7 @@ Tài khoản demo: `admin / Admin@12345` (bản Docker: mật khẩu admin là `
 | Độ phủ dòng lệnh | artifact `backend-coverage`, `frontend-coverage` của CI | backend 93%, frontend 66,6% |
 | Lint/kiểu/ranh giới | ruff, mypy, lint-imports (5 contract), eslint, tsc, prettier | sạch |
 | Bảo mật, phân tích tĩnh | gitleaks, Trivy, pip-audit, `npm audit`, bandit; SonarCloud (Quality Gate mỗi PR) | 0 secret, 0 lỗ hổng HIGH/CRITICAL, 0 issue SonarCloud |
-| Kiểm thử tải NFR-04 | `tests/load/load_test.py` (docs/TEST_PLAN.md mục 8) | chưa đo trên staging |
+| Kiểm thử tải NFR-04 | `tests/load/load_test.py` (docs/TEST_PLAN.md mục 8) | đạt: 20 người p95 415 ms, 50 người p95 1 183 ms, lỗi 0% (Docker local, 28/11) |
 | E2E | `pytest tests/e2e --browser chromium` (demo đang chạy) | xanh trên CI (ma trận mvp, p2-dot-1, p2-tat-ca) |
 | Docker + sao lưu/khôi phục | CI `compose.yml` | xanh |
 

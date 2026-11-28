@@ -1,0 +1,42 @@
+{
+  "users": 50,
+  "duration_s": 60.5,
+  "requests": 2984,
+  "rps": 49.3,
+  "p95_ms": 1183.2,
+  "error_rate": 0.0,
+  "endpoints": [
+    {
+      "endpoint": "GET /api/dashboard",
+      "requests": 736,
+      "p50_ms": 747.6,
+      "p95_ms": 1218.6,
+      "p99_ms": 1395.7,
+      "errors": 0
+    },
+    {
+      "endpoint": "GET /api/documents",
+      "requests": 771,
+      "p50_ms": 748.0,
+      "p95_ms": 1193.6,
+      "p99_ms": 1388.1,
+      "errors": 0
+    },
+    {
+      "endpoint": "GET /api/documents/{id}",
+      "requests": 755,
+      "p50_ms": 699.3,
+      "p95_ms": 1120.6,
+      "p99_ms": 1428.5,
+      "errors": 0
+    },
+    {
+      "endpoint": "GET /api/search",
+      "requests": 722,
+      "p50_ms": 719.1,
+      "p95_ms": 1163.8,
+      "p99_ms": 1364.1,
+      "errors": 0
+    }
+  ]
+}

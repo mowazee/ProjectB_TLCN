@@ -37,6 +37,11 @@ async def login(client: httpx.AsyncClient, base: str, username: str, password: s
         f"{base}/api/auth/login", json={"username": username, "password": password}, headers={"Origin": base}
     )
     r.raise_for_status()
+    # Docker đặt cookie phiên có cờ Secure: httpx không gửi lại qua http://127.0.0.1 (trình duyệt coi localhost là an
+    # toàn nên vẫn gửi) -> tự gắn cookie vào header để đo được cả trên Docker lẫn demo
+    sid = r.cookies.get("dms_sid")
+    if sid:
+        client.headers["Cookie"] = f"dms_sid={sid}"
 
 
 async def user_loop(base: str, args: argparse.Namespace, stop: float, stats: dict, errors: dict) -> None:
