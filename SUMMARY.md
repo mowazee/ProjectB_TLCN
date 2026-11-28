@@ -73,7 +73,7 @@ kiểm thử, tài liệu thiết kế, AI Usage Log, bộ thực nghiệm ngư�
 | Bảo mật: gitleaks (toàn bộ lịch sử), Trivy, pip-audit, npm audit, bandit | 0 secret; 0 lỗ hổng HIGH/CRITICAL |
 | SonarCloud (nhánh `main`) | 0 issue mở; Quality Gate đạt |
 | Tỉ lệ lượt chạy CI xanh | ~96% (187/194 lượt gần nhất) |
-| Kiểm thử tải NFR-04 (`tests/load/load_test.py`) | chưa đo trên staging |
+| Kiểm thử tải NFR-04 (`tests/load/load_test.py`) | đạt: 20 người p95 415 ms, 50 người p95 1 183 ms, lỗi 0% (Docker local, 28/11); chưa đo trên staging |
 
 ## 2. Truy vết yêu cầu → hiện thực → test
 
@@ -176,7 +176,7 @@ hàng chờ duyệt chỉ có cột hiệu lực (vị trí bản cứng ở tra
 | Bắt buộc CI xanh và 1 approve trước khi merge | bật quy tắc bảo vệ nhánh `main` (GUIDE 7.1); PR #43, #46 cho thấy nút merge vẫn bấm được khi chưa có check | CONTRIBUTING.md mục 1 |
 | **Staging công khai + triển khai tự động** (rubric TC2.2, TC2.6) | chọn máy: VPS hoặc máy nhà + Cloudflare Tunnel; thêm chặng deploy, cảnh báo uptime | image phiên bản GHCR (`release.yml`), rollback bằng `IMAGE_TAG` (GUIDE 6.5) |
 | **Thực nghiệm người dùng** (rubric TC2.7) | ≥ 10 người thuộc nhóm mục tiêu, đo SUS, một vòng cải tiến và đo lại | `docs/user-testing/` (kịch bản, phiếu SUS, `sus_score.py`) |
-| Kiểm thử tải NFR-04 | hệ thống chạy trên demo/staging | `tests/load/load_test.py` |
+| Kiểm thử tải NFR-04 trên staging | có staging (đã đo trên Docker local, đạt) | `tests/load/load_test.py`, kết quả `tests/load/results/` |
 | AI Usage Log phần PR #1–#28, bản cam kết KPI, sổ tiến độ | nhóm tự điền | `docs/AI_USAGE_LOG.md`, `document/Checklist_cai_tien_theo_Rubric.docx` |
 | Báo cáo lỗi dạng file (môn Kiểm thử phần mềm) | tổng hợp từ GitHub Issues | issue #49–#56, `docs/TEST_PLAN.md` mục 7 |
 | Chép bản sao lưu ra ngoài máy | tùy nơi triển khai (ổ ngoài, cloud) | `BACKUP_DIR` (GUIDE 6.4) |

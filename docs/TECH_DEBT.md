@@ -13,5 +13,5 @@ Cập nhật: 28/11/2026. Mỗi mục: vì sao là nợ, rủi ro, kế hoạch.
 | 6 | Độ phủ test frontend 66,6% số dòng (backend 93%) | Lỗi giao diện ít được bắt tự động | Bổ sung test cho trang admin (Thống kê, Cấu hình), OCR Editor | TB |
 | 7 | Hàng chờ duyệt không hiện vị trí bản cứng (module workflow không phụ thuộc borrowing) | Kiểm duyệt phải mở từng tài liệu để xem vị trí | Thêm API truy vấn công khai của borrowing cho workflow đọc (điểm mở rộng có sẵn) | Thấp |
 | 8 | Trang Hướng dẫn sử dụng (FR-21) đang trống | Người dùng mới chưa có tài liệu trong app | Chốt hình thức (PDF tải lên hay nội dung soạn sẵn), viết nội dung từ GUIDE | TB |
-| 9 | Kiểm thử tải chưa chạy trên môi trường giống production | NFR-04 (p95 ≤ 2 giây) chưa có số liệu đo ở quy mô đồng thời | Chạy kịch bản tải trên staging khi có (mục 1) | TB |
+| 9 | Kiểm thử tải chưa chạy trên môi trường giống production | Đã đo trên Docker local 28/11 (50 người: p95 1,18 s, đạt), nhưng API 1 tiến trình là điểm nghẽn và dữ liệu demo nhỏ | Chạy kịch bản tải trên staging khi có (mục 1) | TB |
 | 10 | Hỏi đáp tài liệu (P3-01, RAG) chưa làm | Ngoài phạm vi kỳ này | Học kỳ sau theo SDD mục 5 | Thấp |
