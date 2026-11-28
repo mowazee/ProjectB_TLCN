@@ -1,6 +1,6 @@
 # Quy tắc nghiệp vụ (business rules)
 
-Gom các quy tắc nghiệp vụ đã chốt trong SDD v0.15 (mục 3, 4, 5, 11) vào một bảng để tra cứu và đối chiếu với mã nguồn.
+Gom các quy tắc nghiệp vụ đã chốt trong SDD v0.16 (mục 3, 4, 5, 11) vào một bảng để tra cứu và đối chiếu với mã nguồn.
 Cột "Hiện thực" chỉ nơi quy tắc được kiểm tra ở server (React chỉ ẩn/hiện nút); cột "Test" là bằng chứng tự động.
 
 | Mã | Quy tắc | Nguồn | Hiện thực | Test |
@@ -27,3 +27,5 @@ Cột "Hiện thực" chỉ nơi quy tắc được kiểm tra ở server (React
 | BR-20 | Tải file gốc: mọi vai trò trong phạm vi xem; mỗi lượt tải ghi nhật ký | D-08 | `documents/application/files.py` | test_documents.py |
 | BR-21 | Rollback chỉ Admin, tạo thay đổi mới, không xóa lịch sử; không bị giới hạn quyền sửa theo trạng thái | P2-09, D-11 | `rollback/application/rollback.py` | test_p2_rollback.py |
 | BR-22 | Mật khẩu: đổi mật khẩu cần mật khẩu hiện tại; khóa tài khoản thu hồi mọi phiên; giới hạn số lần đăng nhập sai | FR-01, FR-09 | `auth`, `users/application/account.py` | test_auth.py, test_v07_admin_account.py |
+| BR-23 | Tài liệu hướng dẫn sử dụng: mọi người dùng đã đăng nhập xem và tải; chỉ Admin tải lên, sửa, xóa; file phải thuộc định dạng cho phép, nội dung khớp đuôi, không rỗng, ≤ `MAX_GUIDE_MB` | FR-21, D-17 | `guides/application/manage.py`, `guides/domain/files.py` | test_v016_guides.py, GuidePage.test.tsx |
+| BR-24 | Xóa mềm tài liệu thì yêu cầu mượn đang chờ duyệt tự bị từ chối và người mượn được báo; yêu cầu đã duyệt vẫn ghi nhận trả được; khôi phục tài liệu không mở lại yêu cầu | P2-07, D-17 | `borrowing/application/requests.py` (`reject_pending_of_deleted`) | test_p2_borrowing.py |

@@ -2,7 +2,7 @@
 
 Sinh tự động bằng `backend/scripts/gen_data_dictionary.py` từ model SQLAlchemy (khớp migration Alembic, kiểm tra bằng `alembic check` trong CI). Ý nghĩa nghiệp vụ của từng bảng: file 3 mục IV (bảng mô tả thực thể); quy tắc nghiệp vụ: [BUSINESS_RULES.md](BUSINESS_RULES.md).
 
-Tổng số bảng: **21**.
+Tổng số bảng: **22**.
 
 | Bảng | Module | Số cột |
 |---|---|---|
@@ -17,6 +17,7 @@ Tổng số bảng: **21**.
 | [`document_pages`](#document-pages) | documents | 7 |
 | [`document_shares`](#document-shares) | documents | 6 |
 | [`documents`](#documents) | documents | 25 |
+| [`guide_documents`](#guide-documents) | guides | 10 |
 | [`notifications`](#notifications) | notifications | 8 |
 | [`ocr_corrections`](#ocr-corrections) | ocr | 7 |
 | [`ocr_results`](#ocr-results) | ocr | 9 |
@@ -215,6 +216,23 @@ Tổng số bảng: **21**.
 - Index `ix_documents_owner_id`: (owner_id)
 - Index `ix_documents_storage_location_id`: (storage_location_id)
 - Index `ix_documents_validity`: (validity_status, valid_until)
+
+## guide_documents
+
+| Cột | Kiểu | Null | Khóa / tham chiếu | Mặc định |
+|---|---|---|---|---|
+| `id` | UUID | không | PK |  |
+| `title` | VARCHAR(255) | không |  |  |
+| `description` | TEXT | có |  |  |
+| `file_name` | VARCHAR(255) | không |  |  |
+| `storage_key` | VARCHAR(500) | không |  |  |
+| `mime_type` | VARCHAR(150) | không |  |  |
+| `bytes` | BIGINT | không |  |  |
+| `uploaded_by` | UUID | có | → users.id ON DELETE SET NULL |  |
+| `created_at` | TIMESTAMP WITH TIME ZONE | không |  | now() |
+| `updated_at` | TIMESTAMP WITH TIME ZONE | không |  | now() |
+
+- Index `ix_guide_documents_created_at`: (created_at)
 
 ## notifications
 

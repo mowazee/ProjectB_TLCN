@@ -1,10 +1,10 @@
-# Hệ thống số hóa hồ sơ tài liệu doanh nghiệp (ProjectB — SDD v0.15)
+# Hệ thống số hóa hồ sơ tài liệu doanh nghiệp (ProjectB — SDD v0.16)
 
 Tiểu luận chuyên ngành — UTE, Nhóm 3. Mọi yêu cầu, tên dữ liệu và hợp đồng API bám theo
-**SDD v0.15** (`document/0 -Dac_ta_SDD_v0.15.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
+**SDD v0.16** (`document/0 -Dac_ta_SDD_v0.16.docx`). Kỳ này thực hiện **MVP + toàn bộ P2 (P2-01…P2-09)**; P3 (RAG) để học kỳ sau.
 
-**Trạng thái (28/11/2026):** MVP + P2 + phân hệ quản trị/tài khoản + bổ sung sau demo (SDD v0.13–v0.15: FR-14…FR-21,
-D-12…D-16) đã hiện thực; đặc tả v0.15 khớp với code; CI xanh trên mọi PR (#1–#57); SonarCloud 0 issue mở; quét bảo mật (gitleaks, Trivy) đạt. Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng OCR,
+**Trạng thái (28/11/2026):** MVP + P2 + phân hệ quản trị/tài khoản + bổ sung sau demo (SDD v0.13–v0.16: FR-14…FR-21,
+D-12…D-17) đã hiện thực; đặc tả v0.16 khớp với code; CI xanh trên mọi PR (#1–#61); SonarCloud 0 issue mở; quét bảo mật (gitleaks, Trivy) đạt. Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng OCR,
 trích xuất, phân loại — xem [SUMMARY.md](SUMMARY.md) mục 4.
 
 ProjectB được dựng mới hoàn toàn từ baseline v0.5 (React SPA + FastAPI API-only, modular monolith có điểm mở rộng).
@@ -22,6 +22,7 @@ ProjectA (`D:\ProjectA_TLCN`) giữ lại làm tham chiếu bản MVP cũ (Jinja
 | v0.13 | 10/11/2026 | Bổ sung sau demo: cấu hình thời gian lưu trữ (FR-14), tài liệu đi kèm (FR-15), gộp nhiều file (FR-16), thống kê (FR-17), chia sẻ ra ngoài bằng link + OTP (FR-18), bản cứng/Kho chung (D-12), tìm theo tên, OCR Editor |
 | v0.14 | 11/11/2026 | Hiệu lực tài liệu (FR-19, D-14), duyệt/xuất bản/từ chối hàng loạt (FR-20), lịch sử thay đổi tài liệu không bị dọn theo thời hạn audit (D-15) |
 | v0.15 | 11/11/2026 | Đồng bộ bản hiện thực: hàng đợi lưu 30 ngày, xóa vĩnh viễn không giữ nhật ký, nhập hàng loạt chỉ theo manifest.csv (D-16), trang Hướng dẫn sử dụng (FR-21) |
+| v0.16 | 28/11/2026 | Đồng bộ bản hiện thực PR #45–#60: Admin tải lên tài liệu Hướng dẫn sử dụng (FR-21, bảng guide_documents), yêu cầu mượn của tài liệu bị xóa tự bị từ chối (P2-07, D-17), lọc nhật ký theo tên, CI bảo mật và SonarCloud, số đo kiểm thử tải NFR-04 |
 
 ## Kiến trúc
 
@@ -50,7 +51,7 @@ Trình duyệt ── React SPA (Vite, TS) ──/api──► Nginx ──► F
   link + OTP email (cần SMTP — GUIDE mục 4.4). Hướng dẫn dùng: GUIDE mục 3 (Chức năng bổ sung v0.13).
 - **Bổ sung v0.14–v0.15:** hiệu lực tài liệu (khai báo khi gửi duyệt, tự hết hạn, nhắc trước 7 ngày, ẩn mặc định),
   duyệt/xuất bản/từ chối hàng loạt tối đa 20 tài liệu, nhập hàng loạt chỉ theo `manifest.csv`, hàng đợi lưu 30 ngày,
-  tài liệu quá hạn thùng rác bị xóa vĩnh viễn cùng nhật ký, trang Hướng dẫn sử dụng. GUIDE mục 3 (Chức năng v0.14–v0.15).
+  tài liệu quá hạn thùng rác bị xóa vĩnh viễn cùng nhật ký, trang Hướng dẫn sử dụng. GUIDE mục 3 (Chức năng v0.14–v0.16).
 - **Chất lượng và bảo mật:** CI chặn merge khi lint/test đỏ, có secret (gitleaks), lỗ hổng HIGH/CRITICAL (Trivy,
   pip-audit, npm audit); SonarCloud Automatic Analysis gắn Quality Gate cho mỗi PR; cài thư viện chỉ từ wheel và không
   chạy script cài đặt npm; container web chạy Nginx không quyền root. Quy ước: [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -68,7 +69,7 @@ frontend/           React + TypeScript + Vite (src/app, src/features/* - 19 feat
 infra/nginx/        default.conf (SPA + reverse proxy /api, CSP)
 infra/backup/       backup.sh (sao lưu/khôi phục, chạy trong service backup/restore)
 docs/openapi.json   hợp đồng API (sinh types React: npm run gen:api)
-document/           đặc tả v0.15: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.15 (21 bảng, sinh từ Alembic)
+document/           đặc tả v0.16: SDD, Đặc tả đề tài, Use Case/Sequence/ERD (+ khảo sát); script CSDL v0.16 (22 bảng, sinh từ Alembic)
 tests/e2e/          Playwright (Python) chạy trên hệ thống thật
 .github/workflows/  backend.yml, frontend.yml, e2e.yml (ma trận cờ P2), compose.yml (Docker + sao lưu),
                     security.yml (gitleaks, Trivy), release.yml (image phiên bản lên GHCR); SonarCloud Automatic Analysis
@@ -112,7 +113,7 @@ Quy ước đóng góp, chất lượng và kiểm soát mã do AI hỗ trợ: [
 
 | Minh chứng | Tài liệu |
 |---|---|
-| Đặc tả yêu cầu, thiết kế (SRS/SDD), sơ đồ UC/Sequence/ERD | `document/` (SDD, Đặc tả đề tài, Use Case/Sequence/ERD v0.15, script CSDL) |
+| Đặc tả yêu cầu, thiết kế (SRS/SDD), sơ đồ UC/Sequence/ERD | `document/` (SDD, Đặc tả đề tài, Use Case/Sequence/ERD v0.16, script CSDL) |
 | Sơ đồ ngữ cảnh, sơ đồ thành phần | [docs/design/](docs/design/) (`context.png`, `components.png`, nguồn `.dot`) |
 | Từ điển dữ liệu, quy tắc nghiệp vụ | [docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md), [docs/BUSINESS_RULES.md](docs/BUSINESS_RULES.md) |
 | Kế hoạch kiểm thử, kiểm thử tải, quản lý lỗi | [docs/TEST_PLAN.md](docs/TEST_PLAN.md), [tests/load/](tests/load/), GitHub Issues |

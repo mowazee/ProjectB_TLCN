@@ -1,6 +1,6 @@
 # Kế hoạch kiểm thử
 
-Phiên bản áp dụng: SDD v0.15. Mục tiêu: chứng minh mọi tiêu chí nghiệm thu (FR, P2, NFR) bằng kiểm thử tự động chạy lại
+Phiên bản áp dụng: SDD v0.16. Mục tiêu: chứng minh mọi tiêu chí nghiệm thu (FR, P2, NFR) bằng kiểm thử tự động chạy lại
 được, chặn hồi quy trước khi merge, và có số liệu cho các NFR định lượng.
 
 ## 1. Phạm vi
