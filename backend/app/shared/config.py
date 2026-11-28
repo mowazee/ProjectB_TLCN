@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     # FR-15 (v0.13): tài liệu đi kèm - số file mỗi bộ, dung lượng mỗi file và tổng mỗi bộ
     MAX_ATTACHMENTS: int = 20
     MAX_ATTACHMENT_MB: int = 25
+    MAX_GUIDE_MB: int = 100  # FR-21: tài liệu hướng dẫn sử dụng (PDF, Office, ảnh, video MP4)
     MAX_BUNDLE_MB: int = 200
     # FR-18 (v0.13): chia sẻ ra ngoài - SMTP (Gmail: smtp.gmail.com:587, app password), trống = tắt tính năng
     SMTP_HOST: str = ""

@@ -1,0 +1,117 @@
+/* Trang Hướng dẫn sử dụng (FR-21): khung tìm kiếm + bảng tiêu đề nền màu chủ đạo, dòng xen kẽ (dùng biến màu: sáng/tối) */
+.panel {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 24px 20px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.search {
+  position: relative;
+  flex: 1 1 360px;
+  max-width: 720px;
+}
+
+.search svg {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--c-muted);
+  pointer-events: none;
+}
+
+.search input {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px 0 48px;
+  font-size: 16px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  color: var(--c-text);
+}
+
+.search input::placeholder {
+  color: var(--c-placeholder);
+  font-style: italic;
+}
+
+.search input:focus {
+  outline: none;
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px var(--c-primary-ring);
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--c-border);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead th {
+  background: var(--c-primary-solid);
+  color: #fff;
+  text-align: left;
+  font-weight: 600;
+  padding: 14px 20px;
+  white-space: nowrap;
+}
+
+.table tbody td {
+  padding: 14px 20px;
+  border-top: 1px solid var(--c-border);
+  vertical-align: middle;
+  color: var(--c-text);
+}
+
+.table tbody tr:nth-child(even) td {
+  background: var(--c-row-hover);
+}
+
+.titleLink {
+  color: var(--c-primary);
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.titleLink:hover {
+  text-decoration: underline;
+}
+
+.desc {
+  margin-top: 4px;
+  color: var(--c-muted);
+  font-size: 13px;
+}
+
+.meta {
+  color: var(--c-muted);
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}

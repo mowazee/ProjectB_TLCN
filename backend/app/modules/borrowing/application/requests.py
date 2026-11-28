@@ -7,6 +7,7 @@ của cùng hồ sơ -> 409 BORROW_OVERLAP; chuyển sai trạng thái -> 409 IN
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Any
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from app.modules.borrowing.application.locations import document_location_id, ph
 from app.modules.borrowing.domain.rules import (
     APPROVED,
     PENDING,
+    REJECTED,
     TRANSITIONS,
     BorrowAction,
     is_overdue,
@@ -24,7 +26,7 @@ from app.modules.borrowing.infrastructure.models import BorrowRequest, StorageLo
 from app.modules.documents.application import queries as documents
 from app.modules.users.application.queries import display_names, user_ids_with_roles
 from app.shared.config import settings
-from app.shared.context import APPROVER, OFFICER, Principal, RequestContext
+from app.shared.context import APPROVER, OFFICER, SYSTEM_CONTEXT, Principal, RequestContext
 from app.shared.db import SessionLocal
 from app.shared.errors import ConflictError, NotFoundError, PermissionDeniedError, UnprocessableError
 from app.shared.notify import get_notifier
@@ -177,7 +179,8 @@ def act(
     req = db.scalar(select(BorrowRequest).where(BorrowRequest.id == request_id).with_for_update())
     if req is None:
         raise NotFoundError("Không tìm thấy yêu cầu mượn")
-    documents.ensure_can_review(db, principal, req.document_id)  # FR-13: Kiểm duyệt viên phòng ban của tài liệu
+    # FR-13: Kiểm duyệt viên phòng ban của tài liệu; trả hồ sơ bản cứng vẫn ghi nhận được khi tài liệu đã xóa (v0.16)
+    documents.ensure_can_review(db, principal, req.document_id, allow_deleted=action == BorrowAction.RETURN)
     expected, target = TRANSITIONS[action]
     if req.status != expected:
         raise ConflictError(
@@ -213,6 +216,46 @@ def act(
     return _views(db, [req])[0]
 
 
+def reject_pending_of_deleted(evt: Any) -> None:
+    """Event DocumentDeleted (P2-07, v0.16): tự từ chối yêu cầu mượn đang chờ duyệt của tài liệu vừa bị xóa, báo người
+    mượn. Yêu cầu đã duyệt (đang mượn bản cứng) giữ nguyên để còn ghi nhận trả. Session riêng, chạy sau commit."""
+    with SessionLocal() as db:
+        rows = list(
+            db.scalars(
+                select(BorrowRequest).where(
+                    BorrowRequest.document_id == evt.document_id, BorrowRequest.status == PENDING
+                )
+            ).all()
+        )
+        if not rows:
+            return
+        brief = documents.document_brief(db, {evt.document_id}).get(evt.document_id, {})
+        for req in rows:
+            req.status = REJECTED
+            record(
+                db,
+                action="borrow_auto_reject",
+                module="borrowing",
+                actor_id=None,
+                ctx=SYSTEM_CONTEXT,
+                entity_type="borrow_request",
+                entity_id=req.id,
+                document_id=req.document_id,
+                before={"status": PENDING},
+                after={"status": REJECTED, "reason": "Tài liệu đã bị xóa"},
+            )
+            if req.requester_id:
+                get_notifier().notify(
+                    db,
+                    [req.requester_id],
+                    title="Yêu cầu mượn đã bị hủy",
+                    message=f"'{brief.get('title', '')}' đã bị xóa nên yêu cầu mượn không còn hiệu lực",
+                    type="borrow.reject",
+                    link_url="/borrow-requests",
+                )
+        db.commit()
+
+
 def list_requests(
     db: Session,
     principal: Principal,
@@ -231,7 +274,8 @@ def list_requests(
         stmt = stmt.where(
             or_(
                 # yêu cầu mình duyệt được: phạm vi phòng ban, không mở theo chia sẻ (FR-13)
-                BorrowRequest.document_id.in_(documents.department_document_ids(principal)),
+                # gồm cả tài liệu trong thùng rác: yêu cầu đang mượn vẫn phải ghi nhận trả được (v0.16)
+                BorrowRequest.document_id.in_(documents.department_document_ids(principal, include_deleted=True)),
                 BorrowRequest.requester_id == principal.id,
             )
         )

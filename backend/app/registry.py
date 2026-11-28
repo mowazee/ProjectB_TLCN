@@ -14,6 +14,7 @@ from app.modules.classification import module as classification
 from app.modules.dashboard import module as dashboard
 from app.modules.documents import module as documents
 from app.modules.extraction import module as extraction
+from app.modules.guides import module as guides
 from app.modules.imports import module as imports
 from app.modules.jobs import module as jobs
 from app.modules.notifications import module as notifications
@@ -42,6 +43,7 @@ ALL_MODULES: list[ModuleSpec] = [
     system_settings.MODULE,  # FR-14 (v0.13, lõi)
     analytics.MODULE,  # FR-17 (v0.13, lõi)
     sharing.MODULE,  # FR-18 (v0.13, lõi; cần SMTP)
+    guides.MODULE,  # FR-21 (v0.16, lõi): tài liệu hướng dẫn sử dụng
     notifications.MODULE,  # P2-07 (Notifier dùng chung với P2-01)
     workflow.MODULE,  # P2-01
     highlight_module.MODULE,  # P2-02
