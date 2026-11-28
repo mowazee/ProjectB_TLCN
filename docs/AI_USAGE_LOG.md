@@ -36,7 +36,10 @@ ghi PR tương ứng để hội đồng đối chiếu.
 | #43 | 11/11 | Hàng đợi 30 ngày, xóa vĩnh viễn không giữ nhật ký, chỉ manifest, trang Hướng dẫn | Mã, test | Đề xuất 4 điều chỉnh sau khi chạy thử |
 | #44 | 11/11 | Đặc tả v0.15; gộp nhiều file qua `file_name`, file mẫu ZIP | Đặc tả, mã, test | Yêu cầu tên file gộp theo `title`, hướng dẫn nằm trong file mẫu |
 | #45, #46 | 11/11 | Beat dọn mỗi giờ, lọc nhật ký theo tên, cột Tên tài liệu | Tìm nguyên nhân, mã, test | Phát hiện lỗi khi dùng thử (thùng rác, ô lọc), chọn phương án cột riêng |
-| #47 trở đi | 28/11 | Cải tiến theo rubric: CI bảo mật, độ phủ, tài liệu kiểm thử/thiết kế | Cấu hình CI, tài liệu, script | Chọn phạm vi, hoãn staging |
+| #47–#58 | 28/11 | Cải tiến theo rubric: CI bảo mật, độ phủ, tài liệu kiểm thử/thiết kế, xử lý issue SonarCloud | Cấu hình CI, tài liệu, script | Chọn phạm vi, hoãn staging |
+| #59 | 28/11 | Admin tải lên tài liệu Hướng dẫn sử dụng; sửa yêu cầu mượn bị treo khi tài liệu bị xóa | Tìm nguyên nhân lỗi treo, thiết kế module guides, mã, test, giao diện theo ảnh mẫu | Đưa ảnh mẫu giao diện, phát hiện lỗi khi dùng thử, nghiệm thu |
+| #60 | 28/11 | Kiểm thử tải NFR-04 | Sửa script (cookie Secure), chạy 2 mức tải, ghi kết quả | Build lại hệ thống, xem số liệu |
+| #61 | 28/11 | Đặc tả v0.16 (file 0, 2, 3, 4) | Đối chiếu code để ghi đúng thực tế, sửa docx giữ định dạng, vẽ Hình 2d và 8b, sinh script CSDL | Yêu cầu cập nhật, duyệt nội dung |
 
 ## 4. Lỗi / ảo giác của AI đã phát hiện và sửa
 

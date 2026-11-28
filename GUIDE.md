@@ -194,7 +194,7 @@ kê, Cấu hình; Chia sẻ ra ngoài (cần SMTP hoặc Mailpit, mục 4.4).
 Bổ sung v0.14–v0.15: gửi duyệt chọn hiệu lực; `kiemduyet` → Duyệt tài liệu → tích chọn vài tài liệu → **Duyệt và xuất
 bản** (tích đủ checklist); Đổi hiệu lực một tài liệu đã xuất bản (nhập lý do); Nhập hàng loạt với `manifest.csv`.
 
-### Chức năng v0.14–v0.15 (SDD v0.15)
+### Chức năng v0.14–v0.16 (SDD v0.16)
 
 **Hiệu lực tài liệu** (FR-19, D-14): bốn trạng thái **Còn hiệu lực**, **Còn hiệu lực đến ngày…**, **Hết hiệu lực**,
 **Không quy định** (mặc định, kể cả tài liệu cũ).
@@ -496,7 +496,7 @@ Google Drive, máy khác) theo lịch. Demo Windows (mục 3, `.demo\`) là dữ
 Workflow `release.yml` build và đẩy 3 image lên GitHub Container Registry mỗi khi tạo tag phiên bản:
 
 ```powershell
-git tag v0.15.0; git push origin v0.15.0      # hoặc Actions → release → Run workflow, nhập tag
+git tag v0.16.0; git push origin v0.16.0      # hoặc Actions → release → Run workflow, nhập tag
 ```
 
 Image: `ghcr.io/mowazee/docso-backend`, `docso-backend-hw`, `docso-web`, mỗi image có tag phiên bản và `latest`;
@@ -504,7 +504,7 @@ Trivy quét từng image, báo cáo ở artifact của lần chạy. Dùng image
 
 ```
 IMAGE_PREFIX=ghcr.io/mowazee/
-IMAGE_TAG=v0.15.0
+IMAGE_TAG=v0.16.0
 ```
 
 rồi `docker compose pull; docker compose up -d`. **Rollback:** đặt `IMAGE_TAG` về phiên bản trước và chạy lại hai lệnh

@@ -1,21 +1,21 @@
-# Tóm tắt trạng thái ProjectB (baseline SDD v0.15) — cập nhật 28/11/2026
+# Tóm tắt trạng thái ProjectB (baseline SDD v0.16) — cập nhật 28/11/2026
 
 Trạng thái chung: **MVP + toàn bộ P2 (P2-01…P2-09) + phân hệ quản trị/tài khoản (FR-09…FR-13) + các bổ sung sau
-demo 09/11 (SDD v0.13–v0.15: FR-14…FR-21, D-12…D-16) đã hiện thực**; đặc tả v0.15 khớp với code; CI xanh trên mọi
-PR (#1–#57); từ 28/11 bổ sung hồ sơ minh chứng theo rubric chấm đồ án (quét bảo mật, SonarCloud 0 issue, độ phủ, kế hoạch
+demo 09/11 (SDD v0.13–v0.16: FR-14…FR-21, D-12…D-17) đã hiện thực**; đặc tả v0.16 khớp với code; CI xanh trên mọi
+PR (#1–#61); từ 28/11 bổ sung hồ sơ minh chứng theo rubric chấm đồ án (quét bảo mật, SonarCloud 0 issue, độ phủ, kế hoạch
 kiểm thử, tài liệu thiết kế, AI Usage Log, bộ thực nghiệm người dùng). Việc còn lại chủ yếu cần **dữ liệu thật** để đo chất lượng và thử gửi email thật qua Gmail (mục 4).
 
 ## 1. Đã hoàn thành
 
 | Hạng mục | Nội dung | Bằng chứng |
 |---|---|---|
-| Backend MVP | 9 module lõi (auth, users, categories, documents, jobs, ocr, search, dashboard, audit), 4 lớp mỗi module; v0.13 thêm 3 module lõi settings, analytics, sharing | test API/unit trong `backend/tests/` |
+| Backend MVP | 9 module lõi (auth, users, categories, documents, jobs, ocr, search, dashboard, audit), 4 lớp mỗi module; v0.13 thêm 3 module lõi settings, analytics, sharing; v0.16 thêm module lõi guides | test API/unit trong `backend/tests/` |
 | Backend P2 | P2-01…P2-09 (10 module/file bổ sung), cờ `FEATURES_ENABLED`, router tắt → 404 | test_p2_*.py |
 | Quản trị và tài khoản | FR-09 tài khoản của tôi, FR-10 phòng ban, FR-11 hàng đợi xử lý, FR-12 vai trò Người dùng thông thường + nhóm quyền, FR-13 chia sẻ | test_v07_*.py, test_v08_sharing.py |
 | Quyền sửa (D-11) | Policy ở `documents/domain/policies.py`, `DocumentOut.permissions` + `edit_lock_reason`, action `withdraw`/`return` | test_v012_permissions.py (ma trận 288 trường hợp); e2e test_review_locks_editing_d11 |
 | Điểm mở rộng | ModuleSpec + registry, job kind registry (`jobs.run`), event sau commit, port OcrEngine/Storage/Notifier/EmailSender (v0.13), hook trước khi gửi duyệt (`shared/submit_hooks`, v0.13), API truy vấn công khai, UI registry + slot | import-linter 5 contract KEPT; ESLint chặn import sai ranh giới |
-| CSDL | Alembic `0001_core` + `0101…0106` (mỗi module P2 một revision) + `0107` vai trò Người dùng thông thường, `0108` chia sẻ, `0109` nguồn danh mục, `0110` rút lại/trả lại, `0111…0115` bổ sung v0.13 (bản cứng/Kho chung, cấu hình hệ thống, thống kê theo ngày, tài liệu đi kèm, link chia sẻ ra ngoài), `0116` hiệu lực tài liệu (v0.14); trigger audit append-only (cho phép ON DELETE SET NULL) | `alembic check` sạch trên SQLite và PostgreSQL; upgrade/downgrade/upgrade (CI mỗi PR) |
-| Đặc tả | `document/` v0.15: SDD (file 0), Đặc tả đề tài (file 2), Use Case/Sequence/ERD (file 3: Hình 1, 2, 2b, 2c, 3–9; UC đến UC-37), script CSDL (file 4, sinh từ Alembic `0001…0116`, 21 bảng); file 1 (khảo sát) không đánh số phiên bản | script file 4 chạy sạch trên PostgreSQL 18 |
+| CSDL | Alembic `0001_core` + `0101…0106` (mỗi module P2 một revision) + `0107` vai trò Người dùng thông thường, `0108` chia sẻ, `0109` nguồn danh mục, `0110` rút lại/trả lại, `0111…0115` bổ sung v0.13 (bản cứng/Kho chung, cấu hình hệ thống, thống kê theo ngày, tài liệu đi kèm, link chia sẻ ra ngoài), `0116` hiệu lực tài liệu (v0.14), `0117` gỡ yêu cầu mượn bị treo (chỉ dữ liệu), `0118` tài liệu hướng dẫn (v0.16); trigger audit append-only (cho phép ON DELETE SET NULL) | `alembic check` sạch trên SQLite và PostgreSQL; upgrade/downgrade/upgrade (CI mỗi PR) |
+| Đặc tả | `document/` v0.16: SDD (file 0), Đặc tả đề tài (file 2), Use Case/Sequence/ERD (file 3: Hình 1, 2, 2b, 2c, 2d, 3–9, 8b; UC đến UC-39), script CSDL (file 4, sinh từ Alembic `0001…0118`, 22 bảng); file 1 (khảo sát) không đánh số phiên bản | script file 4 chạy sạch trên PostgreSQL 18 |
 | Frontend | React 19 + TS + Vite 8, React Router 7, TanStack Query 5, CSS Modules, Chart.js; 19 feature (9 lõi + 10 P2, lazy); types sinh từ OpenAPI; v0.13 thêm trang Thống kê, Cấu hình, tab Tài liệu đi kèm, hộp thoại Chia sẻ ra ngoài, trang công khai `/s/:token`; v0.14–v0.15 thêm nhãn/hộp thoại hiệu lực, duyệt hàng loạt, trang Hướng dẫn sử dụng | 80 test Vitest (24 file); tsc/eslint/prettier sạch |
 | Giao diện | Design token + component dùng chung; icon `lucide-react`; sidebar gom nhóm, ô tìm nhanh, avatar; đăng nhập chia đôi; dashboard theo nhóm + biểu đồ; **nền sáng/tối** (theo hệ thống / sáng / tối, lưu lựa chọn); nút theo quyền D-11 | E2E trên giao diện mới; soát ảnh chụp desktop 1440px + mobile 390px, sáng và tối |
 | OCR | Chữ in: VietOCR `vgg_seq2seq` (PaddleOCR dò dòng), chia dòng dài, chống nghiêng, lọc ký tự lạ, OCR vùng ảnh trong PDF có lớp chữ, dừng OCR. Chữ viết tay: VietOCR `vgg_transformer` trên hàng đợi `ocr_hw`, chia dòng, dùng chung model dò dòng | scan thật 87,7% → 98,2% (GUIDE 9.1); test_ocr_vietnamese.py, test_worker_profiles.py |
@@ -56,6 +56,8 @@ kiểm thử, tài liệu thiết kế, AI Usage Log, bộ thực nghiệm ngư�
 | Hồ sơ kiểm thử, thiết kế (rubric TC2.1, TC2.3, TC2.5, TC2.7) | Kế hoạch kiểm thử, kiểm thử tải NFR-04, sơ đồ context/component, từ điển dữ liệu, 22 business rules, AI Usage Log, bộ thực nghiệm người dùng (SUS); sửa test E2E chập chờn | #48 |
 | SonarCloud | Xử lý 30 issue (cài thư viện chỉ từ wheel, `npm ci --ignore-scripts`, bỏ `npx`, regex không backtracking, log injection, a11y, đổi tên thuộc tính cấu hình) → 0 issue | #57 |
 | Hướng dẫn sử dụng + sửa mượn hồ sơ (v0.16) | FR-21: Admin tải lên/sửa/xóa tài liệu hướng dẫn (PDF, Office, ảnh, MP4; kiểm tra nội dung file), mọi người dùng tìm và mở; module `guides`, migration 0118. P2-07: xóa tài liệu thì yêu cầu mượn đang chờ tự bị từ chối và báo người mượn; yêu cầu đang mượn vẫn ghi nhận trả được; migration 0117 sửa dữ liệu yêu cầu bị treo | #59 |
+| Kiểm thử tải NFR-04 | Sửa script gửi cookie phiên Secure; đo trên Docker local: 20 người p95 415 ms, 50 người p95 1 183 ms, lỗi 0% | #60 |
+| SDD v0.16 (đặc tả) | File 0, 2, 3 lên v0.16 khớp code đến PR #60: FR-21 tải lên, P2-07 tự từ chối, FR-07/FR-08, NFR-02/04/05/06/07, D-17; file 3 thêm UC-38, UC-39, Hình 2d, 8b; script CSDL v0.16 (22 bảng); từ điển dữ liệu, business rules BR-23, BR-24 | #61 |
 | Bug tracker | GitHub Issues #49–#56 (nhãn `bug`): 8 lỗi đã gặp, đủ vòng đời, kèm PR sửa và test hồi quy | — |
 
 ### Kết quả kiểm thử (28/11/2026)
@@ -137,7 +139,7 @@ một PR riêng trước PR hiện thực.
 | 10 | Phạm vi rollback P2-09 | Ghi rõ loại hỗ trợ + 422 `ROLLBACK_NOT_SUPPORTED` + API xem trước | SDD P2-09, §7.2; file 3 UC-08b |
 | + | `documents.department_id` có trong DB nhưng ERD v0.5 không vẽ | Vẽ lên ERD (căn cứ của D-02) | file 3 Hình 8 |
 
-Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); từ v0.6 script sinh lại từ Alembic (v0.15: `0001…0116`, 21 bảng).
+Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); từ v0.6 script sinh lại từ Alembic (v0.16: `0001…0118`, 22 bảng).
 
 ### 3.2 Quyết định chốt sau v0.6
 
@@ -154,6 +156,7 @@ Script CSDL v0.5 thực ra chỉ có phần MVP (revision 0001); từ v0.6 scrip
 | D-14 | Hiệu lực tài liệu 4 trạng thái; khai báo khi gửi duyệt; sau duyệt/xuất bản chỉ Kiểm duyệt/Admin đổi, bắt buộc lý do; hết hạn sau 23:59 ngày hết hạn; nhắc trước 7 ngày; ẩn mặc định | v0.14 |
 | D-15 | Lịch sử thay đổi của tài liệu còn tồn tại không bị dọn theo thời hạn audit; chỉ dọn log vận hành | v0.14 (sửa v0.15) |
 | D-16 | Job đã kết thúc giữ 30 ngày; tài liệu xóa vĩnh viễn không giữ nhật ký; nhập hàng loạt chỉ theo manifest.csv | v0.15 |
+| D-17 | Tài liệu hướng dẫn sử dụng lưu bảng riêng `guide_documents` (không OCR, phòng ban, duyệt); xóa mềm tài liệu thì yêu cầu mượn đang chờ tự bị từ chối, yêu cầu đã duyệt vẫn ghi nhận trả | v0.16 |
 
 Các điểm hiện thực đã ghi vào đặc tả v0.15: gửi duyệt lại giữ hiệu lực đã khai báo; xuất bản không kiểm lại hiệu lực;
 hàng chờ duyệt chỉ có cột hiệu lực (vị trí bản cứng ở trang chi tiết, vì module workflow không phụ thuộc borrowing);
@@ -171,7 +174,6 @@ hàng chờ duyệt chỉ có cột hiệu lực (vị trí bản cứng ở tra
 | **FR-18** thử gửi email thật | tài khoản Gmail + app password trong `.env` (GUIDE 4.4); `PUBLIC_BASE_URL` trỏ đúng địa chỉ người nhận mở được | đã test bằng sender giả; Mailpit cho thử local |
 | Email chờ OCR | job `EMAIL` dùng chung worker với OCR nên thư/OTP có thể đến chậm khi đang OCR tài liệu dài | tách hàng đợi `mail` + worker nhẹ nếu cần |
 | Nội dung trang Hướng dẫn sử dụng (FR-21) | nhóm soạn tài liệu hướng dẫn rồi Admin tải lên | chức năng tải lên đã có (#59) |
-| Đặc tả v0.16 | ghi vào SDD: FR-21 Admin tải lên tài liệu hướng dẫn, P2-07 tự từ chối yêu cầu mượn khi tài liệu bị xóa | code #59 |
 | Ngưỡng "dòng tin cậy thấp" trong OCR Editor | cố định 0,8 — cần dữ liệu thật để chỉnh | `editorUtils.ts` (`LOW_SCORE`) |
 | Bắt buộc CI xanh và 1 approve trước khi merge | bật quy tắc bảo vệ nhánh `main` (GUIDE 7.1); PR #43, #46 cho thấy nút merge vẫn bấm được khi chưa có check | CONTRIBUTING.md mục 1 |
 | **Staging công khai + triển khai tự động** (rubric TC2.2, TC2.6) | chọn máy: VPS hoặc máy nhà + Cloudflare Tunnel; thêm chặng deploy, cảnh báo uptime | image phiên bản GHCR (`release.yml`), rollback bằng `IMAGE_TAG` (GUIDE 6.5) |
@@ -288,3 +290,5 @@ hàng chờ duyệt chỉ có cột hiệu lực (vị trí bản cứng ở tra
 | #57 | 28/11 | Xử lý 30 issue SonarCloud |
 | #58 | 28/11 | Đồng bộ README, SUMMARY, GUIDE đến PR #57 |
 | #59 | 28/11 | FR-21: Admin tải lên tài liệu hướng dẫn sử dụng; P2-07: yêu cầu mượn của tài liệu đã xóa không còn bị treo |
+| #60 | 28/11 | Kiểm thử tải NFR-04 trên Docker (đạt), sửa script gửi cookie phiên |
+| #61 | 28/11 | Đặc tả v0.16 (file 0, 2, 3, 4), từ điển dữ liệu, business rules, README, GUIDE, SUMMARY |
