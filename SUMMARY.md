@@ -55,16 +55,17 @@ kiểm thử, tài liệu thiết kế, AI Usage Log, bộ thực nghiệm ngư�
 | Chất lượng, bảo mật (rubric TC2.4, TC2.6) | gitleaks, Trivy, pip-audit/npm audit chặn merge; báo cáo độ phủ backend/frontend; image phiên bản GHCR; CONTRIBUTING, nợ kỹ thuật, mẫu PR/báo lỗi; Nginx không quyền root; SonarCloud | #47 |
 | Hồ sơ kiểm thử, thiết kế (rubric TC2.1, TC2.3, TC2.5, TC2.7) | Kế hoạch kiểm thử, kiểm thử tải NFR-04, sơ đồ context/component, từ điển dữ liệu, 22 business rules, AI Usage Log, bộ thực nghiệm người dùng (SUS); sửa test E2E chập chờn | #48 |
 | SonarCloud | Xử lý 30 issue (cài thư viện chỉ từ wheel, `npm ci --ignore-scripts`, bỏ `npx`, regex không backtracking, log injection, a11y, đổi tên thuộc tính cấu hình) → 0 issue | #57 |
+| Hướng dẫn sử dụng + sửa mượn hồ sơ (v0.16) | FR-21: Admin tải lên/sửa/xóa tài liệu hướng dẫn (PDF, Office, ảnh, MP4; kiểm tra nội dung file), mọi người dùng tìm và mở; module `guides`, migration 0118. P2-07: xóa tài liệu thì yêu cầu mượn đang chờ tự bị từ chối và báo người mượn; yêu cầu đang mượn vẫn ghi nhận trả được; migration 0117 sửa dữ liệu yêu cầu bị treo | #59 |
 | Bug tracker | GitHub Issues #49–#56 (nhãn `bug`): 8 lỗi đã gặp, đủ vòng đời, kèm PR sửa và test hồi quy | — |
 
 ### Kết quả kiểm thử (28/11/2026)
 
 | Bộ | Kết quả |
 |---|---|
-| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 509 passed, 1 skipped / 509 passed, 1 skipped |
+| Backend pytest (SQLite), cờ tắt / mọi cờ bật | 512 passed, 1 skipped / 512 passed, 1 skipped |
 | CI `backend`: pytest × 6 tổ hợp cờ P2 trên PostgreSQL 18 + Redis thật, migrations | xanh trên mọi PR (#1–#57) |
 | CI `compose`: Docker Compose (Redis + worker + beat + Nginx) → E2E → restart Redis → sao lưu/khôi phục | xanh (chạy khi PR đổi Docker/infra) |
-| Frontend Vitest | 82 passed (25 file) |
+| Frontend Vitest | 83 passed (25 file) |
 | E2E Playwright trên demo thật, mọi cờ bật (local) | 13 passed, 1 skipped (14 test: 5 MVP + 9 P2; test bỏ qua chỉ dành cho chế độ cờ tắt) |
 | CI `e2e`: 3 tổ hợp cờ (MVP, P2 đợt 1, tất cả) | xanh trên mọi PR (ở chế độ MVP các test P2 tự bỏ qua) |
 | ruff, ruff format, mypy, lint-imports, ESLint, tsc, Prettier | sạch |
@@ -110,7 +111,7 @@ kiểm thử, tài liệu thiết kế, AI Usage Log, bộ thực nghiệm ngư�
 | D-12 | borrowing/locations (Kho chung, declare_on_submit), shared/submit_hooks; requests chặn bản nháp | workflow (hộp thoại bản cứng khi Gửi duyệt), borrowing (tab, Kho lưu trữ) | test_p2_borrowing.py (3 test D-12); components.test.tsx |
 | FR-19 | documents/domain/validity, application/validity (beat validity_tasks, nhắc qua Notifier + EmailSender), hook gửi duyệt; workflow approve; search, sharing, imports | shared/components/validity, documents/ValidityDialog, workflow (hộp thoại gửi duyệt/duyệt), danh sách, tìm kiếm, /s/:token | test_v014_validity.py; ValidityDialog.test.tsx, components.test.tsx |
 | FR-20 | workflow/approvals.bulk (POST /api/reviews/bulk), hàng chờ include_expired | workflow/ReviewsPage | test_v014_bulk_review.py; ReviewsPage.test.tsx |
-| FR-21 | — | features/guide (/guide) | GuidePage.test.tsx |
+| FR-21 | guides (domain/files kiểm tra định dạng, application/manage, router /api/guides); migration 0118 | features/guide (/guide): bảng, tìm kiếm, hộp thoại tải lên/sửa (Admin) | test_v016_guides.py, GuidePage.test.tsx |
 | D-15, D-16 | audit/retention (log vận hành; delete_for_document), jobs/retention (purge_old_jobs 30 ngày) | admin/SettingsPage (ghi chú phạm vi xóa) | test_v013_retention.py, test_documents.py, test_v014_job_retention.py |
 | NFR-09 | registry + cờ | registry.ts | toàn bộ test chạy lại với `TEST_FEATURES=all`; test_p2_flags.py; registry.test.ts |
 | NFR-03 | `infra/backup/backup.sh` (service `backup`, `restore`) | — | CI `compose`: sao lưu → xóa tài liệu và file → khôi phục → app chạy lại |
@@ -169,7 +170,8 @@ hàng chờ duyệt chỉ có cột hiệu lực (vị trí bản cứng ở tra
 | **D-01** chốt giới hạn file/trang | đo trên máy triển khai | biến `MAX_UPLOAD_MB` (25), `MAX_PAGES` (100), `MAX_MERGE_FILES` (20), `MAX_ATTACHMENTS` (20) |
 | **FR-18** thử gửi email thật | tài khoản Gmail + app password trong `.env` (GUIDE 4.4); `PUBLIC_BASE_URL` trỏ đúng địa chỉ người nhận mở được | đã test bằng sender giả; Mailpit cho thử local |
 | Email chờ OCR | job `EMAIL` dùng chung worker với OCR nên thư/OTP có thể đến chậm khi đang OCR tài liệu dài | tách hàng đợi `mail` + worker nhẹ nếu cần |
-| Nội dung trang Hướng dẫn sử dụng (FR-21) | tài liệu hướng dẫn và cách đưa lên (file tải lên hay nội dung soạn sẵn) | trang `/guide` đã có, đang trống |
+| Nội dung trang Hướng dẫn sử dụng (FR-21) | nhóm soạn tài liệu hướng dẫn rồi Admin tải lên | chức năng tải lên đã có (#59) |
+| Đặc tả v0.16 | ghi vào SDD: FR-21 Admin tải lên tài liệu hướng dẫn, P2-07 tự từ chối yêu cầu mượn khi tài liệu bị xóa | code #59 |
 | Ngưỡng "dòng tin cậy thấp" trong OCR Editor | cố định 0,8 — cần dữ liệu thật để chỉnh | `editorUtils.ts` (`LOW_SCORE`) |
 | Bắt buộc CI xanh và 1 approve trước khi merge | bật quy tắc bảo vệ nhánh `main` (GUIDE 7.1); PR #43, #46 cho thấy nút merge vẫn bấm được khi chưa có check | CONTRIBUTING.md mục 1 |
 | **Staging công khai + triển khai tự động** (rubric TC2.2, TC2.6) | chọn máy: VPS hoặc máy nhà + Cloudflare Tunnel; thêm chặng deploy, cảnh báo uptime | image phiên bản GHCR (`release.yml`), rollback bằng `IMAGE_TAG` (GUIDE 6.5) |
@@ -284,3 +286,5 @@ hàng chờ duyệt chỉ có cột hiệu lực (vị trí bản cứng ở tra
 | #47 | 28/11 | CI: gitleaks, Trivy, chặn pip-audit/npm audit, báo cáo độ phủ, image phiên bản GHCR; CONTRIBUTING, nợ kỹ thuật, mẫu PR/báo lỗi; Nginx không quyền root; SonarCloud |
 | #48 | 28/11 | Kế hoạch kiểm thử, kiểm thử tải, sơ đồ context/component, từ điển dữ liệu, business rules, AI Usage Log, bộ thực nghiệm SUS; sửa E2E chập chờn (#56) |
 | #57 | 28/11 | Xử lý 30 issue SonarCloud |
+| #58 | 28/11 | Đồng bộ README, SUMMARY, GUIDE đến PR #57 |
+| #59 | 28/11 | FR-21: Admin tải lên tài liệu hướng dẫn sử dụng; P2-07: yêu cầu mượn của tài liệu đã xóa không còn bị treo |

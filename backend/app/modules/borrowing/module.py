@@ -3,6 +3,7 @@
 from app.modules.borrowing.application import locations, requests
 from app.modules.borrowing.presentation.router import router
 from app.modules.dashboard.application.stats import register_contributor
+from app.modules.documents.domain.events import DocumentDeleted
 from app.shared import submit_hooks
 from app.shared.config import settings
 from app.shared.modules import ModuleSpec, Schedule
@@ -18,6 +19,8 @@ MODULE = ModuleSpec(
     feature="borrowing",
     router=router,
     permissions=["borrow:request", "borrow:decide", "storage:manage"],
+    # v0.16: xóa tài liệu -> tự từ chối yêu cầu mượn đang chờ duyệt (trước đây treo mãi)
+    event_handlers=[(DocumentDeleted, requests.reject_pending_of_deleted)],
     schedules={"remind_overdue_borrows": Schedule(requests.remind_overdue, settings.BORROW_REMIND_INTERVAL_SECONDS)},
     setup=_setup,
 )

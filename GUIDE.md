@@ -139,6 +139,10 @@ liệu **đã xuất bản** có bản cứng ở kho/kệ thật (bản nháp v
 bản, người tải lên, Kiểm duyệt viên phòng ban và Admin vẫn đổi được vị trí ở tab **Mượn hồ sơ**. Kho chung là vị trí hệ
 thống (nhãn "Hệ thống" ở Quản trị → Kho lưu trữ), không sửa được.
 
+**Tài liệu bị xóa khi đang có yêu cầu mượn** (P2-07): yêu cầu **đang chờ duyệt** tự chuyển **Đã từ chối** (nhật ký
+`borrow_auto_reject`, lý do "Tài liệu đã bị xóa"), người mượn nhận thông báo. Yêu cầu **đã duyệt** (đang giữ bản cứng)
+vẫn hiện ở trang Yêu cầu mượn của Kiểm duyệt viên để bấm **Ghi nhận trả**.
+
 **Cấu hình thời gian lưu trữ** (FR-14, Admin): **Quản trị → Cấu hình** — số ngày giữ tài liệu trong thùng rác (1–365)
 và số ngày lưu audit log (tối thiểu 180, tối đa 3650). Beat xóa dữ liệu quá hạn ở lượt chạy kế tiếp; mỗi lần đổi và
 mỗi lượt dọn audit đều ghi nhật ký. Thống kê (FR-17) không bị mất khi audit cũ bị xóa.
@@ -229,8 +233,12 @@ quá hạn có thể nằm mãi trong thùng rác. Lượt dọn cũng xóa nh�
 `ocr`), **người dùng** (tên đăng nhập hoặc họ tên) và **tài liệu** (tên tài liệu) — không cần biết ID. Mở từ trang
 Người dùng/Nhóm quyền thì trang tự lọc theo người đó, có nút **Bỏ lọc**. Cột **Tên tài liệu** hiện tên (bấm để mở tài liệu); dòng không gắn tài liệu hoặc tài liệu đã xóa hiện "—".
 
-**Hướng dẫn sử dụng** (FR-21): menu **Hướng dẫn sử dụng** (`/guide`, mọi người dùng). Hiện để trống, sau này đặt tài liệu
-hướng dẫn tại đây.
+**Hướng dẫn sử dụng** (FR-21): menu **Hướng dẫn sử dụng** (`/guide`). Mọi người dùng đã đăng nhập thấy bảng tài liệu
+hướng dẫn (Tiêu đề / Người đăng / Thời gian đăng, mới nhất trước), gõ ô tìm kiếm để lọc theo tiêu đề hoặc mô tả. Bấm
+tiêu đề: PDF, ảnh, video MP4 mở ở tab mới; Word/Excel/PowerPoint tải về. **Admin** có nút **Tải lên tài liệu** (file
+PDF, DOCX, XLSX, PPTX, PNG, JPG, MP4; tối đa `MAX_GUIDE_MB`, mặc định 100 MB; tiêu đề để trống thì lấy tên file) và
+nút **Sửa** (tiêu đề, mô tả) / **Xóa** (xóa luôn file trong kho) ở từng dòng. File được kiểm tra đúng định dạng theo
+nội dung (đổi đuôi `.exe` thành `.pdf` bị từ chối); mỗi lần tải lên, sửa, xóa đều ghi nhật ký (module `guides`).
 
 ## 4. Phát triển hằng ngày
 

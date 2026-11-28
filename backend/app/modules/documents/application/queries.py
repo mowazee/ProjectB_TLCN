@@ -189,10 +189,14 @@ def ensure_can_cancel_job(db: Session, principal: Principal, document_id: uuid.U
     return ensure_permission(db, principal, document_id, policies.CANCEL_JOB)
 
 
-def ensure_can_review(db: Session, principal: Principal, document_id: uuid.UUID) -> Document:
-    """Duyệt, xuất bản, hủy xuất bản, duyệt mượn: Kiểm duyệt viên phòng ban của tài liệu (chia sẻ không mở)."""
+def ensure_can_review(
+    db: Session, principal: Principal, document_id: uuid.UUID, *, allow_deleted: bool = False
+) -> Document:
+    """Duyệt, xuất bản, hủy xuất bản, duyệt mượn: Kiểm duyệt viên phòng ban của tài liệu (chia sẻ không mở).
+
+    allow_deleted: ghi nhận trả hồ sơ bản cứng vẫn làm được khi tài liệu số đã vào thùng rác (P2-07, v0.16)."""
     doc = db.get(Document, document_id)
-    if doc is None or doc.lifecycle_status != LifecycleStatus.ACTIVE:
+    if doc is None or (doc.lifecycle_status != LifecycleStatus.ACTIVE and not allow_deleted):
         raise NotFoundError("Không tìm thấy tài liệu")
     if not policies.can_review(principal, scope_of(doc)):
         raise PermissionDeniedError("Chỉ Kiểm duyệt viên phòng ban của tài liệu được thực hiện thao tác này")

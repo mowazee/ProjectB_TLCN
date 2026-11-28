@@ -837,6 +837,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/guides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Guides */
+        get: operations["list_guides_api_guides_get"];
+        put?: never;
+        /** Upload Guide */
+        post: operations["upload_guide_api_guides_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/guides/{guide_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Guide */
+        delete: operations["delete_guide_api_guides__guide_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Guide */
+        patch: operations["update_guide_api_guides__guide_id__patch"];
+        trace?: never;
+    };
+    "/api/guides/{guide_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Guide File */
+        get: operations["guide_file_api_guides__guide_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notifications": {
         parameters: {
             query?: never;
@@ -1604,6 +1657,21 @@ export interface components {
              */
             keep_originals: boolean;
         };
+        /** Body_upload_guide_api_guides_post */
+        Body_upload_guide_api_guides_post: {
+            /**
+             * File
+             * @description PDF, Word, Excel, PowerPoint, PNG/JPG, MP4
+             */
+            file: string;
+            /**
+             * Title
+             * @description Trống = tên file
+             */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+        };
         /**
          * BorrowAction
          * @enum {string}
@@ -2106,6 +2174,48 @@ export interface components {
             /** Attachments */
             attachments?: number | null;
         };
+        /** GuideOut */
+        GuideOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string | null;
+            /** File Name */
+            file_name: string;
+            /** Mime Type */
+            mime_type: string;
+            /** Bytes */
+            bytes: number;
+            /**
+             * Inline
+             * @description Mở trực tiếp trên trình duyệt (PDF, ảnh, video) hay tải về
+             */
+            inline: boolean;
+            /** Uploaded By */
+            uploaded_by: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** GuidePatch */
+        GuidePatch: {
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2566,6 +2676,17 @@ export interface components {
         Page_DocumentOut_: {
             /** Items */
             items: components["schemas"]["DocumentOut"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** Page[GuideOut] */
+        Page_GuideOut_: {
+            /** Items */
+            items: components["schemas"]["GuideOut"][];
             /** Total */
             total: number;
             /** Page */
@@ -4904,6 +5025,165 @@ export interface operations {
             header?: never;
             path: {
                 token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_guides_api_guides_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_GuideOut_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_guide_api_guides_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_guide_api_guides_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuideOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_guide_api_guides__guide_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                guide_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_guide_api_guides__guide_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                guide_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuidePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuideOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    guide_file_api_guides__guide_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                guide_id: string;
             };
             cookie?: never;
         };

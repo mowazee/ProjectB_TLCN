@@ -165,3 +165,29 @@ def test_draft_cannot_be_borrowed_and_location_editable_after_publish(seed, logi
         403,
         404,
     )
+
+
+def test_deleting_document_rejects_pending_and_keeps_return_possible(seed, login, db):
+    """v0.16: xóa tài liệu -> yêu cầu chờ duyệt tự bị từ chối (trước đây treo mãi); yêu cầu đang mượn vẫn hiện với
+    Kiểm duyệt viên và ghi nhận trả được."""
+    admin, officer, loc, doc_id = _setup(seed, login)
+    officer.put(f"/api/documents/{doc_id}/storage-location", json={"storage_location_id": loc["id"]})
+    approver = login("approver", features=F)
+    borrowed = _req(officer, doc_id, 1, 2).json()
+    assert approver.post(f"/api/borrow-requests/{borrowed['id']}/approve").status_code == 200
+    waiting = _req(officer, doc_id, 5, 6).json()
+    assert waiting["status"] == "pending"
+
+    assert officer.delete(f"/api/documents/{doc_id}").status_code == 204
+    db.rollback()
+    assert db.get(BorrowRequest, UUID(waiting["id"])).status == "rejected"
+    assert db.get(BorrowRequest, UUID(borrowed["id"])).status == "approved"
+    log = db.scalar(select(AuditLog).where(AuditLog.action == "borrow_auto_reject"))
+    assert log is not None and log.state_after["reason"] == "Tài liệu đã bị xóa"
+    note = officer.get("/api/notifications").json()["items"][0]
+    assert note["title"] == "Yêu cầu mượn đã bị hủy"
+
+    ids = {x["id"] for x in approver.get("/api/borrow-requests").json()["items"]}
+    assert borrowed["id"] in ids  # tài liệu trong thùng rác vẫn thấy yêu cầu đang mượn
+    assert approver.post(f"/api/borrow-requests/{waiting['id']}/approve").status_code == 404  # không duyệt được
+    assert approver.post(f"/api/borrow-requests/{borrowed['id']}/return").json()["status"] == "returned"
