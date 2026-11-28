@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { JobStatus } from "@/features/jobs";
+import { ApiError } from "@/shared/api/client";
 import type { DocumentOut } from "@/shared/api/types";
 import {
   ApprovalBadge,
@@ -136,6 +137,8 @@ export function DocumentDetailPage() {
   const [sharing, setSharing] = useState(false);
   const [external, setExternal] = useState(false); // FR-18
   const [changingValidity, setChangingValidity] = useState(false); // FR-19
+  // v0.17: máy chủ báo hồ sơ đang được mượn / có yêu cầu mượn -> hỏi người xóa xác nhận (nội dung từ máy chủ)
+  const [borrowConfirm, setBorrowConfirm] = useState<string | null>(null);
   const { session, hasFeature } = useSession();
 
   if (doc.isPending) return <Loading />;
@@ -156,9 +159,28 @@ export function DocumentDetailPage() {
 
   const remove = () => {
     if (window.confirm(`Chuyển "${d.title}" vào thùng rác?`)) {
-      del.mutate(d.id, { onSuccess: () => navigate("/documents") });
+      del.mutate(
+        { id: d.id },
+        {
+          onSuccess: () => navigate("/documents"),
+          onError: (e) => {
+            if (e instanceof ApiError && e.code === "DOCUMENT_HAS_BORROWS") setBorrowConfirm(e.message);
+          },
+        },
+      );
     }
   };
+  const confirmBorrowsAndRemove = () =>
+    del.mutate(
+      { id: d.id, confirmBorrows: true },
+      {
+        onSuccess: () => {
+          setBorrowConfirm(null);
+          navigate("/documents");
+        },
+      },
+    );
+  const borrowBlocked = del.error instanceof ApiError && del.error.code === "DOCUMENT_HAS_BORROWS";
   const refresh = () => {
     client.invalidateQueries({ queryKey: documentKeys.detail(d.id) });
     client.invalidateQueries({ queryKey: documentKeys.pages(d.id) });
@@ -245,7 +267,28 @@ export function DocumentDetailPage() {
           </div>
         }
       />
-      <ErrorBox error={del.error} />
+      {!borrowBlocked && <ErrorBox error={del.error} />}
+      {borrowConfirm && (
+        <Modal
+          title="Xác nhận trạng thái mượn hồ sơ"
+          onClose={() => setBorrowConfirm(null)}
+          closeLabel="Hủy"
+          actions={
+            <button className="btn btn-danger" onClick={confirmBorrowsAndRemove} disabled={del.isPending}>
+              <Trash2 size={16} aria-hidden /> {del.isPending ? "Đang xóa..." : "Xác nhận và xóa"}
+            </button>
+          }
+        >
+          <div className="stack">
+            {borrowConfirm.split("\n").map((line) => (
+              <p key={line} style={{ margin: 0 }}>
+                {line}
+              </p>
+            ))}
+            {!borrowBlocked && <ErrorBox error={del.error} />}
+          </div>
+        </Modal>
+      )}
       {d.validity_status === "expired" && (
         <p className={s.lockNote} role="note">
           <CalendarClock size={15} aria-hidden /> Tài liệu đã hết hiệu lực

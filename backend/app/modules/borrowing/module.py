@@ -4,7 +4,7 @@ from app.modules.borrowing.application import locations, requests
 from app.modules.borrowing.presentation.router import router
 from app.modules.dashboard.application.stats import register_contributor
 from app.modules.documents.domain.events import DocumentDeleted
-from app.shared import submit_hooks
+from app.shared import delete_hooks, submit_hooks
 from app.shared.config import settings
 from app.shared.modules import ModuleSpec, Schedule
 
@@ -12,6 +12,7 @@ from app.shared.modules import ModuleSpec, Schedule
 def _setup() -> None:
     register_contributor(requests.dashboard_counts)
     submit_hooks.register(locations.declare_on_submit)  # D-12: khai báo bản cứng khi gửi duyệt
+    delete_hooks.register(requests.check_borrows_on_delete)  # v0.17: xác nhận trạng thái mượn trước khi xóa
 
 
 MODULE = ModuleSpec(

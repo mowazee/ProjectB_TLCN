@@ -1,7 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Route, Routes } from "react-router";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { mockFetch, renderWithProviders, SESSION } from "@/test/utils";
 
@@ -36,8 +36,9 @@ const doc = (over: Record<string, unknown>) => ({
   ...over,
 });
 
-function render(body: object) {
-  mockFetch({
+function render(body: object, extra: Parameters<typeof mockFetch>[0] = {}) {
+  const calls = mockFetch({
+    ...extra,
     "GET /api/auth/me": { body: WF_SESSION },
     "GET /api/documents/d1/pages": { body: [] },
     "GET /api/documents/d1/sharing": {
@@ -59,6 +60,7 @@ function render(body: object) {
     </Routes>,
     { route: "/documents/d1" },
   );
+  return calls;
 }
 
 describe("Chi tiết tài liệu - chia sẻ (FR-13)", () => {
@@ -117,5 +119,43 @@ describe("Chi tiết tài liệu - quyền sửa theo trạng thái duyệt (D-1
     );
     expect(await screen.findByRole("button", { name: /Xóa/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /Sửa thông tin/ })).toBeDisabled();
+  });
+});
+
+describe("Chi tiết tài liệu - xóa khi hồ sơ đang được mượn (v0.17)", () => {
+  const MSG =
+    'Hồ sơ bản cứng đang được Nguyễn Văn A mượn, bạn có muốn cập nhật trạng thái thành "Đã trả" và xóa tài liệu không?\n' +
+    "Tài liệu đang có 1 yêu cầu mượn, bạn có chắc chắn muốn từ chối yêu cầu mượn và xóa tài liệu?";
+
+  it("máy chủ báo đang mượn / có yêu cầu: hiện hộp thoại xác nhận, xác nhận thì gửi lại với confirm_borrows", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const calls = render(doc({ permissions: ["delete"] }), {
+      "DELETE /api/documents/d1": (call) =>
+        call.url.includes("confirm_borrows=true")
+          ? { status: 204, body: null }
+          : { status: 409, body: { error: { code: "DOCUMENT_HAS_BORROWS", message: MSG } } },
+    });
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /Xóa/ }));
+    const dialog = await screen.findByRole("dialog", { name: "Xác nhận trạng thái mượn hồ sơ" });
+    expect(dialog).toHaveTextContent("đang được Nguyễn Văn A mượn");
+    expect(dialog).toHaveTextContent("từ chối yêu cầu mượn và xóa tài liệu?");
+    expect(screen.queryByRole("alert")).toBeNull(); // không hiện như lỗi
+    await user.click(screen.getByRole("button", { name: /Xác nhận và xóa/ }));
+    const deletes = calls.filter((c) => c.method === "DELETE");
+    expect(deletes.map((c) => c.url)).toEqual(["/api/documents/d1", "/api/documents/d1?confirm_borrows=true"]);
+  });
+
+  it("bấm Hủy: đóng hộp thoại, không xóa", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const calls = render(doc({ permissions: ["delete"] }), {
+      "DELETE /api/documents/d1": { status: 409, body: { error: { code: "DOCUMENT_HAS_BORROWS", message: MSG } } },
+    });
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /Xóa/ }));
+    await screen.findByRole("dialog", { name: "Xác nhận trạng thái mượn hồ sơ" });
+    await user.click(screen.getByRole("button", { name: "Hủy" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(calls.filter((c) => c.method === "DELETE")).toHaveLength(1);
   });
 });

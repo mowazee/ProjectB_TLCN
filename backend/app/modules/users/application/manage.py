@@ -218,8 +218,11 @@ def update_user(
         user.department_id = changes["department_id"]
     if changes.get("roles") is not None:
         user.roles = _roles(db, changes["roles"])
-    if changes.get("is_active") is not None:
+    if changes.get("is_active") is not None and bool(changes["is_active"]) != user.is_active:
         user.is_active = bool(changes["is_active"])
+        # v0.17: ghi lý do khóa; mở khóa thì xóa lý do và bộ đếm nhập sai mật khẩu
+        user.locked_reason = None if user.is_active else "admin"
+        user.failed_login_count = 0
     if changes.get("password"):
         user.password_hash = hash_password(changes["password"])
     after = _snapshot(user)

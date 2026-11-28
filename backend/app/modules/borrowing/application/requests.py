@@ -18,6 +18,7 @@ from app.modules.borrowing.domain.rules import (
     APPROVED,
     PENDING,
     REJECTED,
+    RETURNED,
     TRANSITIONS,
     BorrowAction,
     is_overdue,
@@ -214,6 +215,79 @@ def act(
         )
     db.commit()
     return _views(db, [req])[0]
+
+
+class BorrowsOnDeleteError(ConflictError):
+    code = "DOCUMENT_HAS_BORROWS"
+
+
+def _names_text(names: list[str]) -> str:
+    return ", ".join(names) if names else "người dùng khác"
+
+
+def check_borrows_on_delete(
+    db: Session, principal: Principal, document_id: uuid.UUID, options: dict[str, Any], ctx: RequestContext
+) -> None:
+    """Hook trước khi xóa tài liệu (v0.17). Hồ sơ đang được mượn (đã duyệt) hoặc có yêu cầu đang chờ:
+    - chưa xác nhận -> 409 DOCUMENT_HAS_BORROWS, thông báo để người xóa xác nhận;
+    - đã xác nhận (confirm_borrows) -> ghi nhận "Đã trả" cho lượt đang mượn, từ chối yêu cầu đang chờ, báo người mượn.
+    Chạy trong transaction của thao tác xóa: xóa thất bại thì trạng thái mượn không đổi."""
+    rows = list(
+        db.scalars(
+            select(BorrowRequest)
+            .where(BorrowRequest.document_id == document_id, BorrowRequest.status.in_((APPROVED, PENDING)))
+            .order_by(BorrowRequest.from_date)
+            .with_for_update()
+        ).all()
+    )
+    if not rows:
+        return
+    loans = [r for r in rows if r.status == APPROVED]
+    pending = [r for r in rows if r.status == PENDING]
+    names = display_names(db, {r.requester_id for r in rows if r.requester_id})
+    borrowers = list(dict.fromkeys(names[r.requester_id] for r in loans if r.requester_id in names))
+    if not options.get("confirm_borrows"):
+        parts = []
+        if loans:
+            parts.append(
+                f"Hồ sơ bản cứng đang được {_names_text(borrowers)} mượn, bạn có muốn cập nhật trạng thái thành "
+                '"Đã trả" và xóa tài liệu không?'
+            )
+        if pending:
+            parts.append(
+                f"Tài liệu đang có {len(pending)} yêu cầu mượn, bạn có chắc chắn muốn từ chối yêu cầu mượn và xóa "
+                "tài liệu?"
+            )
+        raise BorrowsOnDeleteError(
+            "\n".join(parts),
+            details={
+                "borrowed_by": borrowers,
+                "active_loans": len(loans),
+                "pending_requests": len(pending),
+            },
+        )
+    brief = documents.document_brief(db, {document_id}).get(document_id, {})
+    for req in rows:
+        before = req.status
+        if req.status == APPROVED:
+            req.status = RETURNED
+            action, title = "borrow_return", "Đã ghi nhận trả hồ sơ"
+            message = f"'{brief.get('title', '')}' bị xóa; hồ sơ bản cứng được ghi nhận đã trả"
+        else:
+            req.status = REJECTED
+            req.approver_id = principal.id
+            action, title = "borrow_reject", "Yêu cầu mượn bị từ chối"
+            message = f"'{brief.get('title', '')}' đã bị xóa nên yêu cầu mượn bị từ chối"
+        _audit(db, principal, req, action, before, ctx)
+        if req.requester_id and req.requester_id != principal.id:
+            get_notifier().notify(
+                db,
+                [req.requester_id],
+                title=title,
+                message=message,
+                type=f"borrow.{'return' if req.status == RETURNED else 'reject'}",
+                link_url="/borrow-requests",
+            )
 
 
 def reject_pending_of_deleted(evt: Any) -> None:

@@ -50,6 +50,9 @@ class UserOut(BaseModel):
     full_name: str
     phone: str | None
     is_active: bool
+    locked_reason: str | None = Field(
+        default=None, description="Lý do khóa: failed_logins (nhập sai mật khẩu, v0.17) hoặc admin"
+    )
     department_id: int | None
     roles: list[str]
     last_login_at: datetime | None
@@ -84,6 +87,7 @@ def user_out(u: User) -> UserOut:
         full_name=u.full_name,
         phone=u.phone,
         is_active=u.is_active,
+        locked_reason=u.locked_reason,
         department_id=u.department_id,
         roles=sorted(u.role_codes),
         last_login_at=u.last_login_at,

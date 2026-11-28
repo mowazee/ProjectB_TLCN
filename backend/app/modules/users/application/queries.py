@@ -16,6 +16,8 @@ class Credentials:
     user_id: uuid.UUID
     password_hash: str
     is_active: bool
+    locked_reason: str | None = None
+    failed_login_count: int = 0
 
 
 def to_principal(user: User) -> Principal:
@@ -36,7 +38,7 @@ def find_credentials(db: Session, login: str) -> Credentials | None:
     user = db.scalar(select(User).where(or_(User.username == key, User.email == key)))
     if user is None:
         return None
-    return Credentials(user.id, user.password_hash, user.is_active)
+    return Credentials(user.id, user.password_hash, user.is_active, user.locked_reason, user.failed_login_count)
 
 
 def display_names(db: Session, ids: set[uuid.UUID]) -> dict[uuid.UUID, str]:
